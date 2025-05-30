@@ -1,0 +1,50 @@
+name: CPP_BUILD_TEST_DOC
+on:
+  workflow_dispatch:
+  pull_request:
+  push:
+    branches:
+     - master
+  release:
+    types:
+      - published
+
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-project:
+    name: Build Project
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout the repository
+        uses: actions/checkout@v3.5.3
+        with:
+          submodules: true
+
+#      - name: Installing required packages
+#        run: sudo apt install -y build-essential cmake # libgtest-dev libgmock-dev
+
+      - name: Configure the project
+        uses: threeal/cmake-action@v2.0.0
+        with:
+          options: |
+            BUILD_PYTHON=ON
+
+      - name: Install python test dependencies
+        run: pip install numpy scipy
+
+#      - name: Configure the project
+#        run: cmake . -Bbuild
+
+      - name: Build the project
+        run: cmake --build build
+
+      - name: Test the project
+        run: ctest --test-dir build -V
+
+      - uses: actions/upload-artifact@v3
+        with:
+          path: build/*fastfilter*

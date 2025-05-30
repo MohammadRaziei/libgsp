@@ -1,0 +1,98 @@
+name: PYTHON_BUILD_TEST_DEPLOY
+
+on:
+  workflow_dispatch:
+  pull_request:
+  push:
+    branches:
+      - master
+    tags:
+      - "v*"
+
+env:
+  FORCE_COLOR: 3
+
+concurrency:
+  group: github.workflow−{{ github.workflow }}-{{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build_sdist:
+    name: Build SDist
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        submodules: false
+
+    - name: Ruff Check
+      uses: jpetrucciani/ruff-check@main
+
+    - name: Build SDist
+      run: pipx run build --sdist
+
+    - name: Check metadata
+      run: pipx run twine check dist/*
+
+    - uses: actions/upload-artifact@v3
+      with:
+        path: dist/*.tar.gz
+
+
+  build_wheels:
+    name: Wheels on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        submodules: false
+
+    - name: Build wheels
+      uses: pypa/cibuildwheel@v2.20.0
+      env:
+#          CIBW_ARCHS_MACOS: universal2
+#          CIBW_ARCHS_WINDOWS: auto ARM64
+         # Disable building PyPy wheels on all platforms
+        CIBW_SKIP: pp*
+        CIBW_TEST_SKIP: "cp38-* cp39-* *_i686 *-musllinux_* *-win32"
+
+    - name: Verify clean directory
+      run: git diff --exit-code
+      shell: bash
+
+    - uses: actions/upload-artifact@v3
+      with:
+        path: wheelhouse/*.whl
+
+
+  release:
+    name: Release Assets and Upload to PyPI
+    needs: [build_wheels, build_sdist]
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+
+    steps:
+    - uses: actions/setup-python@v4
+      with:
+        python-version: "3.x"
+
+    - uses: actions/download-artifact@v3
+      with:
+        name: artifact
+        path: dist
+
+    - name: Release with assets
+      uses: softprops/action-gh-release@v1
+      with:
+        files: dist/*
+
+    - name: Publishing to PyPi
+      uses: pypa/gh-action-pypi-publish@release/v1
+      with:
+        password: ${{ secrets.PYPI_PASSWORD }}
+        user: ${{ secrets.PYPI_USERNAME }}
