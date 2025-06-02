@@ -1,6 +1,6 @@
 <p align="center">
   <a href="https://github.com/mohammadraziei/libgsp">
-    <img src="https://github.com/MohammadRaziei/libgsp/raw/master/docs/images/logo/logo-color.svg" alt="Logo">
+    <img src="https://github.com/MohammadRaziei/libgsp/raw/master/docs/images/libgsp-logo.svg" alt="Logo">
   </a>
   <h3 align="center">
     libGSP : a Graph Signal Processing Library
