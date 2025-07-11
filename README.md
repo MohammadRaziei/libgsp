@@ -1,11 +1,12 @@
 <p align="center">
-  <a href="https://github.com/mohammadraziei/libgsp">
-    <img src="https://github.com/MohammadRaziei/libgsp/raw/master/docs/images/libgsp-logo-sq.svg" alt="Logo">
-  </a>
   <h3 align="center">
-    libGSP : a Graph Signal Processing Library
+    <a href="https://github.com/mohammadraziei/libgsp" style="margin-right:10px; ">
+      <img src="https://github.com/MohammadRaziei/libgsp/raw/master/docs/images/libgsp-logo-sq.svg" width="80px" alt="Logo">
+    </a>
+    <span style="transform: translateY(-30px);">libGSP</span>
   </h3>
-  <h4 align="center">
+  <h4 align="center"> a Graph Signal Processing Library </h4>
+  <h5 align="center">
 	Comprehensive Library for Digital Signal Processing in C++, Python
   </h4>
 </p>
