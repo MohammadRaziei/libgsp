@@ -10,6 +10,8 @@ std::string render_svg(
 ) {
     const double scale = 100.0;
     const int font_size = 6;
+
+
     double min_x = 1e9, max_x = -1e9, min_y = 1e9, max_y = -1e9;
 
     for (size_t i = 0; i < coords.size(); ++i) {

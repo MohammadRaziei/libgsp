@@ -22,14 +22,19 @@ std::string render_svg(
     const std::vector<double> &signals, 
     const std::map<std::string, std::string> &options = {}
 ) {
-    const double scale = 100.0;
-    const int font_size = 6;
+
+    const double signal_scale = map_get(options, "signal_scale", 1);
+    int node_space_scale = map_get(options, "node_space_scale", 1);
+    const int signal_font_size = map_get(options, "signal_font_size", 12);
+    std::string title = map_get<std::string>(options, "title", "");
+
+
     double min_x = 1e9, max_x = -1e9, min_y = 1e9, max_y = -1e9;
 
     for (size_t i = 0; i < coords.size(); ++i) {
-        double x = coords[i].first * scale;
-        double y = coords[i].second * scale;
-        double sig = signals[i] * scale;
+        double x = coords[i].first * signal_scale;
+        double y = coords[i].second * signal_scale;
+        double sig = signals[i] * signal_scale;
         double x_sig = x;
         double y_sig = y + sig;
 
@@ -42,7 +47,7 @@ std::string render_svg(
     char buf[32];
 
     kainjow::mustache::data ctx;
-    ctx.set("title", "Network");
+    ctx.set("title", title);
     ctx.set("width", std::to_string((int)(max_x - min_x)));
     ctx.set("height", std::to_string((int)(max_y - min_y)));
     ctx.set("metadata", "<generator name=\"libgsp\" author=\"Mohammad Raziei\" />");
@@ -56,10 +61,10 @@ std::string render_svg(
         kainjow::mustache::data e(kainjow::mustache::data::type::object);
         auto [x1, y1] = coords[src];
         auto [x2, y2] = coords[tgt];
-        e.set("x1", std::to_string(x1 * scale - min_x));
-        e.set("y1", std::to_string(-y1 * scale + max_y));
-        e.set("x2", std::to_string(x2 * scale - min_x));
-        e.set("y2", std::to_string(-y2 * scale + max_y));
+        e.set("x1", std::to_string(x1 * signal_scale - min_x));
+        e.set("y1", std::to_string(-y1 * signal_scale + max_y));
+        e.set("x2", std::to_string(x2 * signal_scale - min_x));
+        e.set("y2", std::to_string(-y2 * signal_scale + max_y));
         e.set("src", std::to_string(src));
         e.set("tgt", std::to_string(tgt));
         edges_data.push_back(e);
@@ -67,8 +72,8 @@ std::string render_svg(
 
     for (size_t i = 0; i < coords.size(); ++i) {
         kainjow::mustache::data n(kainjow::mustache::data::type::object);
-        double x = coords[i].first * scale - min_x;
-        double y = -coords[i].second * scale + max_y;
+        double x = coords[i].first * signal_scale - min_x;
+        double y = -coords[i].second * signal_scale + max_y;
         double signal = signals[i];
 
         n.set("x", std::to_string(x));
@@ -79,10 +84,10 @@ std::string render_svg(
 
         if (signal != 0) {
             n.set("has_signal", "true");
-            double value = -signal * scale;
+            double value = -signal * signal_scale;
             n.set("x2", std::to_string(x));
             n.set("y2", std::to_string(y + value));
-            n.set("text_y", std::to_string(y + value + (value < 0 ? -font_size : font_size)));
+            n.set("text_y", std::to_string(y + value + (value < 0 ? -signal_font_size : signal_font_size)));
         }
         nodes_data.push_back(n);
     }
