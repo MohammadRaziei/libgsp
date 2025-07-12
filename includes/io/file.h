@@ -28,3 +28,14 @@ std::string readFile(const std::string& filename) {
     // Convert the vector into a string and return it
     return std::string(content.begin(), content.end());
 }
+
+void writeFile(const std::string& filename, const std::string& data) {
+    std::ofstream file(filename, std::ios::binary);
+
+    if (!file) {
+        std::cerr << "Unable to open file for writing: " << filename << std::endl;
+        return;
+    }
+
+    file.write(data.c_str(), data.size());
+}
