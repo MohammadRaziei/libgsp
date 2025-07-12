@@ -10,8 +10,7 @@
 
 #undef LOGGER
 #define LOGGER(level) LOG(level) << TAG("main") << " "
-////inline float myrand() { return (float)std::rand() / (RAND_MAX); }
-//inline float myrand() { return float(std::rand() % 20); }
+
 
 int main(int argc, char** argv){
     AixLog::Log::init(
