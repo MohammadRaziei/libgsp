@@ -8,7 +8,7 @@
 #include <mustache.hpp>
 
 #include "io/file.h"
-
+#include "utils/utils.h"
 #include "common.h"
 
 #undef LOGGER
@@ -19,7 +19,8 @@
 std::string render_svg(
     const std::vector<std::tuple<int, int>> &edges,
     const std::vector<std::pair<double, double>> &coords,
-    const std::vector<double> &signals
+    const std::vector<double> &signals, 
+    const std::map<std::string, std::string> &options = {}
 ) {
     const double scale = 100.0;
     const int font_size = 6;
@@ -97,7 +98,7 @@ std::string render_svg(
 int main(int argc, char** argv){
     AixLog::Log::init(
         {
-            std::make_shared<AixLog::SinkCout>(AixLog::Severity::trace, "cout: %Y-%m-%d %H-%M-%S.#ms [#severity] (#tag) #message"),
+            std::make_shared<AixLog::SinkCout>(AixLog::Severity::trace, "%Y-%m-%d %H-%M-%S.#ms [#severity] (#tag) #message"),
 
         }
     );
@@ -115,13 +116,21 @@ int main(int argc, char** argv){
     std::vector<std::pair<double,double>> coords = {{0,0}, {2,0}, {1,-1}, {3,-1}};
     std::vector<double> signals = {-0.04, 0.31, 0.06, 0.39};
 
-    std::string svg = render_svg(edges, coords, signals);
 
-    std::cout << "SVG Output:\n" << svg << std::endl;
+    std::map<std::string, std::string> options = {
+        {"signal_scale", "100"},
+        {"node_space_scale", "100"},
+        {"signal_font_size", "6"},
+        {"title", "Network"},
+    };
+
+    std::string svg = render_svg(edges, coords, signals, options);
 
 
-    std::ofstream out("output.svg");
-    out << svg;
-		
+    writeFile("output.svg", svg);
+    LOGGER(INFO) << "SVG file written to output.svg";		
     return 0;
 }
+
+
+
