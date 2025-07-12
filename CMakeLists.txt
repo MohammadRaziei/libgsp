@@ -30,8 +30,20 @@ message(STATUS "Project: ${PROJECT_NAME}@v${PROJECT_VERSION}")
 
 # Try to import all Python components potentially needed by nanobind
 
-find_package(Python3 REQUIRED COMPONENTS Interpreter)
+# find_package(Python3 REQUIRED COMPONENTS Interpreter)
 
 
+
+add_executable(example examples/main.cpp)
+
+# add_subdirectory(src/third_party/aixlog)
+
+
+# target_compile_definitions(example PRIVATE AIXLOG_NO_COLOR)
+# target_link_libraries(example PRIVATE aixlog)
+target_include_directories(example PRIVATE includes)
+
+
+target_include_directories(example PRIVATE src/third_party/aixlog/include)
 
 
