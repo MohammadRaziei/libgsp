@@ -22,3 +22,6 @@
 	path = src/third_party/mustache
 	url = https://github.com/kainjow/Mustache
 	branch = master
+[submodule "src/third_party/fmt"]
+	path = src/third_party/fmt
+	url = https://github.com/fmtlib/fmt
