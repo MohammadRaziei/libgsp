@@ -26,3 +26,6 @@
 	path = src/third_party/fmt
 	url = https://github.com/fmtlib/fmt
 	shallow = true
+[submodule "src/third_party/spdlog"]
+	path = src/third_party/spdlog
+	url = https://github.com/gabime/spdlog
