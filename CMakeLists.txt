@@ -45,3 +45,6 @@ target_include_directories(example PRIVATE src/third_party/aixlog/include)
 
 
 target_include_directories(example PRIVATE src/third_party/mustache)
+
+add_subdirectory(src/third_party/lunasvg)
+target_link_libraries(example PRIVATE lunasvg::lunasvg)

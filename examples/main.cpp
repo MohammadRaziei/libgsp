@@ -6,6 +6,8 @@
 
 #include <aixlog.hpp>
 #include <mustache.hpp>
+#include <lunasvg.h>
+
 
 #include "io/file.h"
 #include "utils/utils.h"
@@ -22,7 +24,6 @@ std::string render_svg(
     const std::vector<double> &signals, 
     const std::map<std::string, std::string> &options = {}
 ) {
-
     const double signal_scale = map_get(options, "signal_scale", 1);
     int node_space_scale = map_get(options, "node_space_scale", 1);
     const int signal_font_size = map_get(options, "signal_font_size", 12);
@@ -100,11 +101,40 @@ std::string render_svg(
 }
 
 
+int svg2png(const std::string& svg_content){
+    auto document = lunasvg::Document::loadFromData(svg_content);
+    if (!document) {
+        std::cerr << "Failed to load SVG file!" << std::endl;
+        return -1;
+    }
+
+    const float documentWidth = document->width();
+    const float documentHeight = document->height();
+
+    std::cout << "width = " << documentWidth << ", height = " << documentHeight << std::endl;
+
+    const float scale = 5;
+
+    // Render to bitmap
+    const lunasvg::Bitmap bitmap = document->renderToBitmap(documentWidth*scale, documentHeight*scale);
+    if (bitmap.isNull()) {
+        std::cerr << "Failed to render SVG to bitmap!" << std::endl;
+        return -1;
+    }
+
+    // Save as PNG
+    if (!bitmap.writeToPng("graph.png")) {
+        std::cerr << "Failed to save PNG file!" << std::endl;
+        return -1;
+    }
+
+    return 0;
+}
+
 int main(int argc, char** argv){
     AixLog::Log::init(
         {
             std::make_shared<AixLog::SinkCout>(AixLog::Severity::trace, "%Y-%m-%d %H-%M-%S.#ms [#severity] (#tag) #message"),
-
         }
     );
 
@@ -132,9 +162,9 @@ int main(int argc, char** argv){
     std::string svg = render_svg(edges, coords, signals, options);
 
 
-    writeFile("output.svg", svg);
+    writeFile("graph.svg", svg);
     LOGGER(INFO) << "SVG file written to output.svg";		
-    return 0;
+    return svg2png(svg);
 }
 
 
