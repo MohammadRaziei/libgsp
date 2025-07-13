@@ -14,18 +14,22 @@
 	path = src/third_party/lunasvg
 	url = https://github.com/sammycage/lunasvg
 
-[submodule "tests/third_party/googletest"]
-	path = tests/third_party/googletest
-	url = https://github.com/google/googletest.git
-	shallow = true
 [submodule "src/third_party/mustache"]
 	path = src/third_party/mustache
 	url = https://github.com/kainjow/Mustache
 	branch = master
+
 [submodule "src/third_party/fmt"]
 	path = src/third_party/fmt
 	url = https://github.com/fmtlib/fmt
 	shallow = true
+
 [submodule "src/third_party/spdlog"]
 	path = src/third_party/spdlog
 	url = https://github.com/gabime/spdlog
+	shallow = true
+
+[submodule "tests/third_party/googletest"]
+	path = tests/third_party/googletest
+	url = https://github.com/google/googletest.git
+	shallow = true
