@@ -25,3 +25,4 @@
 [submodule "src/third_party/fmt"]
 	path = src/third_party/fmt
 	url = https://github.com/fmtlib/fmt
+	shallow = true
