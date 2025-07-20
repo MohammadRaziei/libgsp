@@ -2,11 +2,11 @@
 // Created by mohammad on 5/20/23.
 //
 #include <iostream>
-#include <memory> 
+#include <memory>
+#include <filesystem>
+
 
 #include <spdlog/spdlog.h>
-#include <spdlog/sinks/basic_file_sink.h>
-#include <spdlog/sinks/stdout_color_sinks.h>
 
 #include <mustache.hpp>
 #include <lunasvg.h>
@@ -16,9 +16,7 @@
 #include "utils/utils.h"
 #include "common.h"
 
-#undef LOGGER
-#define LOGGER(level) LOG(level) << TAG("main") << " "
-
+namespace fs = std::filesystem;
 
 
 std::string render_svg(
@@ -96,7 +94,10 @@ std::string render_svg(
         nodes_data.push_back(n);
     }
 
-    const std::string template_file = readFile("includes/io/templates/svg/graph.svg.mustache");
+    fs::path current_path = fs::path(__FILE__).parent_path();
+    fs::path template_file_name = fs::absolute(current_path / "../includes/io/templates/svg/graph.svg.mustache");
+
+    const std::string template_file = readFile(template_file_name.string());
 
     kainjow::mustache::mustache tmpl(template_file);
 
@@ -135,11 +136,7 @@ int svg2png(const std::string& svg_content){
 }
 
 
-
 int main(int argc, char** argv) {
-
-    // spdlog::set_level(spdlog::level::trace); // trace, debug, info, warn, error, critical
-
 
     spdlog::set_level(spdlog::level::info);
     spdlog::set_pattern("[%Y-%m-%d %H:%M:%S.%e] [%n] [%^%l%$] %v");
