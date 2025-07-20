@@ -4,7 +4,10 @@
 #include <iostream>
 #include <memory> 
 
-#include <aixlog.hpp>
+#include <spdlog/spdlog.h>
+#include <spdlog/sinks/basic_file_sink.h>
+#include <spdlog/sinks/stdout_color_sinks.h>
+
 #include <mustache.hpp>
 #include <lunasvg.h>
 
@@ -116,14 +119,14 @@ int svg2png(const std::string& svg_content){
     const float scale = 5;
 
     // Render to bitmap
-    const lunasvg::Bitmap bitmap = document->renderToBitmap(documentWidth*scale, documentHeight*scale);
-    if (bitmap.isNull()) {
+    const std::shared_ptr<lunasvg::Bitmap> bitmap = std::make_shared<lunasvg::Bitmap>(document->renderToBitmap(documentWidth*scale, documentHeight*scale));
+    if (bitmap && bitmap->isNull()) {
         std::cerr << "Failed to render SVG to bitmap!" << std::endl;
         return -1;
     }
 
     // Save as PNG
-    if (!bitmap.writeToPng("graph.png")) {
+    if (!bitmap->writeToPng("graph.png")) {
         std::cerr << "Failed to save PNG file!" << std::endl;
         return -1;
     }
@@ -131,26 +134,24 @@ int svg2png(const std::string& svg_content){
     return 0;
 }
 
-int main(int argc, char** argv){
-    AixLog::Log::init(
-        {
-            std::make_shared<AixLog::SinkCout>(AixLog::Severity::trace, "%Y-%m-%d %H-%M-%S.#ms [#severity] (#tag) #message"),
-        }
-    );
-
-    LOGGER(INFO) << "Hello, world!";
 
 
+int main(int argc, char** argv) {
+
+    // spdlog::set_level(spdlog::level::trace); // trace, debug, info, warn, error, critical
+
+
+    spdlog::set_level(spdlog::level::info);
+    spdlog::set_pattern("[%Y-%m-%d %H:%M:%S.%e] [%n] [%^%l%$] %v");
+    
+
+    spdlog::info("Hello, world!");
 
     printf("\ngood bye :)\n");
-
-
-
 
     std::vector<std::tuple<int, int>> edges = {{0,1},{0,2},{1,2},{2,3}};
     std::vector<std::pair<double,double>> coords = {{0,0}, {2,0}, {1,-1}, {3,-1}};
     std::vector<double> signals = {-0.04, 0.31, 0.06, 0.39};
-
 
     std::map<std::string, std::string> options = {
         {"signal_scale", "100"},
@@ -161,11 +162,8 @@ int main(int argc, char** argv){
 
     std::string svg = render_svg(edges, coords, signals, options);
 
-
     writeFile("graph.svg", svg);
-    LOGGER(INFO) << "SVG file written to output.svg";		
+    spdlog::info("SVG file written to graph.svg");
+
     return svg2png(svg);
 }
-
-
-

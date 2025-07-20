@@ -41,7 +41,7 @@ add_executable(example examples/main.cpp)
 target_include_directories(example PRIVATE includes)
 
 
-target_include_directories(example PRIVATE src/third_party/aixlog/include)
+target_include_directories(example PRIVATE src/third_party/spdlog/include)
 
 
 target_include_directories(example PRIVATE src/third_party/mustache)
