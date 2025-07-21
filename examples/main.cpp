@@ -95,7 +95,7 @@ std::string render_svg(
     }
 
     fs::path current_path = fs::path(__FILE__).parent_path();
-    fs::path template_file_name = fs::absolute(current_path / "../includes/io/templates/svg/graph.svg.mustache");
+    fs::path template_file_name = fs::absolute(current_path.parent_path() / "include/io/templates/svg/graph.svg.mustache");
 
     const std::string template_file = readFile(template_file_name.string());
 

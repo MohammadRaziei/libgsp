@@ -38,7 +38,10 @@ add_executable(example examples/main.cpp)
 
 
 
-target_include_directories(example PRIVATE includes)
+target_include_directories(example PRIVATE ${PROJECT_SOURCE_DIR}/include)
+
+file(GLOB GSP_SOURCES src/sources/*.cpp)
+target_sources(example PRIVATE ${GSP_SOURCES})
 
 
 target_include_directories(example PRIVATE src/third_party/spdlog/include)
@@ -48,3 +51,6 @@ target_include_directories(example PRIVATE src/third_party/mustache)
 
 add_subdirectory(src/third_party/lunasvg)
 target_link_libraries(example PRIVATE lunasvg::lunasvg)
+
+add_subdirectory(src/third_party/alglib)
+target_link_libraries(example PUBLIC alglib)
