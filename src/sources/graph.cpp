@@ -5,4 +5,6 @@
 #include "graph/graph.h"
 
 
+Graph::Graph(const uint32_t num_nodes) : num_nodes(num_nodes) {
 
+}
