@@ -11,19 +11,18 @@
 #include "graph/graph.h"
 
 namespace gsp {
-template <class Matrix>
-class GraphSignal;
+template <class Matrix, class Signal> class GraphSignal;
 }
 
-template <class Matrix>
+template <class Matrix, class Signal>
 class gsp::GraphSignal {
    public:
     GraphSignal(const gsp::MatrixGraph<Matrix>& graph,
-                const alglib::real_1d_array& signal);
+                const Signal& signal);
 
    public:
     gsp::MatrixGraph<Matrix> graph;
-    alglib::real_1d_array signal;
+    Signal signal;
 };
 
 

@@ -12,6 +12,7 @@
 #include <lunasvg.h>
 
 #include "graph/graph.h"
+#include "graph/graphsignal.h"
 
 
 
@@ -140,18 +141,26 @@ int svg2png(const std::string& svg_content){
 
 
 int main(int argc, char** argv) {
-    gsp::DenseGraph G(4);
     spdlog::set_level(spdlog::level::info);
     spdlog::set_pattern("[%Y-%m-%d %H:%M:%S.%e] [%n] [%^%l%$] %v");
-    
+
 
     spdlog::info("Hello, world!");
 
-    printf("\ngood bye :)\n");
 
     std::vector<std::tuple<int, int>> edges = {{0,1},{0,2},{1,2},{2,3}};
     std::vector<std::pair<double,double>> coords = {{0,0}, {2,0}, {1,-1}, {3,-1}};
     std::vector<double> signals = {-0.04, 0.31, 0.06, 0.39};
+
+
+    const uint32_t num_nodes = 4;
+    gsp::DenseGraph graph(num_nodes);
+    alglib::real_1d_array signal;
+    signal.attach_to_ptr(num_nodes, signals.data());
+    gsp::GraphSignal graph_signal(graph, signal);
+
+    printf("\ngood bye :)\n");
+
 
     std::map<std::string, std::string> options = {
         {"signal_scale", "100"},

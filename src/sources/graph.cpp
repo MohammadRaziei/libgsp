@@ -31,6 +31,6 @@ gsp::MatrixGraph<Matrix>& gsp::MatrixGraph<Matrix>::setWeights(const Matrix& mat
 }
 
 
-template class gsp::MatrixGraph<alglib::real_2d_array>;
-template class gsp::MatrixGraph<alglib::sparsematrix>;
+template class gsp::MatrixGraph<alglib::real_2d_array>; /// DenseMatrix
+template class gsp::MatrixGraph<alglib::sparsematrix>;  /// SparseMatrix
 
