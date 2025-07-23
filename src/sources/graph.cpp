@@ -5,6 +5,17 @@
 #include "graph/graph.h"
 
 
-Graph::Graph(const uint32_t num_nodes) : num_nodes(num_nodes) {
+gsp::VertexGraph::VertexGraph(const uint32_t num_nodes, const bool is_directed) : num_nodes(num_nodes) {
 
 }
+
+gsp::SparseGraph::SparseGraph(const uint32_t num_nodes) : gsp::VertexGraph(num_nodes) {
+
+}
+
+gsp::DenseGraph::DenseGraph(const uint32_t num_nodes) : gsp::VertexGraph(num_nodes) {
+
+}
+
+
+
