@@ -5,8 +5,14 @@
 #include "graph/graphsignal.h"
 
 
-gsp::GraphSignal::GraphSignal(const gsp::Graph& graph,
+template <class Matrix>
+gsp::GraphSignal<Matrix>::GraphSignal(const gsp::MatrixGraph<Matrix>& graph,
                               const alglib::real_1d_array& signal)
-    : graph(graph), signal(signal) {
+    : graph(graph), signal(signal) {}
 
-}
+
+
+
+
+template class gsp::GraphSignal<alglib::real_2d_array>;
+template class gsp::GraphSignal<alglib::sparsematrix>;

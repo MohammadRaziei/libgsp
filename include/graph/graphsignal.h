@@ -10,15 +10,21 @@
 
 #include "graph/graph.h"
 
-namespace gsp{
-class GraphSignal {
+namespace gsp {
+template <class Matrix>
+class GraphSignal;
+}
+
+template <class Matrix>
+class gsp::GraphSignal {
    public:
-    GraphSignal(const gsp::Graph&, const alglib::real_1d_array&);
+    GraphSignal(const gsp::MatrixGraph<Matrix>& graph,
+                const alglib::real_1d_array& signal);
 
    public:
-    gsp::Graph graph;
+    gsp::MatrixGraph<Matrix> graph;
     alglib::real_1d_array signal;
 };
-}
+
 
 #endif  // LIBGSP_GRAPHSIGNAL_H

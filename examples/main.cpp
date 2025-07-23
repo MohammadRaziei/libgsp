@@ -140,7 +140,7 @@ int svg2png(const std::string& svg_content){
 
 
 int main(int argc, char** argv) {
-    gsp::Graph G(4);
+    gsp::DenseGraph G(4);
     spdlog::set_level(spdlog::level::info);
     spdlog::set_pattern("[%Y-%m-%d %H:%M:%S.%e] [%n] [%^%l%$] %v");
     

@@ -16,10 +16,8 @@
 namespace gsp {
     class VertexGraph;
     template <class matrix> class MatrixGraph;
-    class SparseGraph;
-    class DenseGraph;
-
-    using Graph = SparseGraph;
+    using SparseGraph = MatrixGraph<alglib::sparsematrix>;
+    using DenseGraph = MatrixGraph<alglib::real_2d_array>;
 }
 
 
@@ -27,6 +25,8 @@ class gsp::VertexGraph {
    public:
     VertexGraph(const uint32_t);
     VertexGraph& setCoords(const alglib::real_2d_array&);
+    VertexGraph& setNames(const std::vector<std::string>&);
+
 
    public:
     const uint32_t num_nodes;
@@ -37,29 +37,17 @@ class gsp::VertexGraph {
 template <class Matrix>
 class gsp::MatrixGraph : public gsp::VertexGraph {
    public:
-    MatrixGraph(const uint32_t num_nodes,
-                const bool is_directed = GSP_IS_DIRECTED_DEFAULT):
-          VertexGraph(num_nodes), is_directed(is_directed) {
-    }
-    MatrixGraph& setWeights(const Matrix& matrix){
-        weights = matrix;
-        return *this;
-    }
+    MatrixGraph(const uint32_t num_nodes, const bool is_directed = GSP_IS_DIRECTED_DEFAULT);
+    MatrixGraph<Matrix>& setWeights(const Matrix& matrix, const bool auto_validate);
+
+    void validateWeights(const Matrix&);
    public:
     Matrix weights;
+   protected:
     bool is_directed;
 };
 
-
-
-class gsp::SparseGraph : public gsp::MatrixGraph<alglib::sparsematrix>{
-   public:
-    SparseGraph(const uint32_t num_nodes, const bool is_directed = GSP_IS_DIRECTED_DEFAULT);
-};
-
-class gsp::DenseGraph : public gsp::MatrixGraph<alglib::real_2d_array>{
-   public:
-    DenseGraph(const uint32_t);
-};
+template <class Matrix>
+void gsp::MatrixGraph<Matrix>::validateWeights(const Matrix&) {}
 
 #endif  // LIBGSP_GRAPH_H
