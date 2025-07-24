@@ -161,6 +161,9 @@ int main(int argc, char** argv) {
 
     gsp::DenseGraph graph(num_nodes);
     graph.setWeights(edges).setCoords(coords_vec);
+
+    std::cout << graph.weights.tostring(0) << std::endl;
+
     alglib::real_1d_array signal;
     signal.attach_to_ptr(num_nodes, signal_vec.data());
     gsp::GraphSignal graph_signal(graph, signal);

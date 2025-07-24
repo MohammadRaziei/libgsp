@@ -7,7 +7,7 @@
 #pragma once
 
 #include <vector>
-#include <stdint.h>
+#include <cstdint>
 #include <utility>
 
 #include <ap.h>
@@ -26,10 +26,11 @@ namespace gsp {
 
 class gsp::VertexGraph {
    public:
-    VertexGraph(const uint32_t);
-    VertexGraph& setCoords(const alglib::real_2d_array&);
-    VertexGraph& setCoords(const std::vector<std::pair<double,double>>&);
-    VertexGraph& setNames(const std::vector<std::string>&);
+    explicit VertexGraph(uint32_t);
+    virtual ~VertexGraph();
+    virtual VertexGraph& setCoords(const alglib::real_2d_array&);
+    virtual VertexGraph& setCoords(const std::vector<std::pair<double,double>>&);
+    virtual VertexGraph& setNames(const std::vector<std::string>&);
 
 
    public:
@@ -41,15 +42,19 @@ class gsp::VertexGraph {
 template <class Matrix>
 class gsp::MatrixGraph : public gsp::VertexGraph {
    public:
-    MatrixGraph(const uint32_t num_nodes, const bool is_directed = GSP_IS_DIRECTED_DEFAULT);
-    MatrixGraph<Matrix>& setWeights(const Matrix& matrix, const bool auto_validate=false);
-    MatrixGraph<Matrix>& setWeights(const std::vector<std::pair<int, int>>& edges, const bool auto_validate=false);
+    explicit MatrixGraph(uint32_t num_nodes, const bool is_directed = GSP_IS_DIRECTED_DEFAULT);
+    virtual ~MatrixGraph() override;
+    virtual MatrixGraph<Matrix>& setWeights(const Matrix& matrix, const bool auto_validate=false);
+    virtual MatrixGraph<Matrix>& setWeights(const std::vector<std::pair<int, int>>& edges, const bool auto_validate=false);
 
-    void validateWeights(const Matrix&);
+    virtual void validateWeights(const Matrix&);
+
+
    public:
     Matrix weights;
    protected:
     bool is_directed;
 };
+
 
 #endif  // LIBGSP_GRAPH_H

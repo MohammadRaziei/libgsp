@@ -7,7 +7,7 @@
 #include "utils/matrix.h"
 
 
-gsp::VertexGraph::VertexGraph(const uint32_t num_nodes) : num_nodes(num_nodes) {}
+gsp::VertexGraph::VertexGraph(uint32_t num_nodes) : num_nodes(num_nodes) {}
 
 gsp::VertexGraph& gsp::VertexGraph::setCoords(const alglib::real_2d_array& coords) {
     this->coords = coords;
@@ -22,9 +22,10 @@ gsp::VertexGraph& gsp::VertexGraph::setCoords(
     this->coords.setcontent(this->num_nodes, 2, (double*) coords.data());
     return *this;
 }
+gsp::VertexGraph::~VertexGraph() {}
 
 template <class Matrix>
-gsp::MatrixGraph<Matrix>::MatrixGraph(const uint32_t num_nodes, const bool is_directed):
+gsp::MatrixGraph<Matrix>::MatrixGraph(uint32_t num_nodes, const bool is_directed):
       VertexGraph(num_nodes), is_directed(is_directed) {
 }
 
@@ -57,7 +58,8 @@ gsp::MatrixGraph<Matrix>& gsp::MatrixGraph<Matrix>::setWeights(
 template <class Matrix>
 void gsp::MatrixGraph<Matrix>::validateWeights(const Matrix&) {}
 
-
+template <class Matrix>
+gsp::MatrixGraph<Matrix>::~MatrixGraph() {}
 
 template class gsp::MatrixGraph<alglib::real_2d_array>; /// DenseMatrix
 template class gsp::MatrixGraph<alglib::sparsematrix>;  /// SparseMatrix
