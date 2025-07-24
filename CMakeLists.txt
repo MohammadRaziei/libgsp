@@ -34,23 +34,23 @@ message(STATUS "Project: ${PROJECT_NAME}@v${PROJECT_VERSION}")
 
 
 
-add_executable(example examples/main.cpp)
 
-
-
-target_include_directories(example PRIVATE ${PROJECT_SOURCE_DIR}/include)
 
 file(GLOB GSP_SOURCES src/sources/*.cpp)
-target_sources(example PRIVATE ${GSP_SOURCES})
-
-
-target_include_directories(example PRIVATE src/third_party/spdlog/include)
-
-
-target_include_directories(example PRIVATE src/third_party/mustache)
-
+add_library(gsp ${GSP_SOURCES})
+add_library(libgsp::libgsp ALIAS gsp)
+target_include_directories(gsp
+        PUBLIC ${PROJECT_SOURCE_DIR}/include
+        PRIVATE ${PROJECT_SOURCE_DIR}/src/sources
+)
+target_include_directories(gsp PUBLIC src/third_party/spdlog/include)
+target_include_directories(gsp PUBLIC src/third_party/mustache)
 add_subdirectory(src/third_party/lunasvg)
-target_link_libraries(example PRIVATE lunasvg::lunasvg)
-
+target_link_libraries(gsp PUBLIC lunasvg::lunasvg)
 add_subdirectory(src/third_party/alglib)
-target_link_libraries(example PUBLIC alglib)
+target_link_libraries(gsp PUBLIC alglib)
+
+
+
+add_executable(example examples/main.cpp)
+target_link_libraries(example PUBLIC libgsp::libgsp)
