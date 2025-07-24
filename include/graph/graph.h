@@ -7,8 +7,11 @@
 #pragma once
 
 #include <vector>
-#include <ap.h>
 #include <stdint.h>
+#include <utility>
+
+#include <ap.h>
+
 
 #define GSP_IS_DIRECTED_DEFAULT false
 
@@ -25,6 +28,7 @@ class gsp::VertexGraph {
    public:
     VertexGraph(const uint32_t);
     VertexGraph& setCoords(const alglib::real_2d_array&);
+    VertexGraph& setCoords(const std::vector<std::pair<double,double>>&);
     VertexGraph& setNames(const std::vector<std::string>&);
 
 
@@ -38,7 +42,8 @@ template <class Matrix>
 class gsp::MatrixGraph : public gsp::VertexGraph {
    public:
     MatrixGraph(const uint32_t num_nodes, const bool is_directed = GSP_IS_DIRECTED_DEFAULT);
-    MatrixGraph<Matrix>& setWeights(const Matrix& matrix, const bool auto_validate);
+    MatrixGraph<Matrix>& setWeights(const Matrix& matrix, const bool auto_validate=false);
+    MatrixGraph<Matrix>& setWeights(const std::vector<std::pair<int, int>>& edges, const bool auto_validate=false);
 
     void validateWeights(const Matrix&);
    public:
@@ -46,8 +51,5 @@ class gsp::MatrixGraph : public gsp::VertexGraph {
    protected:
     bool is_directed;
 };
-
-template <class Matrix>
-void gsp::MatrixGraph<Matrix>::validateWeights(const Matrix&) {}
 
 #endif  // LIBGSP_GRAPH_H

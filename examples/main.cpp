@@ -24,7 +24,7 @@ namespace fs = std::filesystem;
 
 
 std::string render_svg(
-    const std::vector<std::tuple<int, int>> &edges,
+    const std::vector<std::pair<int, int>> &edges,
     const std::vector<std::pair<double, double>> &coords,
     const std::vector<double> &signals, 
     const std::map<std::string, std::string> &options = {}
@@ -148,15 +148,21 @@ int main(int argc, char** argv) {
     spdlog::info("Hello, world!");
 
 
-    std::vector<std::tuple<int, int>> edges = {{0,1},{0,2},{1,2},{2,3}};
-    std::vector<std::pair<double,double>> coords = {{0,0}, {2,0}, {1,-1}, {3,-1}};
-    std::vector<double> signals = {-0.04, 0.31, 0.06, 0.39};
-
+    std::vector<std::pair<int, int>> edges = {{0,1},{0,2},{1,2},{2,3}};
+    std::vector<std::pair<double,double>> coords_vec = {{0,0}, {2,0}, {1,-1}, {3,-1}};
+    std::vector<double> signal_vec = {-0.04, 0.31, 0.06, 0.39};
 
     const uint32_t num_nodes = 4;
+    double* coords_ptr = (double *) coords_vec.data();
+    alglib::real_2d_array coords;
+    coords.attach_to_ptr(num_nodes,2, coords_ptr);
+
+    std::cout << coords.tostring(0) << std::endl;
+
     gsp::DenseGraph graph(num_nodes);
+    graph.setWeights(edges).setCoords(coords_vec);
     alglib::real_1d_array signal;
-    signal.attach_to_ptr(num_nodes, signals.data());
+    signal.attach_to_ptr(num_nodes, signal_vec.data());
     gsp::GraphSignal graph_signal(graph, signal);
 
     printf("\ngood bye :)\n");
@@ -169,7 +175,7 @@ int main(int argc, char** argv) {
         {"title", "Network"},
     };
 
-    std::string svg = render_svg(edges, coords, signals, options);
+    std::string svg = render_svg(edges, coords_vec, signal_vec, options);
 
     writeFile("graph.svg", svg);
     spdlog::info("SVG file written to graph.svg");
