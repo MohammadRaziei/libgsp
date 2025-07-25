@@ -160,7 +160,8 @@ int main(int argc, char** argv) {
     std::cout << coords.tostring(0) << std::endl;
 
     gsp::DenseGraph graph(num_nodes);
-    graph.setWeights(edges).setCoords(coords_vec);
+    graph.setCoords(coords_vec);
+    graph.setWeights(edges);
 
     std::cout << graph.weights.tostring(0) << std::endl;
 

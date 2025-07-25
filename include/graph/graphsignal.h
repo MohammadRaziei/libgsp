@@ -17,11 +17,11 @@ template <class Matrix, class Signal> class GraphSignal;
 template <class Matrix, class Signal>
 class gsp::GraphSignal {
    public:
-    GraphSignal(const gsp::MatrixGraph<Matrix>& graph,
+    GraphSignal(const gsp::Graph<Matrix>& graph,
                 const Signal& signal);
 
    public:
-    gsp::MatrixGraph<Matrix> graph;
+    gsp::Graph<Matrix> graph;
     Signal signal;
 };
 

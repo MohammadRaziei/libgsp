@@ -25,9 +25,9 @@ namespace gsp {
 
     class VertexGraph;
     struct Edge;
-    template <class matrix> class MatrixGraph;
-    using SparseGraph = MatrixGraph<sparsematrix>;
-    using DenseGraph = MatrixGraph<densematrix>;
+    template <class matrix> class Graph;
+    using SparseGraph = Graph<sparsematrix>;
+    using DenseGraph = Graph<densematrix>;
 
 }
 
@@ -36,9 +36,9 @@ class gsp::VertexGraph {
    public:
     explicit VertexGraph(uint32_t);
     virtual ~VertexGraph();
-    virtual VertexGraph& setCoords(const alglib::real_2d_array&);
-    virtual VertexGraph& setCoords(const std::vector<std::pair<double,double>>&);
-    virtual VertexGraph& setNames(const std::vector<std::string>&);
+    virtual void setCoords(const alglib::real_2d_array&);
+    virtual void setCoords(const std::vector<std::pair<double,double>>&);
+    virtual void setNames(const std::vector<std::string>&);
 
 
    public:
@@ -56,12 +56,12 @@ struct gsp::Edge {
 };
 
 template <class Matrix>
-class gsp::MatrixGraph : public gsp::VertexGraph {
+class gsp::Graph : public gsp::VertexGraph {
    public:
-    explicit MatrixGraph(uint32_t num_nodes, const bool is_directed = GSP_IS_DIRECTED_DEFAULT);
-    virtual ~MatrixGraph() override;
-    virtual MatrixGraph<Matrix>& setWeights(const Matrix& matrix, bool auto_validate=false);
-    virtual MatrixGraph<Matrix>& setWeights(const std::vector<gsp::Edge>& edges, bool auto_validate=false);
+    explicit Graph(uint32_t num_nodes, const bool is_directed = GSP_IS_DIRECTED_DEFAULT);
+    virtual ~Graph() override;
+    virtual void setWeights(const Matrix& matrix, int32_t num_edges = -1);
+    virtual void setWeights(const std::vector<gsp::Edge>& edges, int32_t num_edges = -1);
 
     virtual void validateWeights(const Matrix&);
 
@@ -69,6 +69,7 @@ class gsp::MatrixGraph : public gsp::VertexGraph {
    public:
     Matrix weights;
    protected:
+    int32_t num_edges = 0;
     bool is_directed;
 };
 

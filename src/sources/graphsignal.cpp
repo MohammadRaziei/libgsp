@@ -6,7 +6,7 @@
 
 
 template <class Matrix, class Signal>
-gsp::GraphSignal<Matrix, Signal>::GraphSignal(const gsp::MatrixGraph<Matrix>& graph,
+gsp::GraphSignal<Matrix, Signal>::GraphSignal(const gsp::Graph<Matrix>& graph,
                               const Signal& signal)
     : graph(graph), signal(signal) {
     if (graph.num_nodes != signal.length()) {
