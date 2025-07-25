@@ -25,12 +25,12 @@ gsp::VertexGraph& gsp::VertexGraph::setCoords(
 gsp::VertexGraph::~VertexGraph() {}
 
 template <class Matrix>
-gsp::MatrixGraph<Matrix>::MatrixGraph(uint32_t num_nodes, const bool is_directed):
+gsp::MatrixGraph<Matrix>::MatrixGraph(uint32_t num_nodes, bool is_directed):
       VertexGraph(num_nodes), is_directed(is_directed) {
 }
 
 template <class Matrix>
-gsp::MatrixGraph<Matrix>& gsp::MatrixGraph<Matrix>::setWeights(const Matrix& matrix, const bool auto_validate){
+gsp::MatrixGraph<Matrix>& gsp::MatrixGraph<Matrix>::setWeights(const Matrix& matrix, bool auto_validate){
     if (auto_validate) {
         validateWeights(weights);
     }
@@ -61,6 +61,6 @@ void gsp::MatrixGraph<Matrix>::validateWeights(const Matrix&) {}
 template <class Matrix>
 gsp::MatrixGraph<Matrix>::~MatrixGraph() {}
 
-template class gsp::MatrixGraph<alglib::real_2d_array>; /// DenseMatrix
-template class gsp::MatrixGraph<alglib::sparsematrix>;  /// SparseMatrix
+template class gsp::MatrixGraph<gsp::densematrix>;  /// DenseMatrix
+template class gsp::MatrixGraph<gsp::sparsematrix>; /// SparseMatrix
 

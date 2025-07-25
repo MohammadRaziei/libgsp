@@ -7,22 +7,19 @@
 #pragma once
 
 #include <cstdint>
+#include <type_traits>
 
 #include "utils/types.h"
 
 
 namespace gsp::matrix {
-
-#include <type_traits>
-
-
 template<typename Matrix> void allocate(Matrix& matrix, uint32_t rows, uint32_t cols);
 
-template<typename Matrix, typename Elem = typename gsp::types::typeofelement<Matrix>::type>
-void setElement(Matrix& matrix, uint32_t row, uint32_t col, Elem el);
+template<typename Matrix>
+void setElement(Matrix& matrix, uint32_t row, uint32_t col, gsp::types::elem_t<Matrix> el);
 
-template<typename Matrix, typename Elem = typename gsp::types::typeofelement<Matrix>::type>
-Elem getElement(Matrix& matrix, uint32_t row, uint32_t col);
+template<typename Matrix>
+gsp::types::elem_t<Matrix> getElement(Matrix& matrix, uint32_t row, uint32_t col);
 }
 
 

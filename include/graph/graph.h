@@ -16,11 +16,18 @@
 #define GSP_IS_DIRECTED_DEFAULT false
 
 
+
+
 namespace gsp {
+    using densematrix = alglib::real_2d_array;
+    using sparsematrix = alglib::sparsematrix;
+
+
     class VertexGraph;
     template <class matrix> class MatrixGraph;
-    using SparseGraph = MatrixGraph<alglib::sparsematrix>;
-    using DenseGraph = MatrixGraph<alglib::real_2d_array>;
+    using SparseGraph = MatrixGraph<sparsematrix>;
+    using DenseGraph = MatrixGraph<densematrix>;
+
 }
 
 
@@ -44,8 +51,8 @@ class gsp::MatrixGraph : public gsp::VertexGraph {
    public:
     explicit MatrixGraph(uint32_t num_nodes, const bool is_directed = GSP_IS_DIRECTED_DEFAULT);
     virtual ~MatrixGraph() override;
-    virtual MatrixGraph<Matrix>& setWeights(const Matrix& matrix, const bool auto_validate=false);
-    virtual MatrixGraph<Matrix>& setWeights(const std::vector<std::pair<int, int>>& edges, const bool auto_validate=false);
+    virtual MatrixGraph<Matrix>& setWeights(const Matrix& matrix, bool auto_validate=false);
+    virtual MatrixGraph<Matrix>& setWeights(const std::vector<std::pair<int, int>>& edges, bool auto_validate=false);
 
     virtual void validateWeights(const Matrix&);
 

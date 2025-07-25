@@ -23,8 +23,8 @@ template <>
 void gsp::matrix::setElement(alglib::sparsematrix& matrix, uint32_t row, uint32_t col, double el){
     alglib::sparseset(matrix, row, col, el);
 }
-template<typename Matrix, typename Elem>
-void gsp::matrix::setElement(Matrix& matrix, uint32_t row, uint32_t col, Elem el) {
+template<typename Matrix>
+void gsp::matrix::setElement(Matrix& matrix, uint32_t row, uint32_t col, gsp::types::elem_t<Matrix> el) {
     matrix(row, col) = el;
 }
 template void gsp::matrix::setElement(alglib::real_2d_array&, uint32_t, uint32_t, double);
@@ -35,8 +35,8 @@ template <>
 double gsp::matrix::getElement(alglib::sparsematrix& matrix, uint32_t row, uint32_t col){
     return alglib::sparseget(matrix, row, col);
 }
-template<typename Matrix, typename Elem>
-Elem gsp::matrix::getElement(Matrix& matrix, uint32_t row, uint32_t col) {
+template<typename Matrix>
+typename gsp::types::elem_t<Matrix> gsp::matrix::getElement(Matrix& matrix, uint32_t row, uint32_t col) {
     return matrix(row, col);
 }
 template double gsp::matrix::getElement(alglib::real_2d_array&, uint32_t, uint32_t);

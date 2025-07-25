@@ -10,6 +10,7 @@
 
 #include <ap.h>
 
+
 namespace gsp::types {
 template <typename Matrix> struct typeofelement { using type = void; };
 template <> struct typeofelement<alglib::integer_1d_array> { using type = alglib::ae_int_t; };
@@ -19,6 +20,7 @@ template <> struct typeofelement<alglib::complex_2d_array> { using type = alglib
 template <> struct typeofelement<alglib::real_1d_array> { using type = double; };
 template <> struct typeofelement<alglib::real_2d_array> { using type = double; };
 template <> struct typeofelement<alglib::sparsematrix> { using type = double; };
+template <typename Matrix> using elem_t = typename gsp::types::typeofelement<Matrix>::type;
 
 template <typename T> struct is_alglibmatrix : std::false_type {};
 template <> struct is_alglibmatrix<alglib::integer_2d_array> : std::true_type {};
