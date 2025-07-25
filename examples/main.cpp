@@ -24,7 +24,7 @@ namespace fs = std::filesystem;
 
 
 std::string render_svg(
-    const std::vector<std::pair<int, int>> &edges,
+    const std::vector<gsp::Edge> &edges,
     const std::vector<std::pair<double, double>> &coords,
     const std::vector<double> &signals, 
     const std::map<std::string, std::string> &options = {}
@@ -63,7 +63,7 @@ std::string render_svg(
     auto &edges_data = ctx["edges"];
     auto &nodes_data = ctx["nodes"];
 
-    for (auto &[src, tgt] : edges) {
+    for (auto &[src, tgt, w] : edges) {
         kainjow::mustache::data e(kainjow::mustache::data::type::object);
         auto [x1, y1] = coords[src];
         auto [x2, y2] = coords[tgt];
@@ -148,7 +148,7 @@ int main(int argc, char** argv) {
     spdlog::info("Hello, world!");
 
 
-    std::vector<std::pair<int, int>> edges = {{0,1},{0,2},{1,2},{2,3}};
+    std::vector<gsp::Edge> edges = {{0,1},{0,2},{1,2},{2,3}};
     std::vector<std::pair<double,double>> coords_vec = {{0,0}, {2,0}, {1,-1}, {3,-1}};
     std::vector<double> signal_vec = {-0.04, 0.31, 0.06, 0.39};
 

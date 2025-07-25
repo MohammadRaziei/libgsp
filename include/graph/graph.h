@@ -24,6 +24,7 @@ namespace gsp {
 
 
     class VertexGraph;
+    struct Edge;
     template <class matrix> class MatrixGraph;
     using SparseGraph = MatrixGraph<sparsematrix>;
     using DenseGraph = MatrixGraph<densematrix>;
@@ -46,13 +47,21 @@ class gsp::VertexGraph {
     alglib::real_2d_array coords; /// num_nodes x 2
 };
 
+
+struct gsp::Edge {
+    Edge(uint32_t source, uint32_t target, double weight=1.0) :
+          source(source), target(target), weight(weight) {}
+    uint32_t source, target;
+    double weight;
+};
+
 template <class Matrix>
 class gsp::MatrixGraph : public gsp::VertexGraph {
    public:
     explicit MatrixGraph(uint32_t num_nodes, const bool is_directed = GSP_IS_DIRECTED_DEFAULT);
     virtual ~MatrixGraph() override;
     virtual MatrixGraph<Matrix>& setWeights(const Matrix& matrix, bool auto_validate=false);
-    virtual MatrixGraph<Matrix>& setWeights(const std::vector<std::pair<int, int>>& edges, bool auto_validate=false);
+    virtual MatrixGraph<Matrix>& setWeights(const std::vector<gsp::Edge>& edges, bool auto_validate=false);
 
     virtual void validateWeights(const Matrix&);
 

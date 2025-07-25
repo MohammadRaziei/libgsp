@@ -41,13 +41,15 @@ gsp::MatrixGraph<Matrix>& gsp::MatrixGraph<Matrix>::setWeights(const Matrix& mat
 
 template <class Matrix>
 gsp::MatrixGraph<Matrix>& gsp::MatrixGraph<Matrix>::setWeights(
-    const std::vector<std::pair<int, int>>& edges,
+    const std::vector<gsp::Edge>& edges,
     const bool auto_validate) {
+    gsp::matrix::allocate(this->weights, this->num_nodes, this->num_nodes);
     for (auto it = edges.begin(); it < edges.end(); ++it) {
-        gsp::matrix::allocate(this->weights, this->num_nodes, this->num_nodes);
-        gsp::matrix::setElement(this->weights, it->first, it->second, 1.);
+        if (it->weight == 0)
+            continue;
+        gsp::matrix::setElement(this->weights, it->source, it->target, it->weight);
         if (!is_directed) {
-            gsp::matrix::setElement(this->weights, it->second, it->first, 1.);
+            gsp::matrix::setElement(this->weights, it->target, it->source, it->weight);
         }
     }
     return *this;
