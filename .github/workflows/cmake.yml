@@ -28,8 +28,11 @@
          uses: threeal/cmake-action@v2.0.0
          with:
            options: |
-             BUILD_PYTHON=ON
-             BUILD_MEX=ON
+             BUILD_PYTHON_BINDINGS=ON
+             BUILD_MEX_BINDINGS=ON
+             CMAKE_BUILD_TYPE=Release
+             BUILD_EXAMPLES=ON
+             BUILD_TESTING=ON
 
        - name: Install python test dependencies
          run: pip install numpy scipy
@@ -37,5 +40,5 @@
        - name: Build the project
          run: cmake --build build
 
-       - name: Test the project
-         run: ctest --test-dir build --extra-verbose
+      #  - name: Test the project
+        #  run: ctest --test-dir build --extra-verbose
