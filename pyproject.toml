@@ -6,7 +6,7 @@ build-backend = "scikit_build_core.build"
 
 [project]
 name = "libgsp"
-version = "0.0.0-dev"
+version = "0.0.0.dev0"
 description = "High-Performance Linear/Non-Linear Filters and Window Functions Library in C++ with Python Bindings"
 readme = "README.md"
 authors = [
@@ -48,6 +48,8 @@ test-extras = ["test"]
 test-skip = ["*universal2:arm64"]
 #build-verbosity = 1
 
+[tool.scikit-build.cmake]
+verbose = true
 
 [tool.scikit-build.cmake.define]
 BUILD_SHARED_LIBS = "OFF"  # Build static library
@@ -60,11 +62,6 @@ CMAKE_BUILD_TYPE = "Release"  # Set build type to Release
 #[tool.scikit-build]
 #cmake.args = ["-DSOME_DEFINE=ON", "-DOTHER=OFF"]
 
-
-
-[tool.scikit-build]
-#wheel.expand-macos-universal-tags = true
-cmake.verbose = true
 
 
 [tool.pytest.ini_options]
