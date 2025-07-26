@@ -11,13 +11,13 @@
 #include <mustache.hpp>
 #include <lunasvg.h>
 
-#include "graph/graph.h"
-#include "graph/graphsignal.h"
+#include "libgsp/graph/graph.h"
+#include "libgsp/graph/graphsignal.h"
 
 
 
-#include "io/file.h"
-#include "utils/utils.h"
+#include "libgsp/io/file.h"
+#include "libgsp/utils/utils.h"
 #include "common.h"
 
 namespace fs = std::filesystem;
