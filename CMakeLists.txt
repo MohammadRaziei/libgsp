@@ -91,7 +91,7 @@ if(DEFINED PYTHON_PROJECT_NAME)
     set(NB_MODULE _about)
     nanobind_add_module(${NB_MODULE} STABLE_ABI NB_STATIC ${PROJECT_SOURCE_DIR}/src/bindings/python/about.cpp)
     target_compile_definitions(${NB_MODULE} PRIVATE
-            VERSION_INFO=${PROJECT_VERSION}
+            VERSION_INFO=${PyProject_VERSION_COMPLETE}
             NB_MODULE_NAME=${NB_MODULE})
 
     file(GLOB PYTHON_BIND_MODULES_PATH ${PROJECT_SOURCE_DIR}/src/bindings/python/bind_*)

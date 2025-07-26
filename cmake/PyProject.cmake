@@ -9,7 +9,11 @@ function(extract_pyproject_info)
     # Iterate over the list to find the version line
     foreach(Line ${Lines})
         # Use a regular expression to extract the version number
-        if(Line MATCHES "version = \"([0-9]+\\.[0-9]+\\.[0-9]+)\"")
+        if(Line MATCHES "version = \"([0-9]+\\.[0-9]+\\.[0-9]+([-\\.][A-Za-z0-9_]+)?)\"")
+            set(PyProject_VERSION_COMPLETE "${CMAKE_MATCH_1}" PARENT_SCOPE)
+        endif()
+
+        if(Line MATCHES "version = \"([0-9]+\\.[0-9]+\\.[0-9]+)([-\\.][A-Za-z0-9_]+)?\"")
             set(PyProject_VERSION "${CMAKE_MATCH_1}" PARENT_SCOPE)
         endif()
 

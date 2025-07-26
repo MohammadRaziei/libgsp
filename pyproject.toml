@@ -6,7 +6,7 @@ build-backend = "scikit_build_core.build"
 
 [project]
 name = "libgsp"
-version = "0.0.0.dev0"
+version = "0.0.0-dev0"
 description = "High-Performance Linear/Non-Linear Filters and Window Functions Library in C++ with Python Bindings"
 readme = "README.md"
 authors = [
