@@ -2,7 +2,7 @@
 // Created by Mohammad on 7/22/2025.
 //
 
-#include "graph/graphsignal.h"
+#include "libgsp/graph/graphsignal.h"
 
 
 template <class Matrix, class Signal>

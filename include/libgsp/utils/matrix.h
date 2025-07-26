@@ -9,7 +9,7 @@
 #include <cstdint>
 #include <type_traits>
 
-#include "utils/types.h"
+#include "libgsp/utils/types.h"
 
 
 namespace gsp::matrix {

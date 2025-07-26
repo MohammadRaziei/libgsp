@@ -8,7 +8,7 @@
 
 #include <linalg.h>
 
-#include "graph/graph.h"
+#include "libgsp/graph/graph.h"
 
 namespace gsp {
 template <class Matrix, class Signal> class GraphSignal;

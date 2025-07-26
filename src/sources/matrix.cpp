@@ -2,7 +2,7 @@
 // Created by Mohammad on 7/24/2025.
 //
 
-#include "utils/matrix.h"
+#include "libgsp/utils/matrix.h"
 
 #include <linalg.h>
 

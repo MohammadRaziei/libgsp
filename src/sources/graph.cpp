@@ -3,8 +3,8 @@
 //
 #include <linalg.h>
 
-#include "graph/graph.h"
-#include "utils/matrix.h"
+#include "libgsp/graph/graph.h"
+#include "libgsp/utils/matrix.h"
 
 
 gsp::VertexGraph::VertexGraph(uint32_t num_nodes) : num_nodes(num_nodes) {}

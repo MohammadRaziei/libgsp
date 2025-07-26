@@ -1,12 +1,12 @@
 [build-system]
-requires = ["scikit-build-core>=0.3.3", "nanobind>=1.4.0"]
+requires = ["scikit-build-core==0.3.3", "nanobind==1.4.0"]
 # requires = ["scikit-build-core==0.4.6", "nanobind==1.4.0"]
 build-backend = "scikit_build_core.build"
 
 
 [project]
 name = "libgsp"
-version = "0.0.4"
+version = "0.0.0-dev"
 description = "High-Performance Linear/Non-Linear Filters and Window Functions Library in C++ with Python Bindings"
 readme = "README.md"
 authors = [
@@ -49,8 +49,13 @@ test-skip = ["*universal2:arm64"]
 #build-verbosity = 1
 
 
-#[tool.scikit-build.cmake.define]
-#SOME_DEFINE = "ON"
+[tool.scikit-build.cmake.define]
+BUILD_SHARED_LIBS = "OFF"  # Build static library
+BUILD_TESTING = "OFF"      # Disable building tests
+BUILD_EXAMPLES = "OFF"     # Disable building examples
+BUILD_BENCHMARKS = "OFF"   # Disable building benchmarks
+BUILD_PYTHON_BINDINGS = "ON"  # Build Python bindings
+CMAKE_BUILD_TYPE = "Release"  # Set build type to Release   
 #
 #[tool.scikit-build]
 #cmake.args = ["-DSOME_DEFINE=ON", "-DOTHER=OFF"]

@@ -4,16 +4,11 @@
 
 #include <stdint.h>
 #include <string>
-#include "movingFilter.h"
+#include "libgsp/graph/graph.h"
 
 namespace nb = nanobind;
 using namespace nb::literals;
 
-template <typename T>
-inline std::vector<T> movingFilterBind(std::vector<T>& arr, const uint32_t halfWindowSize, const std::string& kernel){
-    filt::movingFilter(arr, arr, halfWindowSize, filt::kernels<T>[kernel]);
-    return arr;
-}
 
 NB_MODULE(NB_MODULE_NAME, m) {
 m.doc() = R"pbdoc(
@@ -42,6 +37,5 @@ m.doc() = R"pbdoc(
 
     )pbdoc";
 
-m.def("movingfilter", &movingFilterBind<double>, nb::arg("arr"), nb::arg("halfWindowSize"), nb::arg("kernel")="median");
 
 }
