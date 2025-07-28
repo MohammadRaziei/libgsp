@@ -35,7 +35,7 @@
              BUILD_TESTING=ON
 
        - name: Install python test dependencies
-         run: pip install numpy scipy
+         run: pip install numpy
 
        - name: Build the project
          run: cmake --build build
