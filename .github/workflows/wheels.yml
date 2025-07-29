@@ -120,5 +120,5 @@ jobs:
         uses: pypa/gh-action-pypi-publish@release/v1
         if: startsWith(github.ref, 'refs/tags/')
         with:
-          password: ${{ secrets.PYPI_PASSWORD }}
-          user: ${{ secrets.PYPI_USERNAME }}
+          password: ${{ secrets.PYPI_PASS }}
+          user: ${{ secrets.PYPI_USER }}
