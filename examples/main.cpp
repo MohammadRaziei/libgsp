@@ -25,7 +25,7 @@ namespace fs = std::filesystem;
 
 std::string render_svg(
     const std::vector<gsp::Edge> &edges,
-    const std::vector<std::pair<double, double>> &coords,
+    const std::vector<gsp::Coord> &coords,
     const std::vector<double> &signals, 
     const std::map<std::string, std::string> &options = {}
 ) {
@@ -38,8 +38,8 @@ std::string render_svg(
     double min_x = 1e9, max_x = -1e9, min_y = 1e9, max_y = -1e9;
 
     for (size_t i = 0; i < coords.size(); ++i) {
-        double x = coords[i].first * signal_scale;
-        double y = coords[i].second * signal_scale;
+        double x = coords[i].x * signal_scale;
+        double y = coords[i].y * signal_scale;
         double sig = signals[i] * signal_scale;
         double x_sig = x;
         double y_sig = y + sig;
@@ -65,8 +65,8 @@ std::string render_svg(
 
     for (auto &[src, tgt, w] : edges) {
         kainjow::mustache::data e(kainjow::mustache::data::type::object);
-        auto [x1, y1] = coords[src];
-        auto [x2, y2] = coords[tgt];
+        auto [x1, y1, z1] = coords[src];
+        auto [x2, y2, z2] = coords[tgt];
         e.set("x1", std::to_string(x1 * signal_scale - min_x));
         e.set("y1", std::to_string(-y1 * signal_scale + max_y));
         e.set("x2", std::to_string(x2 * signal_scale - min_x));
@@ -78,8 +78,8 @@ std::string render_svg(
 
     for (size_t i = 0; i < coords.size(); ++i) {
         kainjow::mustache::data n(kainjow::mustache::data::type::object);
-        double x = coords[i].first * signal_scale - min_x;
-        double y = -coords[i].second * signal_scale + max_y;
+        double x = coords[i].x * signal_scale - min_x;
+        double y = -coords[i].y * signal_scale + max_y;
         double signal = signals[i];
 
         n.set("x", std::to_string(x));
@@ -99,7 +99,7 @@ std::string render_svg(
     }
 
     fs::path current_path = fs::path(__FILE__).parent_path();
-    fs::path template_file_name = fs::absolute(current_path.parent_path() / "include/io/templates/svg/graph.svg.mustache");
+    fs::path template_file_name = fs::absolute(current_path.parent_path() / "include/libgsp/io/templates/svg/graph.svg.mustache");
 
     const std::string template_file = readFile(template_file_name.string());
 
@@ -149,7 +149,7 @@ int main(int argc, char** argv) {
 
 
     std::vector<gsp::Edge> edges = {{0,1},{0,2},{1,2},{2,3}};
-    std::vector<std::pair<double,double>> coords_vec = {{0,0}, {2,0}, {1,-1}, {3,-1}};
+    std::vector<gsp::Coord> coords_vec = {{0,0}, {2,0}, {1,-1}, {3,-1}};
     std::vector<double> signal_vec = {-0.04, 0.31, 0.06, 0.39};
 
     const uint32_t num_nodes = 4;
@@ -167,7 +167,7 @@ int main(int argc, char** argv) {
 
     alglib::real_1d_array signal;
     signal.attach_to_ptr(num_nodes, signal_vec.data());
-    gsp::GraphSignal graph_signal(graph, signal);
+    gsp::GraphSignal graph_signal(&graph, signal);
 
     printf("\ngood bye :)\n");
 

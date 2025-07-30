@@ -6,10 +6,10 @@
 
 
 template <class Matrix, class Signal>
-gsp::GraphSignal<Matrix, Signal>::GraphSignal(const gsp::Graph<Matrix>& graph,
+gsp::GraphSignal<Matrix, Signal>::GraphSignal(gsp::Graph<Matrix>* graph,
                               const Signal& signal)
     : graph(graph), signal(signal) {
-    if (graph.num_nodes != signal.length()) {
+    if (graph->num_nodes != signal.length()) {
         throw std::length_error("");
     }
 }
@@ -17,8 +17,9 @@ gsp::GraphSignal<Matrix, Signal>::GraphSignal(const gsp::Graph<Matrix>& graph,
 
 
 
-
-template class gsp::GraphSignal<alglib::real_2d_array, alglib::real_1d_array>;    /// for DenseMatrix
-template class gsp::GraphSignal<alglib::real_2d_array, alglib::complex_1d_array>; /// for DenseMatrix
-template class gsp::GraphSignal<alglib::sparsematrix,  alglib::real_1d_array>;    /// for SparseMatrix
-template class gsp::GraphSignal<alglib::sparsematrix,  alglib::complex_1d_array>; /// for SparseMatrix
+// for DenseMatrix
+template class gsp::GraphSignal<gsp::densematrix,  alglib::real_1d_array>;    
+template class gsp::GraphSignal<gsp::densematrix,  alglib::complex_1d_array>; 
+// for SparseMatrix
+template class gsp::GraphSignal<gsp::sparsematrix, alglib::real_1d_array>;    
+template class gsp::GraphSignal<gsp::sparsematrix, alglib::complex_1d_array>; 
