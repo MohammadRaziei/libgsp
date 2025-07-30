@@ -34,16 +34,23 @@ void gsp::Graph<Matrix>::setWeights(const Matrix& matrix){
 
 template <class Matrix>
 void gsp::Graph<Matrix>::setWeights(const std::vector<gsp::Edge>& edges) {
+    gsp::matrix::free(this->weights);
     gsp::matrix::allocate(this->weights, this->num_nodes, this->num_nodes);
+    this->num_edges = 0;
     for (auto it = edges.begin(); it < edges.end(); ++it) {
         if (it->weight == 0) continue;
         gsp::matrix::setElement(this->weights, it->source, it->target, it->weight);
+        ++(this->num_edges);
         if (!is_directed) {
             double w = gsp::matrix::getElement(this->weights, it->target, it->source);
             if (w == 0) {
                 gsp::matrix::setElement(this->weights, it->target, it->source, it->weight);
             } else if (w != it->weight) {
+                gsp::matrix::free(this->weights);
+                this->num_edges = -1;
                 throw std::invalid_argument("Weights for undirected edges must be equal.");
+            } else {
+                --(this->num_edges); // Already counted
             }
         }
     }

@@ -162,8 +162,36 @@ int main(int argc, char** argv) {
     gsp::DenseGraph graph(num_nodes);
     graph.setCoords(coords_vec);
     graph.setWeights(edges);
+    graph.setNames({"A", "B", "C", "D"});
 
-    std::cout << graph.weights.tostring(0) << std::endl;
+    const alglib::real_2d_array W = graph.weights;
+
+    alglib::real_1d_array degree;
+    degree.setlength(num_nodes);
+    for (alglib::ae_int_t i = 0; i < num_nodes; ++i) {
+        degree[i] = 0.0;
+        for (alglib::ae_int_t j = 0; j < num_nodes; ++j) {
+            degree[i] += W(i, j);
+        }
+    }
+
+    alglib::real_2d_array L;
+    L.setlength(num_nodes, num_nodes);
+    for (alglib::ae_int_t i = 0; i < num_nodes; ++i) {
+        for (alglib::ae_int_t j = 0; j < num_nodes; ++j) {
+            if (i == j)
+                L(i, j) = degree[i] - W(i, j);
+            else
+                L(i, j) = -W(i, j);
+        }
+    }
+
+    std::cout << "Degree vector:\n";
+    for (alglib::ae_int_t i = 0; i < num_nodes; ++i)
+        std::cout << degree[i] << " ";
+    std::cout << std::endl;
+
+    std::cout << "Laplacian matrix L:\n" << L.tostring(0) << std::endl;
 
     alglib::real_1d_array signal;
     signal.attach_to_ptr(num_nodes, signal_vec.data());

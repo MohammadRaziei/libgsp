@@ -15,6 +15,8 @@
 namespace gsp::matrix {
 template<typename Matrix> void allocate(Matrix& matrix, uint32_t rows, uint32_t cols);
 
+template<typename Matrix> void free(Matrix& matrix);
+
 template<typename Matrix>
 void setElement(Matrix& matrix, uint32_t row, uint32_t col, gsp::types::elem_t<Matrix> el);
 

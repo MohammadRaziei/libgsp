@@ -20,6 +20,18 @@ template void gsp::matrix::allocate(alglib::complex_2d_array&, uint32_t, uint32_
 
 
 template <>
+void gsp::matrix::free(alglib::sparsematrix& matrix){
+    alglib::sparsefree(matrix);
+}
+template<typename Matrix>
+void gsp::matrix::free(Matrix& matrix) {
+    matrix.setlength(0, 0);
+}
+template void gsp::matrix::free(alglib::real_2d_array&);
+template void gsp::matrix::free(alglib::complex_2d_array&);
+
+
+template <>
 void gsp::matrix::setElement(alglib::sparsematrix& matrix, uint32_t row, uint32_t col, double el){
     alglib::sparseset(matrix, row, col, el);
 }
@@ -41,4 +53,7 @@ typename gsp::types::elem_t<Matrix> gsp::matrix::getElement(Matrix& matrix, uint
 }
 template double gsp::matrix::getElement(alglib::real_2d_array&, uint32_t, uint32_t);
 template alglib::complex gsp::matrix::getElement(alglib::complex_2d_array&, uint32_t, uint32_t);
+
+
+
 

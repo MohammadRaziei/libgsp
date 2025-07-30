@@ -159,6 +159,9 @@ if (BUILD_EXAMPLES)
       # Add an example executable
    add_executable(example examples/main.cpp)
    target_link_libraries(example PUBLIC libgsp::libgsp)
+
+    add_executable(matrix examples/matrix.cpp)
+   target_link_libraries(matrix PUBLIC alglib)
 endif()
 
 

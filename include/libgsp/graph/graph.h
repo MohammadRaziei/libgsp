@@ -53,7 +53,7 @@ class gsp::VertexGraph {
    public:
     const uint32_t num_nodes;
     std::vector<std::string> names;
-    alglib::real_2d_array coords; /// num_nodes x 2
+    alglib::real_2d_array coords; /// num_nodes x 3
 };
 
 
