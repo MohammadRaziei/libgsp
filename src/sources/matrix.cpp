@@ -48,7 +48,7 @@ double gsp::matrix::getElement(alglib::sparsematrix& matrix, uint32_t row, uint3
     return alglib::sparseget(matrix, row, col);
 }
 template<typename Matrix>
-typename gsp::types::elem_t<Matrix> gsp::matrix::getElement(Matrix& matrix, uint32_t row, uint32_t col) {
+gsp::types::elem_t<Matrix> gsp::matrix::getElement(Matrix& matrix, uint32_t row, uint32_t col) {
     return matrix(row, col);
 }
 template double gsp::matrix::getElement(alglib::real_2d_array&, uint32_t, uint32_t);
