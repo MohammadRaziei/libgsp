@@ -62,7 +62,7 @@ template <class Matrix>
 void gsp::Graph<Matrix>::validateWeights(const Matrix&) {}
 
 template <class Matrix>
-gsp::Graph<Matrix>::~Graph() {}
+gsp::Graph<Matrix>::~Graph() { gsp::matrix::free(this->weights);}
 
 template class gsp::Graph<gsp::densematrix>;  /// DenseMatrix
 template class gsp::Graph<gsp::sparsematrix>; /// SparseMatrix
