@@ -166,7 +166,7 @@ if (BUILD_EXAMPLES)
     target_link_libraries(example PUBLIC libgsp::libgsp)
 
     add_executable(matrix examples/matrix.cpp)
-    target_link_libraries(matrix PUBLIC alglib)
+    target_link_libraries(matrix PUBLIC eigen)
 endif()
 
 
