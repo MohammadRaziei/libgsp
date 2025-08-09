@@ -34,6 +34,13 @@ message(STATUS "Project: ${PROJECT_NAME}@v${PROJECT_VERSION}")
 # find_package(Python3 REQUIRED COMPONENTS Interpreter)
 
 
+add_subdirectory(src/third_party/lunasvg)
+#add_subdirectory(src/third_party/alglib)
+add_library(eigen INTERFACE)
+target_include_directories(eigen INTERFACE
+        ${PROJECT_SOURCE_DIR}/src/third_party/eigen
+)
+
 
 
 
@@ -46,10 +53,8 @@ target_include_directories(gsp
 )
 target_include_directories(gsp PUBLIC src/third_party/spdlog/include)
 target_include_directories(gsp PUBLIC src/third_party/mustache)
-add_subdirectory(src/third_party/lunasvg)
 target_link_libraries(gsp PUBLIC lunasvg::lunasvg)
-add_subdirectory(src/third_party/alglib)
-target_link_libraries(gsp PUBLIC alglib)
+target_link_libraries(gsp PUBLIC eigen)
 
 
 
@@ -156,12 +161,12 @@ endif()
 if (BUILD_EXAMPLES)
     message(STATUS "Building examples")
 
-      # Add an example executable
-   add_executable(example examples/main.cpp)
-   target_link_libraries(example PUBLIC libgsp::libgsp)
+    # Add an example executable
+    add_executable(example examples/main.cpp)
+    target_link_libraries(example PUBLIC libgsp::libgsp)
 
     add_executable(matrix examples/matrix.cpp)
-   target_link_libraries(matrix PUBLIC alglib)
+    target_link_libraries(matrix PUBLIC alglib)
 endif()
 
 

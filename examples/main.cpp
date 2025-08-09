@@ -139,76 +139,55 @@ int svg2png(const std::string& svg_content){
     return 0;
 }
 
-
 int main(int argc, char** argv) {
     spdlog::set_level(spdlog::level::info);
     spdlog::set_pattern("[%Y-%m-%d %H:%M:%S.%e] [%n] [%^%l%$] %v");
-
-
     spdlog::info("Hello, world!");
 
-
-    std::vector<gsp::Edge> edges = {{0,1},{0,2},{1,2},{2,3}};
+    std::vector<gsp::Edge>  edges      = {{0,1},{0,2},{1,2},{2,3}};
     std::vector<gsp::Coord> coords_vec = {{0,0}, {2,0}, {1,-1}, {3,-1}};
-    std::vector<double> signal_vec = {-0.04, 0.31, 0.06, 0.39};
+    std::vector<double>     signal_vec = {-0.04, 0.31, 0.06, 0.39};
 
     const uint32_t num_nodes = 4;
-    double* coords_ptr = (double *) coords_vec.data();
-    alglib::real_2d_array coords;
-    coords.attach_to_ptr(num_nodes,2, coords_ptr);
 
-    std::cout << coords.tostring(0) << std::endl;
-
+    // Build graph
     gsp::DenseGraph graph(num_nodes);
     graph.setCoords(coords_vec);
-    graph.setWeights(edges);
+    graph.setWeights(edges);           // fills graph.weights (Eigen::MatrixXd)
     graph.setNames({"A", "B", "C", "D"});
 
-    const alglib::real_2d_array W = graph.weights;
+    std::cout << "coords:\n" << graph.coords << "\n";
 
-    alglib::real_1d_array degree;
-    degree.setlength(num_nodes);
-    for (alglib::ae_int_t i = 0; i < num_nodes; ++i) {
-        degree[i] = 0.0;
-        for (alglib::ae_int_t j = 0; j < num_nodes; ++j) {
-            degree[i] += W(i, j);
-        }
-    }
-
-    alglib::real_2d_array L;
-    L.setlength(num_nodes, num_nodes);
-    for (alglib::ae_int_t i = 0; i < num_nodes; ++i) {
-        for (alglib::ae_int_t j = 0; j < num_nodes; ++j) {
-            if (i == j)
-                L(i, j) = degree[i] - W(i, j);
-            else
-                L(i, j) = -W(i, j);
-        }
-    }
-
-    std::cout << "Degree vector:\n";
-    for (alglib::ae_int_t i = 0; i < num_nodes; ++i)
-        std::cout << degree[i] << " ";
-    std::cout << std::endl;
-
-    std::cout << "Laplacian matrix L:\n" << L.tostring(0) << std::endl;
-
-    alglib::real_1d_array signal;
-    signal.attach_to_ptr(num_nodes, signal_vec.data());
-    gsp::GraphSignal graph_signal(&graph, signal);
-
-    printf("\ngood bye :)\n");
+    // Shorthands
+    const Eigen::MatrixXd& W = graph.weights;      // adjacency (NxN)
+    std::cout << "Weights matrix W:\n" << W << "\n";
 
 
+    // degree = sum of rows
+    Eigen::VectorXd degree = W.rowwise().sum();
+
+    // L = D - W
+    Eigen::MatrixXd L = (Eigen::MatrixXd) degree.asDiagonal() - W;
+
+    // Log/print
+    std::cout << "Degree vector:\n" << degree.transpose() << "\n";
+    std::cout << "Laplacian matrix L:\n" << L << "\n";
+
+    // Signal (view over std::vector without copy)
+    Eigen::Map<const Eigen::VectorXd> signal(signal_vec.data(), num_nodes);
+    gsp::GraphSignal graph_signal(&graph, (Eigen::VectorXd)signal);
+
+    std::puts("\ngood bye :)\n");
+
+    // Render SVG (unchanged)
     std::map<std::string, std::string> options = {
-        {"signal_scale", "100"},
+        {"signal_scale",     "100"},
         {"node_space_scale", "100"},
         {"signal_font_size", "6"},
-        {"title", "Network"},
+        {"title",            "Network"},
     };
 
     std::string svg = render_svg(edges, coords_vec, signal_vec, options);
-
     writeFile("graph.svg", svg);
     spdlog::info("SVG file written to graph.svg");
 

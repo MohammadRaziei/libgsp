@@ -10,8 +10,7 @@
 #include <cstdint>
 #include <utility>
 
-#include <ap.h>
-
+#include <Eigen/Eigen>
 
 #define GSP_IS_DIRECTED_DEFAULT false
 
@@ -19,8 +18,8 @@
 
 
 namespace gsp {
-    using densematrix = alglib::real_2d_array;
-    using sparsematrix = alglib::sparsematrix;
+    using densematrix = Eigen::MatrixXd;
+    using sparsematrix = Eigen::SparseMatrix<double, Eigen::RowMajor>;
 
 
     struct Coord;
@@ -45,7 +44,7 @@ class gsp::VertexGraph {
     VertexGraph(const gsp::VertexGraph& other) = delete;
 
     virtual ~VertexGraph();
-    virtual void setCoords(const alglib::real_2d_array&);
+    virtual void setCoords(const Eigen::MatrixXd& coords);
     virtual void setCoords(const std::vector<gsp::Coord>&);
     virtual void setNames(const std::vector<std::string>&);
 
@@ -53,7 +52,10 @@ class gsp::VertexGraph {
    public:
     const uint32_t num_nodes;
     std::vector<std::string> names;
-    alglib::real_2d_array coords; /// num_nodes x 3
+
+
+    using CoordMat = Eigen::Matrix<double, Eigen::Dynamic, 3, Eigen::RowMajor>;
+    CoordMat coords; // size fixed elsewhere to (num_nodes x 3)
 };
 
 

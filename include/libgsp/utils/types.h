@@ -1,5 +1,5 @@
 //
-// Created by Mohammad on 7/24/2025.
+// gsp::types — Eigen-based type traits (minimal, zero runtime cost).
 //
 
 #ifndef LIBGSP_TYPES_H
@@ -7,32 +7,53 @@
 #pragma once
 
 #include <type_traits>
-
-#include <ap.h>
-
+#include <Eigen/Core>
+#include <Eigen/SparseCore>
 
 namespace gsp::types {
-template <typename Matrix> struct typeofelement { using type = void; };
-template <> struct typeofelement<alglib::integer_1d_array> { using type = alglib::ae_int_t; };
-template <> struct typeofelement<alglib::integer_2d_array> { using type = alglib::ae_int_t; };
-template <> struct typeofelement<alglib::complex_1d_array> { using type = alglib::complex; };
-template <> struct typeofelement<alglib::complex_2d_array> { using type = alglib::complex; };
-template <> struct typeofelement<alglib::real_1d_array> { using type = double; };
-template <> struct typeofelement<alglib::real_2d_array> { using type = double; };
-template <> struct typeofelement<alglib::sparsematrix> { using type = double; };
-template <typename Matrix> using elem_t = typename gsp::types::typeofelement<Matrix>::type;
 
-template <typename T> struct is_alglibmatrix : std::false_type {};
-template <> struct is_alglibmatrix<alglib::integer_2d_array> : std::true_type {};
-template <> struct is_alglibmatrix<alglib::complex_2d_array> : std::true_type {};
-template <> struct is_alglibmatrix<alglib::real_2d_array> : std::true_type {};
-template <> struct is_alglibmatrix<alglib::sparsematrix> : std::true_type {};
+// ----- element type -----
+template <typename T>
+struct typeofelement { using type = void; };
 
-template <typename T> struct is_alglibvector : std::false_type {};
-template <> struct is_alglibvector<alglib::integer_1d_array> : std::true_type {};
-template <> struct is_alglibvector<alglib::complex_1d_array> : std::true_type {};
-template <> struct is_alglibvector<alglib::real_1d_array> : std::true_type {};
-template <> struct is_alglibvector<alglib::sparsematrix> : std::true_type {};
-}
+template <typename S, int R, int C, int O, int MR, int MC>
+struct typeofelement<Eigen::Matrix<S, R, C, O, MR, MC>> { using type = S; };
+
+template <typename S, int O, typename I>
+struct typeofelement<Eigen::SparseMatrix<S, O, I>> { using type = S; };
+
+template <typename S, int O, typename I>
+struct typeofelement<Eigen::SparseVector<S, O, I>> { using type = S; };
+
+template <typename Matrix>
+using elem_t = typename typeofelement<std::remove_cv_t<std::remove_reference_t<Matrix>>>::type;
+
+// ----- matrix / vector detection -----
+template <typename T> struct is_eigenmatrix : std::false_type {};
+template <typename T> struct is_eigenvector : std::false_type {};
+
+// Any Eigen::Matrix (includes vectors)
+template <typename S, int R, int C, int O, int MR, int MC>
+struct is_eigenmatrix<Eigen::Matrix<S, R, C, O, MR, MC>> : std::true_type {};
+
+// Sparse matrix
+template <typename S, int O, typename I>
+struct is_eigenmatrix<Eigen::SparseMatrix<S, O, I>> : std::true_type {};
+
+// Dense column vectors (Nx1) and row vectors (1xM)
+template <typename S, int R, int O, int MR, int MC>
+struct is_eigenvector<Eigen::Matrix<S, R, 1, O, MR, MC>> : std::true_type {};
+template <typename S, int C, int O, int MR, int MC>
+struct is_eigenvector<Eigen::Matrix<S, 1, C, O, MR, MC>> : std::true_type {};
+
+// Sparse vector
+template <typename S, int O, typename I>
+struct is_eigenvector<Eigen::SparseVector<S, O, I>> : std::true_type {};
+
+// ----- optional aliases to keep old call sites working -----
+template <typename T> using is_matrix = is_eigenmatrix<T>;
+template <typename T> using is_vector = is_eigenvector<T>;
+
+} // namespace gsp::types
 
 #endif  // LIBGSP_TYPES_H
