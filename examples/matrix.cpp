@@ -48,13 +48,17 @@ computeNormalizedLaplacianSparse(const Eigen::SparseMatrix<double>& W) {
     std::vector<Eigen::Triplet<double>> triplets;
     triplets.reserve(static_cast<size_t>(W.nonZeros()) + static_cast<size_t>(n));
 
+
+    for (int i = 0; i < n; ++i) {
+        double diag_val = degree[i] - W.coeff(i, i); // subtract self-loop
+        triplets.emplace_back(i, i, diag_val);
+    }
     for (int k = 0; k < W.outerSize(); ++k) {
         for (Eigen::SparseMatrix<double>::InnerIterator it(W, k); it; ++it) {
-            triplets.emplace_back(it.row(), it.col(), -it.value()); // -W
+            if (it.row() != it.col()) {
+                triplets.emplace_back(it.row(), it.col(), -it.value());
+            }
         }
-    }
-    for (int i = 0; i < n; ++i) {
-        triplets.emplace_back(i, i, degree[i]);                     // +D on diag
     }
 
     Eigen::SparseMatrix<double> L(n, n);
@@ -71,6 +75,11 @@ computeNormalizedLaplacianSparse(const Eigen::SparseMatrix<double>& W) {
     }
 
     return L;
+}
+
+double mse(const Eigen::MatrixXd& A, const Eigen::MatrixXd& B) {
+    assert(A.rows() == B.rows() && A.cols() == B.cols());
+    return (A - B).array().square().mean(); // elementwise squared error mean
 }
 
 // ---- Example ----
@@ -92,6 +101,11 @@ int main() {
     toc;
     std::cout << "\nNormalized Laplacian (sparse):\n";
     std::cout << Eigen::MatrixXd(Lsparse) << "\n"; // for display
+
+
+    double error = mse(Ldense, Eigen::MatrixXd(Lsparse));
+    std::cout << "\nMSE between dense and sparse L_N: " << error << "\n";
+
 
     return 0;
 }

@@ -8,7 +8,6 @@
 
 #include <vector>
 #include <cstdint>
-#include <utility>
 
 #include <Eigen/Eigen>
 
@@ -24,6 +23,7 @@ namespace gsp {
 
     struct Coord;
     struct Edge;
+    enum class ShiftType;
 
     class VertexGraph;
     template <class matrix> class Graph;
@@ -66,6 +66,14 @@ struct gsp::Edge {
     double weight;
 };
 
+
+enum class gsp::ShiftType {
+    Weights,
+    Laplacian,
+    NormalizedWeights,
+    NormalizedLaplacian
+};
+
 template <class Matrix>
 class gsp::Graph : public gsp::VertexGraph {
    public:
@@ -85,6 +93,8 @@ class gsp::Graph : public gsp::VertexGraph {
    protected:
     int32_t num_edges = -1;
     bool is_directed;
+
+    gsp::ShiftType shift_type = gsp::ShiftType::Laplacian;
 };
 
 
