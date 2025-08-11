@@ -2,6 +2,9 @@
 
 #include <Eigen/Dense>
 #include <Eigen/SparseCore>
+#include <Spectra/SymEigsSolver.h>
+
+
 #include <iostream>
 #include <vector>
 #include <cmath>
@@ -95,6 +98,35 @@ int main() {
     toc;
     std::cout << "Normalized Laplacian (dense):\n" << Ldense << "\n";
 
+    {
+        Spectra::DenseSymMatProd<double> op(Ldense);
+
+        // Construct eigen solver object, requesting the largest three eigenvalues
+        Spectra::SymEigsSolver<Spectra::DenseSymMatProd<double>> eigs(op, 3, 4);
+
+        // Initialize and compute
+        eigs.init();
+        int nconv = eigs.compute(Spectra::SortRule::LargestAlge);
+
+
+        // Retrieve results
+        Eigen::VectorXd evalues;
+        Eigen::MatrixXd evectors;
+        if(eigs.info() == Spectra::CompInfo::Successful) {
+            std::cout << "Successfully computed eigenvalues\n";
+            evalues = eigs.eigenvalues();
+            evectors = eigs.eigenvectors();
+        }
+
+        std::cout << "Eigenvalues found:\n" << evalues << std::endl;
+        std::cout << "Eigenvectors found:\n" << evectors << std::endl;
+
+
+    }
+
+
+
+
     Eigen::SparseMatrix<double> Ws = W.sparseView();
     tic;
     auto Lsparse = computeNormalizedLaplacianSparse(Ws);
@@ -109,3 +141,5 @@ int main() {
 
     return 0;
 }
+
+

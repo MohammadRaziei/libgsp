@@ -39,6 +39,7 @@ add_subdirectory(src/third_party/lunasvg)
 add_library(eigen INTERFACE)
 target_include_directories(eigen INTERFACE
         ${PROJECT_SOURCE_DIR}/src/third_party/eigen
+        ${PROJECT_SOURCE_DIR}/src/third_party/spectra/include
 )
 
 
