@@ -7,9 +7,6 @@
 #pragma once
 
 #include <cstdint>
-#include <type_traits>
-#include <complex>
-
 #include <Eigen/Dense>
 #include <Eigen/SparseCore>
 

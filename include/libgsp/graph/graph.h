@@ -10,6 +10,8 @@
 #include <cstdint>
 
 #include <Eigen/Eigen>
+#include "libgsp/utils/types.h"
+
 
 #define GSP_IS_DIRECTED_DEFAULT false
 
@@ -25,8 +27,11 @@ namespace gsp {
     struct Edge;
     enum class ShiftType;
 
+    template<class Matrix> class MatrixBox;
+    template<class Matrix> class CacheBox;
+
     class VertexGraph;
-    template <class matrix> class Graph;
+    template <class Matrix> class Graph;
     using SparseGraph = Graph<sparsematrix>;
     using DenseGraph = Graph<densematrix>;
 
@@ -42,6 +47,7 @@ class gsp::VertexGraph {
    public:
     explicit VertexGraph(uint32_t);
     VertexGraph(const gsp::VertexGraph& other) = delete;
+    void operator=(const gsp::VertexGraph& other) = delete;
 
     virtual ~VertexGraph();
     virtual void setCoords(const Eigen::MatrixXd& coords);
@@ -79,6 +85,7 @@ class gsp::Graph : public gsp::VertexGraph {
    public:
     explicit Graph(uint32_t num_nodes, const bool is_directed = GSP_IS_DIRECTED_DEFAULT);
     Graph(const gsp::Graph<Matrix>& other) = delete;
+    void operator=(const gsp::Graph<Matrix>& other) = delete;
     Graph(const gsp::VertexGraph& other);
     virtual ~Graph();
 
@@ -88,14 +95,64 @@ class gsp::Graph : public gsp::VertexGraph {
     virtual void validateWeights(const Matrix&);
 
 
-   public:
-    Matrix weights;
+    virtual const Matrix& weights() const;
+    virtual const Matrix& laplacian();
+    virtual const Matrix& normalizedLaplacian();
+    virtual const typename gsp::MatrixBox<Matrix>::densevector& degrees();
+
+    void invalidateCache();
    protected:
-    int32_t num_edges = -1;
     bool is_directed;
+    Matrix _weights;
 
     gsp::ShiftType shift_type = gsp::ShiftType::Laplacian;
+   private:
+    gsp::CacheBox<Matrix>* cache();
+    gsp::CacheBox<Matrix>* _cache;
 };
+
+
+
+
+template<class Matrix>
+class gsp::MatrixBox {
+public:
+    using densevector = Eigen::Matrix<gsp::types::elem_t<Matrix>, Eigen::Dynamic, 1, Eigen::ColMajor>;
+
+    MatrixBox() = default;
+    MatrixBox(const MatrixBox&) = delete;
+    MatrixBox& operator=(const MatrixBox&) = delete;
+
+    explicit MatrixBox(Matrix* weights);
+    ~MatrixBox();
+
+    void reset();
+
+    void setWeights(Matrix* weights);
+
+    const Matrix& weights() const;
+    Matrix& normalizedWeight();
+    Matrix& laplacian();
+    Matrix& normalizedLaplacian();
+    densevector& degrees();
+private:
+    bool isCalculated(const Matrix&);
+    bool isCalculated(const densevector&);
+private:
+    Matrix* _weights, _laplacian, _normalized_weights, _normalized_laplacian;
+    densevector _degrees;
+};
+
+
+
+template <class Matrix>
+class gsp::CacheBox {
+public:
+    CacheBox(Matrix* weights = nullptr);
+    gsp::MatrixBox<Matrix> matrix;
+};
+
+
 
 
 #endif  // LIBGSP_GRAPH_H

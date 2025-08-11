@@ -151,7 +151,7 @@ int main(int argc, char** argv) {
     const uint32_t num_nodes = 4;
 
     // Build graph
-    gsp::DenseGraph graph(num_nodes);
+    gsp::SparseGraph graph(num_nodes);
     graph.setCoords(coords_vec);
     graph.setWeights(edges);           // fills graph.weights (Eigen::MatrixXd)
     graph.setNames({"A", "B", "C", "D"});
@@ -159,15 +159,14 @@ int main(int argc, char** argv) {
     std::cout << "coords:\n" << graph.coords << "\n";
 
     // Shorthands
-    const Eigen::MatrixXd& W = graph.weights;      // adjacency (NxN)
+    const Eigen::MatrixXd& W = graph.weights();      // adjacency (NxN)
     std::cout << "Weights matrix W:\n" << W << "\n";
 
 
     // degree = sum of rows
-    Eigen::VectorXd degree = W.rowwise().sum();
-
+    Eigen::VectorXd degree = graph.degrees();     // degree vector (1xN)
     // L = D - W
-    Eigen::MatrixXd L = (Eigen::MatrixXd) degree.asDiagonal() - W;
+    Eigen::MatrixXd L = graph.laplacian();
 
     // Log/print
     std::cout << "Degree vector:\n" << degree.transpose() << "\n";

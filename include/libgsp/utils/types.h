@@ -54,6 +54,25 @@ struct is_eigenvector<Eigen::SparseVector<S, O, I>> : std::true_type {};
 template <typename T> using is_matrix = is_eigenmatrix<T>;
 template <typename T> using is_vector = is_eigenvector<T>;
 
+
+template<typename Matrix> struct vector_of { using type = void;};
+
+// Dense matrix → VectorXd / VectorXcd ...
+template<typename Scalar, int Rows, int Cols, int Options, int MR, int MC>
+struct vector_of<Eigen::Matrix<Scalar, Rows, Cols, Options, MR, MC>> {
+    using type = Eigen::Matrix<Scalar, Rows, 1>;
+};
+
+// Sparse matrix → SparseVector<double> / SparseVector<complex> ...
+template<typename Scalar, int Options, typename Index>
+struct vector_of<Eigen::SparseMatrix<Scalar, Options, Index>> {
+    using type = Eigen::SparseVector<Scalar, Options, Index>;
+};
+
+template<typename Matrix>
+using vector_t = typename vector_of<std::remove_cv_t<std::remove_reference_t<Matrix>>>::type;
+
+
 } // namespace gsp::types
 
 #endif  // LIBGSP_TYPES_H
