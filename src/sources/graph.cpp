@@ -32,12 +32,14 @@ gsp::Graph<Matrix>::Graph(uint32_t num_nodes, bool is_directed):
 
 template <class Matrix>
 void gsp::Graph<Matrix>::setWeights(const Matrix& matrix){
+    invalidateCache();
     this->_weights = matrix;
 }
 
 
 template <class Matrix>
 void gsp::Graph<Matrix>::setWeights(const std::vector<gsp::Edge>& edges) {
+    invalidateCache();
     gsp::matrix::free(this->_weights);
     gsp::matrix::allocate(this->_weights, this->num_nodes, this->num_nodes);
     gsp::matrix::fillZero(this->_weights);
