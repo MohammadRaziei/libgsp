@@ -19,16 +19,19 @@ EdgeGenerator<Matrix>::EdgeGenerator(const gsp::Graph<Matrix>* graph, types::ele
     _num_nodes= graph ? static_cast<int>(graph->num_nodes) : 0;
     _thresh      = thresh;
     _is_directed = graph ? graph->isDirected() : false;
+    _state = new State;
     iter();
 }
 
 
 template <class Matrix>
-EdgeGenerator<Matrix>::~EdgeGenerator() = default;
+EdgeGenerator<Matrix>::~EdgeGenerator() {
+    delete _state;
+}
 
-template <class Matrix>
-void EdgeGenerator<Matrix>::iter() {
-    _row = 0; _col = 0;
+template <>
+void EdgeGenerator<densematrix>::iter() {
+    _state->reset();
 }
 
 template <>
@@ -41,18 +44,18 @@ template <>
 std::optional<Edge> EdgeGenerator<densematrix>::next() {
     if (!_weights || _num_nodes <= 0) return std::nullopt;
 
-    while (_row < _num_nodes) {
+    while (_state->row < _num_nodes) {
         // for undirected we emit only upper triangle: col starts at row
-        while (_col < _num_nodes) {
-            const uint32_t col = _col++;               // advance state BEFORE possible return
-            const double w = (*_weights)(_row, col);
+        while (_state->col < _num_nodes) {
+            const uint32_t col = _state->col++;               // advance state BEFORE possible return
+            const double w = (*_weights)(_state->row, col);
 
             if (std::abs(w) <= _thresh) continue;
 
-            return Edge(_row, col, w);
+            return Edge(_state->row, col, w);
         }
-        ++_row;
-        _col = (_is_directed) ? 0 : _row; // reset for next row
+        ++_state->row;
+        _state->col = (_is_directed) ? 0 : _state->row; // reset for next row
     }
     return std::nullopt;
 }

@@ -17,7 +17,9 @@
 #include <cmath>
 #include <optional>
 
-// must provide densematrix / sparsematrix aliases in this header (or included one)
+// must provide densematrix / sparsematrix aliases in this header (or included
+// one)
+#include "graph.h"
 #include "libgsp/utils/types.h"   // defines densematrix, sparsematrix, and includes Eigen
 
 namespace gsp {
@@ -48,11 +50,23 @@ private:
     bool                  _is_directed = false;
 
     uint32_t _row, _col = 0;
+
+    struct State;
+    State* _state;
 };
 
 } // namespace gsp
 
+template <>
+struct gsp::EdgeGenerator<gsp::densematrix>::State {
+    void reset() { row = col = 0; }
+    uint32_t row, col = 0;
+};
 
+template <>
+struct gsp::EdgeGenerator<gsp::sparsematrix>::State {
+
+};
 
 
 
