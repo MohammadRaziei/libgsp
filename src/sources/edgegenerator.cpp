@@ -12,14 +12,13 @@
 
 namespace gsp {
 
-// ===================== densematrix =====================
 template <class Matrix>
 EdgeGenerator<Matrix>::EdgeGenerator(const gsp::Graph<Matrix>* graph, types::elem_t<Matrix> thresh) {
     _weights  = graph ? &graph->weights() : nullptr;
     _num_nodes= graph ? static_cast<int>(graph->num_nodes) : 0;
     _thresh      = thresh;
     _is_directed = graph ? graph->isDirected() : false;
-    _state = new State;
+    _state = new State(_weights);
     iter();
 }
 
@@ -29,36 +28,32 @@ EdgeGenerator<Matrix>::~EdgeGenerator() {
     delete _state;
 }
 
-template <>
-void EdgeGenerator<densematrix>::iter() {
+template <class Matrix>
+void EdgeGenerator<Matrix>::iter() {
     _state->reset();
 }
 
-template <>
-void EdgeGenerator<sparsematrix>::iter() {
-    // outer_ = 0;
-    // k_ = (W_ && W_->outerSize() > 0) ? outerPtr_[0] : 0;
-}
 
 template <>
 std::optional<Edge> EdgeGenerator<densematrix>::next() {
     if (!_weights || _num_nodes <= 0) return std::nullopt;
 
-    while (_state->row < _num_nodes) {
+    while (_state->_row < _num_nodes) {
         // for undirected we emit only upper triangle: col starts at row
-        while (_state->col < _num_nodes) {
-            const uint32_t col = _state->col++;               // advance state BEFORE possible return
-            const double w = (*_weights)(_state->row, col);
+        while (_state->_col < _num_nodes) {
+            const uint32_t col = _state->_col++;               // advance state BEFORE possible return
+            const double w = (*_weights)(_state->_row, col);
 
             if (std::abs(w) <= _thresh) continue;
 
-            return Edge(_state->row, col, w);
+            return Edge(_state->_row, col, w);
         }
-        ++_state->row;
-        _state->col = (_is_directed) ? 0 : _state->row; // reset for next row
+        ++_state->_row;
+        _state->_col = (_is_directed) ? 0 : _state->_row; // reset for next row
     }
     return std::nullopt;
 }
+
 
 
 
@@ -67,9 +62,30 @@ template <>
 std::optional<Edge> EdgeGenerator<sparsematrix>::next() {
     if (!_weights || _num_nodes <= 0) return std::nullopt;
 
+    // Iterate row-by-row over CSR buffers
+    while (_state->_row < _num_nodes) {
+        while (_state->_k < _state->_kend) {
+            const uint32_t idx = _state->_k++;
+            const uint32_t r   = _state->_row;
+            const uint32_t c   = _state->_colIdx[idx];
+            const double w     = _state->_values[idx];
 
+            // undirected: only i <= j
+            if (!_is_directed && r > c) continue;
+
+            if (std::abs(w) <= _thresh) continue;
+
+            return Edge(r, c, w);
+        }
+        // next row
+        ++_state->_row;
+        if (_state->_row < _num_nodes && _state->_rowPtr) {
+            _state->reset_row();
+        }
+    }
     return std::nullopt;
 }
+
 
 
 template <class Matrix>

@@ -4,21 +4,13 @@
 
 #ifndef LIBGSP_EDGEGENERATOR_H
 #define LIBGSP_EDGEGENERATOR_H
-
-#include "libgsp/utils/types.h"
-
-
-
 #pragma once
 #include <Eigen/Dense>
 #include <Eigen/SparseCore>
-#include <cstdint>
-#include <type_traits>
-#include <cmath>
+
+#include <vector>
 #include <optional>
 
-// must provide densematrix / sparsematrix aliases in this header (or included
-// one)
 #include "libgsp/utils/types.h"   // defines densematrix, sparsematrix, and includes Eigen
 
 namespace gsp {
@@ -54,18 +46,35 @@ private:
 
 template <>
 struct EdgeGenerator<densematrix>::State {
-    void reset() { row = col = 0; }
-    uint32_t row, col = 0;
+    State(const densematrix*) { reset(); }
+    void reset() { _row = _col = 0; }
+    uint32_t _row, _col;
 };
 
 template <>
 struct EdgeGenerator<sparsematrix>::State {
-
+    State(const sparsematrix* weights) :
+        _rowPtr(weights->outerIndexPtr()),
+        _colIdx(weights->innerIndexPtr()),
+        _values(weights->valuePtr()) { reset(); }
+    void reset() {
+        _row = 0;
+        _k = 0;
+        _kend = 0;
+    }
+    void reset_row() {
+        _k   = _rowPtr ? _rowPtr[_row] : 0;
+        _kend= _rowPtr ? _rowPtr[_row+1] : 0;
+    }
+    uint32_t _row = 0;        // current row (outer)
+    uint32_t _k   = 0;        // cursor inside row
+    uint32_t _kend= 0;        // end cursor for this row
+    const int*    _rowPtr  = nullptr; // size: n+1
+    const int*    _colIdx  = nullptr; // size: nnz
+    const double* _values  = nullptr; // size: nnz
 };
 
 } // namespace gsp
-
-
 
 
 

@@ -152,7 +152,7 @@ int main(int argc, char** argv) {
     const uint32_t num_nodes = 4;
 
     // Build graph
-    gsp::DenseGraph graph(num_nodes);
+    gsp::SparseGraph graph(num_nodes);
     graph.setCoords(coords_vec);
     graph.setWeights(edges);           // fills graph.weights (Eigen::MatrixXd)
     graph.setNames({"A", "B", "C", "D"});
