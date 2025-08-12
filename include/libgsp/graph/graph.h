@@ -52,14 +52,14 @@ enum class gsp::ShiftType {
 template <class Matrix>
 class gsp::Graph : public gsp::VertexGraph {
    public:
-    explicit Graph(uint32_t num_nodes, const bool is_directed = GSP_IS_DIRECTED_DEFAULT);
+    explicit Graph(uint32_t num_nodes);
     Graph(const gsp::Graph<Matrix>& other) = delete;
     void operator=(const gsp::Graph<Matrix>& other) = delete;
     Graph(const gsp::VertexGraph& other);
     virtual ~Graph();
 
-    virtual void setWeights(const Matrix& matrix);
-    virtual void setWeights(const std::vector<gsp::Edge>& edges);
+    virtual void setWeights(const Matrix& matrix, bool is_directed = GSP_IS_DIRECTED_DEFAULT);
+    virtual void setWeights(const std::vector<gsp::Edge>& edges, bool is_directed = GSP_IS_DIRECTED_DEFAULT);
 
     virtual void validateWeights(const Matrix&);
 
@@ -73,7 +73,7 @@ class gsp::Graph : public gsp::VertexGraph {
 
     void invalidateCache();
    protected:
-    bool is_directed;
+    bool _is_directed;
     Matrix _weights;
 
     gsp::ShiftType shift_type = gsp::ShiftType::Laplacian;

@@ -8,20 +8,22 @@
 
 
 template <class Matrix>
-gsp::Graph<Matrix>::Graph(uint32_t num_nodes, bool is_directed):
-      VertexGraph(num_nodes), is_directed(is_directed) {
+gsp::Graph<Matrix>::Graph(uint32_t num_nodes):
+      VertexGraph(num_nodes) {
 }
 
 template <class Matrix>
-void gsp::Graph<Matrix>::setWeights(const Matrix& matrix){
+void gsp::Graph<Matrix>::setWeights(const Matrix& matrix, bool is_directed){
     invalidateCache();
     this->_weights = matrix;
+    this->_is_directed = is_directed;
 }
 
 
 template <class Matrix>
-void gsp::Graph<Matrix>::setWeights(const std::vector<gsp::Edge>& edges) {
+void gsp::Graph<Matrix>::setWeights(const std::vector<gsp::Edge>& edges, bool is_directed) {
     invalidateCache();
+    this->_is_directed = is_directed;
     gsp::matrix::free(this->_weights);
     gsp::matrix::allocate(this->_weights, this->num_nodes, this->num_nodes);
     gsp::matrix::fillZero(this->_weights);
@@ -43,7 +45,7 @@ void gsp::Graph<Matrix>::setWeights(const std::vector<gsp::Edge>& edges) {
 
 template <class Matrix>
 bool gsp::Graph<Matrix>::isDirected() const {
-    return this->is_directed;
+    return this->_is_directed;
 }
 
 

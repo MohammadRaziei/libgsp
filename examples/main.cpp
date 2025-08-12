@@ -145,7 +145,7 @@ int main(int argc, char** argv) {
     spdlog::set_pattern("[%Y-%m-%d %H:%M:%S.%e] [%n] [%^%l%$] %v");
     spdlog::info("Hello, world!");
 
-    std::vector<gsp::Edge>  edges      = {{0, 0},{0,1},{0,2},{1,2},{2,3}};
+    std::vector<gsp::Edge>  edges      = {{0, 0},{0,1, 3},{0,2},{1,2},{2,3}};
     std::vector<gsp::Coord> coords_vec = {{0,0}, {2,0}, {1,-1}, {3,-1}};
     std::vector<double>     signal_vec = {-0.04, 0.31, 0.06, 0.39};
 
@@ -159,12 +159,27 @@ int main(int argc, char** argv) {
 
     gsp::EdgeGenerator gen(&graph);
 
+    tic;
     uint32_t num_edges = 0;
     while (auto edge = gen.next()) {
         if (!edge) break;  // no more edges
-        printf("from %d to %d with weight %.2f\n", edge->source, edge->target, edge->weight);
+        // printf("from %d to %d with weight %.2f\n", edge->source, edge->target, edge->weight);
         num_edges++;
     }
+    toc;
+    std::cout << "num edges = " << num_edges << std::endl;
+
+    tic;
+    for (int i = 0; i < 1'000'000; ++i) {
+        num_edges = 0;
+        gen.iter();
+        while (auto edge = gen.next()) {
+            if (!edge) break;  // no more edges
+            // printf("from %d to %d with weight %.2f\n", edge->source, edge->target, edge->weight);
+            num_edges++;
+        }
+    }
+    toc;
     std::cout << "num edges = " << num_edges << std::endl;
 
 
