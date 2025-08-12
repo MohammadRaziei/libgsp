@@ -73,6 +73,16 @@ template<typename Matrix>
 using vector_t = typename vector_of<std::remove_cv_t<std::remove_reference_t<Matrix>>>::type;
 
 
+// ---- type traits: detect Eigen sparse vs dense ----
+template <typename T> struct is_eigen_sparse : std::false_type {};
+template <typename S, int O, typename I>
+struct is_eigen_sparse<Eigen::SparseMatrix<S, O, I>> : std::true_type {};
+
+template <typename T> struct is_eigen_dense : std::false_type {};
+template <typename S, int R, int C, int O, int MR, int MC>
+struct is_eigen_dense<Eigen::Matrix<S, R, C, O, MR, MC>> : std::true_type {};
+
+
 } // namespace gsp::types
 
 #endif  // LIBGSP_TYPES_H

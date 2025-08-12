@@ -13,6 +13,7 @@
 
 #include "libgsp/graph/graph.h"
 #include "libgsp/graph/graphsignal.h"
+#include "libgsp/graph/edgegenerator.h"
 
 
 
@@ -156,6 +157,16 @@ int main(int argc, char** argv) {
     graph.setWeights(edges);           // fills graph.weights (Eigen::MatrixXd)
     graph.setNames({"A", "B", "C", "D"});
 
+    gsp::EdgeGenerator gen(&graph);
+
+    uint32_t num_edges = 0;
+    while (auto edge = gen.next()) {
+        if (!edge) break;  // no more edges
+        printf("from %d to %d with weight %.2f\n", edge->source, edge->target, edge->weight);
+        num_edges++;
+    }
+
+
     std::cout << "coords:\n" << graph.coords << "\n";
 
     // Shorthands
@@ -167,6 +178,8 @@ int main(int argc, char** argv) {
     Eigen::VectorXd degree = graph.degrees();     // degree vector (1xN)
     // L = D - W
     Eigen::MatrixXd L = graph.laplacian();
+
+
 
     // Log/print
     std::cout << "Degree vector:\n" << degree.transpose() << "\n";
