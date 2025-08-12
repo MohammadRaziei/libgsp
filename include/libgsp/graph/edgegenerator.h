@@ -53,26 +53,32 @@ struct EdgeGenerator<densematrix>::State {
 
 template <>
 struct EdgeGenerator<sparsematrix>::State {
-    State(const sparsematrix* weights) :
-        _rowPtr(weights->outerIndexPtr()),
-        _colIdx(weights->innerIndexPtr()),
-        _values(weights->valuePtr()) { reset(); }
+    using InnerIt = sparsematrix::InnerIterator;
+
+    explicit State(const sparsematrix* W) : W(W) { reset(); }
+
     void reset() {
-        _row = 0;
-        _k = 0;
-        _kend = 0;
+        outer = 0;
+        it.reset();
+        // jump to first non-empty row
+        advance_to_next_nonempty_row();
     }
-    void reset_row() {
-        _k   = _rowPtr ? _rowPtr[_row] : 0;
-        _kend= _rowPtr ? _rowPtr[_row+1] : 0;
+
+    void advance_to_next_nonempty_row() {
+        if (!W) return;
+        const int outerSize = W->outerSize(); // == rows for RowMajor
+        while (outer < outerSize) {
+            it = std::make_unique<InnerIt>(*W, outer);
+            if (*it) break;   // row has at least one nnz
+            ++outer;          // try next row
+        }
     }
-    uint32_t _row = 0;        // current row (outer)
-    uint32_t _k   = 0;        // cursor inside row
-    uint32_t _kend= 0;        // end cursor for this row
-    const int*    _rowPtr  = nullptr; // size: n+1
-    const int*    _colIdx  = nullptr; // size: nnz
-    const double* _values  = nullptr; // size: nnz
+
+    const sparsematrix* W = nullptr;
+    uint32_t outer = 0;                          // current row
+    std::unique_ptr<InnerIt> it;            // iterator within current row
 };
+
 
 } // namespace gsp
 

@@ -109,7 +109,7 @@ public:
 private:
     bool isCalculated(const Matrix&);
     bool isCalculated(const densevector&);
-private:
+
     Matrix* _weights, _laplacian, _normalized_weights, _normalized_laplacian;
     densevector _degrees;
 };
@@ -122,6 +122,8 @@ public:
     CacheBox(Matrix* weights = nullptr);
     gsp::MatrixBox<Matrix> matrix;
 };
+
+
 
 
 

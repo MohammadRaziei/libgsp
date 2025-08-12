@@ -60,29 +60,36 @@ std::optional<Edge> EdgeGenerator<densematrix>::next() {
 
 template <>
 std::optional<Edge> EdgeGenerator<sparsematrix>::next() {
-    if (!_weights || _num_nodes <= 0) return std::nullopt;
+    if (!_weights || _num_nodes <= 0 || !_state) return std::nullopt;
 
-    // Iterate row-by-row over CSR buffers
-    while (_state->_row < _num_nodes) {
-        while (_state->_k < _state->_kend) {
-            const uint32_t idx = _state->_k++;
-            const uint32_t r   = _state->_row;
-            const uint32_t c   = _state->_colIdx[idx];
-            const double w     = _state->_values[idx];
+    auto* st = _state; // convenience
 
-            // undirected: only i <= j
-            if (!_is_directed && r > c) continue;
-
-            if (std::abs(w) <= _thresh) continue;
-
-            return Edge(r, c, w);
+    while (st->W && st->outer < st->W->outerSize()) {
+        if (!st->it) st->advance_to_next_nonempty_row();
+        if (!st->it || !(*st->it)) {
+            // this row exhausted -> move to next row
+            ++st->outer;
+            st->it.reset();
+            st->advance_to_next_nonempty_row();
+            continue;
         }
-        // next row
-        ++_state->_row;
-        if (_state->_row < _num_nodes && _state->_rowPtr) {
-            _state->reset_row();
-        }
+
+        // snapshot current entry, advance iterator state BEFORE checks
+        const int    r = st->it->row();
+        const int    c = st->it->col();
+        const double w = st->it->value();
+        ++(*st->it);
+
+        // undirected: keep only upper triangle (i <= j)
+        if (!_is_directed && r > c) continue;
+
+        if (std::abs(w) <= static_cast<double>(_thresh)) continue;
+
+        return Edge(static_cast<uint32_t>(r),
+                    static_cast<uint32_t>(c),
+                    w);
     }
+
     return std::nullopt;
 }
 
