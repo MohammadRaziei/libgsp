@@ -5,7 +5,6 @@
 #ifndef LIBGSP_EDGEGENERATOR_H
 #define LIBGSP_EDGEGENERATOR_H
 
-#include "libgsp/graph/graph.h"
 #include "libgsp/utils/types.h"
 
 
@@ -26,6 +25,7 @@ namespace gsp {
 
 template <class Matrix>
 class Graph; // forward: must expose weights(), num_nodes, is_directed
+class Edge; // forward: must expose row(), col(), weight()
 
 // Single primary template; definitions specialized in .cpp
 template <class Matrix>
@@ -42,20 +42,12 @@ public:
 
 private:
     // common state (used by specializations)
-    const gsp::Graph<Matrix>* G_ = nullptr;
-    const Matrix*             W_ = nullptr;
-    int    n_        = 0;
-    types::elem_t<Matrix> thr_      = 0.0;
-    bool   directed_ = false;
+    const Matrix*         _weights     = nullptr;
+    int                   _num_nodes;
+    types::elem_t<Matrix> _thresh;
+    bool                  _is_directed = false;
 
-    // dense iteration
-    int i_ = 0, j_ = 0;
-
-    // sparse iteration (RowMajor storage)
-    int outer_ = 0, k_ = 0;
-    const int*    outerPtr_  = nullptr;
-    const int*    innerIdx_  = nullptr;
-    const types::elem_t<Matrix>* values_    = nullptr;
+    uint32_t _row, _col = 0;
 };
 
 } // namespace gsp

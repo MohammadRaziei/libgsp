@@ -145,14 +145,14 @@ int main(int argc, char** argv) {
     spdlog::set_pattern("[%Y-%m-%d %H:%M:%S.%e] [%n] [%^%l%$] %v");
     spdlog::info("Hello, world!");
 
-    std::vector<gsp::Edge>  edges      = {{0,1},{0,2},{1,2},{2,3}};
+    std::vector<gsp::Edge>  edges      = {{0, 0},{0,1},{0,2},{1,2},{2,3}};
     std::vector<gsp::Coord> coords_vec = {{0,0}, {2,0}, {1,-1}, {3,-1}};
     std::vector<double>     signal_vec = {-0.04, 0.31, 0.06, 0.39};
 
     const uint32_t num_nodes = 4;
 
     // Build graph
-    gsp::SparseGraph graph(num_nodes);
+    gsp::DenseGraph graph(num_nodes);
     graph.setCoords(coords_vec);
     graph.setWeights(edges);           // fills graph.weights (Eigen::MatrixXd)
     graph.setNames({"A", "B", "C", "D"});
@@ -165,6 +165,7 @@ int main(int argc, char** argv) {
         printf("from %d to %d with weight %.2f\n", edge->source, edge->target, edge->weight);
         num_edges++;
     }
+    std::cout << "num edges = " << num_edges << std::endl;
 
 
     std::cout << "coords:\n" << graph.coords << "\n";
