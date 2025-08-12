@@ -10,6 +10,12 @@
 #include <Eigen/Core>
 #include <Eigen/SparseCore>
 
+namespace gsp {
+using densematrix = Eigen::MatrixXd;
+using sparsematrix = Eigen::SparseMatrix<double, Eigen::RowMajor>;
+
+}
+
 namespace gsp::types {
 
 // ----- element type -----

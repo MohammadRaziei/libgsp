@@ -19,10 +19,6 @@
 
 
 namespace gsp {
-    using densematrix = Eigen::MatrixXd;
-    using sparsematrix = Eigen::SparseMatrix<double, Eigen::RowMajor>;
-
-
     struct Edge;
     enum class ShiftType;
 

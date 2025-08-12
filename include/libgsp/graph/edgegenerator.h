@@ -19,7 +19,6 @@
 
 // must provide densematrix / sparsematrix aliases in this header (or included
 // one)
-#include "graph.h"
 #include "libgsp/utils/types.h"   // defines densematrix, sparsematrix, and includes Eigen
 
 namespace gsp {
@@ -33,7 +32,7 @@ class Edge; // forward: must expose row(), col(), weight()
 template <class Matrix>
 class EdgeGenerator {
 public:
-    explicit EdgeGenerator(const gsp::Graph<Matrix>* graph, types::elem_t<Matrix> thresh = 0.0);
+    explicit EdgeGenerator(const Graph<Matrix>* graph, types::elem_t<Matrix> thresh = 0.0);
     EdgeGenerator(const EdgeGenerator&) = delete;
     EdgeGenerator& operator=(const EdgeGenerator&) = delete;
     ~EdgeGenerator();
@@ -48,23 +47,25 @@ private:
     int                   _num_nodes;
     types::elem_t<Matrix> _thresh;
     bool                  _is_directed = false;
-    
+
     struct State;
     State* _state;
 };
 
-} // namespace gsp
-
 template <>
-struct gsp::EdgeGenerator<gsp::densematrix>::State {
+struct EdgeGenerator<densematrix>::State {
     void reset() { row = col = 0; }
     uint32_t row, col = 0;
 };
 
 template <>
-struct gsp::EdgeGenerator<gsp::sparsematrix>::State {
+struct EdgeGenerator<sparsematrix>::State {
 
 };
+
+} // namespace gsp
+
+
 
 
 
