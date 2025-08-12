@@ -48,9 +48,7 @@ private:
     int                   _num_nodes;
     types::elem_t<Matrix> _thresh;
     bool                  _is_directed = false;
-
-    uint32_t _row, _col = 0;
-
+    
     struct State;
     State* _state;
 };
