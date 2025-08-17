@@ -152,7 +152,7 @@ int main(int argc, char** argv) {
     const uint32_t num_nodes = 4;
 
     // Build graph
-    gsp::SparseGraph graph(num_nodes);
+    gsp::DenseGraph graph(num_nodes);
     graph.setCoords(coords_vec);
     graph.setWeights(edges);           // fills graph.weights (Eigen::MatrixXd)
     graph.setNames({"A", "B", "C", "D"});
@@ -162,28 +162,36 @@ int main(int argc, char** argv) {
     tic;
     uint32_t num_edges = 0;
     while (auto edge = gen.next()) {
-        if (!edge) break;  // no more edges
-        // printf("from %d to %d with weight %.2f\n", edge->source, edge->target, edge->weight);
+//        printf("from %d to %d with weight %.2f\n", edge->source, edge->target, edge->weight);
         num_edges++;
     }
     toc;
     std::cout << "num edges = " << num_edges << std::endl;
 
-    tic;
-    for (int i = 0; i < 1'000'000; ++i) {
-        num_edges = 0;
-        gen.iter();
-        while (auto edge = gen.next()) {
-            if (!edge) break;  // no more edges
-            // printf("from %d to %d with weight %.2f\n", edge->source, edge->target, edge->weight);
-            num_edges++;
-        }
+//
+//    tic;
+//    for (int i = 0; i < 1'000'000; ++i) {
+//        num_edges = 0;
+//        gen.iter();
+//        while (auto edge = gen.next()) {
+//            if (!edge) break;  // no more edges
+//            // printf("from %d to %d with weight %.2f\n", edge->source, edge->target, edge->weight);
+//            num_edges++;
+//        }
+//    }
+//    toc;
+//    std::cout << "num edges = " << num_edges << std::endl;
+//
+//
+    num_edges = 0;
+    graph.edgeIter();
+    while (auto edge = graph.edgeNext()) {
+//        printf("from %d to %d with weight %.2f\n", edge->source, edge->target, edge->weight);
+        num_edges++;
     }
-    toc;
     std::cout << "num edges = " << num_edges << std::endl;
 
-
-    std::cout << "coords:\n" << graph.coords << "\n";
+    std::cout << "coords:\n" << graph.coords() << "\n";
 
     // Shorthands
     const Eigen::MatrixXd& W = graph.weights();      // adjacency (NxN)

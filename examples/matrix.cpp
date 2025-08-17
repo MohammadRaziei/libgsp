@@ -139,6 +139,15 @@ int main() {
     std::cout << "\nMSE between dense and sparse L_N: " << error << "\n";
 
 
+//    auto mat = Ws;
+    
+//    Eigen::EigenSolver<Eigen::MatrixXd> solver(mat);
+//
+//    std::cout << "Eigenvalues: \n" << solver.eigenvalues().real() << std::endl;
+//
+//    std::cout << "Eigenvectors: \n" << solver.eigenvectors().real() << std::endl;
+
+
     return 0;
 }
 

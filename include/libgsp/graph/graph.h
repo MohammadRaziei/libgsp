@@ -10,7 +10,8 @@
 #include <cstdint>
 
 #include "libgsp/utils/types.h"
-#include "libgsp/graph/vertexgraph.h"
+#include "libgsp/graph/basegraph.h"
+#include "libgsp/graph/edgegenerator.h"
 
 
 #define GSP_IS_DIRECTED_DEFAULT false
@@ -19,27 +20,18 @@
 
 
 namespace gsp {
-    struct Edge;
     enum class ShiftType;
 
     template<class Matrix> class MatrixBox;
     template<class Matrix> class CacheBox;
 
-    class VertexGraph;
+    class BaseGraph;
     template <class Matrix> class Graph;
     using SparseGraph = Graph<sparsematrix>;
     using DenseGraph = Graph<densematrix>;
 
 }
 
-
-
-struct gsp::Edge {
-    Edge(uint32_t source, uint32_t target, double weight=1.0) :
-          source(source), target(target), weight(weight) {}
-    uint32_t source, target;
-    double weight;
-};
 
 
 enum class gsp::ShiftType {
@@ -49,14 +41,21 @@ enum class gsp::ShiftType {
     NormalizedLaplacian
 };
 
+
+
+
 template <class Matrix>
-class gsp::Graph : public gsp::VertexGraph {
+class gsp::Graph : public gsp::BaseGraph {
    public:
     explicit Graph(uint32_t num_nodes);
     Graph(const gsp::Graph<Matrix>& other) = delete;
     void operator=(const gsp::Graph<Matrix>& other) = delete;
     Graph(const gsp::VertexGraph& other);
     virtual ~Graph();
+
+    virtual void edgeIter() override;
+    virtual std::optional<gsp::Edge> edgeNext() override;
+    virtual std::vector<gsp::Edge> edges() override;
 
     virtual void setWeights(const Matrix& matrix, bool is_directed = GSP_IS_DIRECTED_DEFAULT);
     virtual void setWeights(const std::vector<gsp::Edge>& edges, bool is_directed = GSP_IS_DIRECTED_DEFAULT);
@@ -82,9 +81,6 @@ class gsp::Graph : public gsp::VertexGraph {
     gsp::CacheBox<Matrix>* _cache;
 };
 
-
-
-
 template<class Matrix>
 class gsp::MatrixBox {
 public:
@@ -94,7 +90,7 @@ public:
     MatrixBox(const MatrixBox&) = delete;
     MatrixBox& operator=(const MatrixBox&) = delete;
 
-    explicit MatrixBox(Matrix* weights);
+    explicit MatrixBox(const Matrix* weights);
     ~MatrixBox();
 
     void reset();
@@ -110,17 +106,18 @@ private:
     bool isCalculated(const Matrix&);
     bool isCalculated(const densevector&);
 
-    Matrix* _weights, _laplacian, _normalized_weights, _normalized_laplacian;
+    const Matrix* _weights;
+    Matrix _laplacian, _normalized_weights, _normalized_laplacian;
     densevector _degrees;
 };
-
-
 
 template <class Matrix>
 class gsp::CacheBox {
 public:
-    CacheBox(Matrix* weights = nullptr);
-    gsp::MatrixBox<Matrix> matrix;
+    CacheBox(gsp::Graph<Matrix>* graph);
+
+    gsp::EdgeGenerator<Matrix> _generator;
+    gsp::MatrixBox<Matrix> _matrix;
 };
 
 

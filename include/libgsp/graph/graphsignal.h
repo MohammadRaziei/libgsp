@@ -13,12 +13,7 @@
 
 namespace gsp {
 
-template <class Matrix, class Signal //,
-    // typename = std::enable_if_t<
-        // gsp::types::is_matrix<Matrix>::value &&
-        // gsp::types::is_vector<Signal>::value
-    // >
->
+template <class Matrix, class Signal>
 class GraphSignal {
    public:
     GraphSignal(gsp::Graph<Matrix>* graph,

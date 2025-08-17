@@ -9,7 +9,7 @@
 
 template <class Matrix>
 gsp::Graph<Matrix>::Graph(uint32_t num_nodes):
-      VertexGraph(num_nodes) {
+      BaseGraph(num_nodes) {
 }
 
 template <class Matrix>
@@ -67,8 +67,38 @@ void gsp::Graph<Matrix>::invalidateCache() {
 }
 
 
+
 template <class Matrix>
-gsp::MatrixBox<Matrix>::MatrixBox(Matrix* matrix) : _weights(matrix) {
+void gsp::Graph<Matrix>::edgeIter() {
+    this->cache()->_generator.iter();
+}
+
+template <class Matrix>
+std::optional<gsp::Edge> gsp::Graph<Matrix>::edgeNext() {
+    return this->cache()->_generator.next();
+}
+
+template <class Matrix>
+std::vector<gsp::Edge> gsp::Graph<Matrix>::edges() {
+    return this->cache()->_generator.toVector();
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+template <class Matrix>
+gsp::MatrixBox<Matrix>::MatrixBox(const Matrix* matrix) : _weights(matrix) {
 }
 
 template <class Matrix>
@@ -79,7 +109,6 @@ gsp::MatrixBox<Matrix>::~MatrixBox() {
 
 template <class Matrix>
 void gsp::MatrixBox<Matrix>::reset() {
-    gsp::matrix::free(*this->_weights);
     this->_weights = nullptr;
     gsp::matrix::free(this->_laplacian);
     gsp::matrix::free(this->_normalized_laplacian);
@@ -105,7 +134,7 @@ const Matrix& gsp::Graph<Matrix>::weights() const {
 template <class Matrix>
 gsp::CacheBox<Matrix>* gsp::Graph<Matrix>::cache() {
     if (not _cache) {
-        _cache = new gsp::CacheBox<Matrix>(&this->_weights);
+        _cache = new gsp::CacheBox<Matrix>(this);
     }
     return _cache;
 }
@@ -162,14 +191,57 @@ gsp::sparsematrix& gsp::MatrixBox<gsp::sparsematrix>::laplacian() {
 }
 
 
+template <>
+gsp::densematrix& gsp::MatrixBox<gsp::densematrix>::normalizedWeight() {
+    if (isCalculated(this->_normalized_weights)) {
+        return this->_normalized_weights; // already computed
+    }
+    densevector& cached_degrees = this->degrees();
+
+
+    Eigen::VectorXd d_inv_sqrt = cached_degrees.unaryExpr(
+        [](double x){ return (x > 0.0) ? 1.0/std::sqrt(x) : 0.0; });
+
+
+    this->_normalized_weights = _weights->array().rowwise() * d_inv_sqrt.transpose().array(); // right scaling (columns)
+    this->_normalized_weights = this->_normalized_weights.array().colwise() * d_inv_sqrt.array();  // left  scaling (rows)
+
+    return _normalized_weights;
+}
+
+
+template <>
+gsp::sparsematrix& gsp::MatrixBox<gsp::sparsematrix>::normalizedWeight() {
+    if (isCalculated(this->_normalized_weights)) {
+        return this->_normalized_weights; // already computed
+    }
+
+    densevector& cached_degrees = this->degrees();
+
+    Eigen::VectorXd d_inv_sqrt = cached_degrees.unaryExpr(
+        [](double x){ return (x > 0.0) ? 1.0/std::sqrt(x) : 0.0; });
+
+    this->_normalized_weights = *_weights;
+
+    using SparseT = std::remove_reference_t<decltype(_normalized_weights)>;
+
+    for (int k = 0; k < this->_normalized_weights.outerSize(); ++k) {
+        for (SparseT::InnerIterator it(_normalized_weights, k); it; ++it) {
+            it.valueRef() *= d_inv_sqrt[it.row()] * d_inv_sqrt[it.col()];
+        }
+    }
+
+    return _normalized_weights;
+}
+
+
+
 
 template <>
 gsp::densematrix& gsp::MatrixBox<gsp::densematrix>::normalizedLaplacian() {
     if (isCalculated(this->_normalized_laplacian)) {
         return this->_normalized_laplacian;
     }
-    const auto n = static_cast<int>(_weights->rows());
-
 
     densevector& cached_degrees = this->degrees();
 
@@ -216,20 +288,20 @@ gsp::sparsematrix& gsp::MatrixBox<gsp::sparsematrix>::normalizedLaplacian() {
 
 template <class Matrix>
 const typename gsp::MatrixBox<Matrix>::densevector& gsp::Graph<Matrix>::degrees() {
-    return this->cache()->matrix.degrees();
+    return this->cache()->_matrix.degrees();
 }
 
 
 
 template <class Matrix>
 const Matrix& gsp::Graph<Matrix>::laplacian() {
-    return this->cache()->matrix.laplacian();
+    return this->cache()->_matrix.laplacian();
 
 }
 
 template <class Matrix>
 const Matrix& gsp::Graph<Matrix>::normalizedLaplacian() {
-    return this->cache()->matrix.normalizedLaplacian();
+    return this->cache()->_matrix.normalizedLaplacian();
 
 }
 
@@ -246,7 +318,7 @@ typename gsp::MatrixBox<Matrix>::densevector& gsp::MatrixBox<Matrix>::degrees() 
 
 
 template <class Matrix>
-gsp::CacheBox<Matrix>::CacheBox(Matrix* weights) : matrix(weights) {
+gsp::CacheBox<Matrix>::CacheBox(gsp::Graph<Matrix>* graph) : _matrix(&graph->weights()), _generator(graph) {
 
 }
 

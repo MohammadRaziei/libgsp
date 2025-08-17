@@ -12,7 +12,7 @@ void gsp::VertexGraph::setNames(const std::vector<std::string>& names) {
     this->names = names;
 }
 void gsp::VertexGraph::setCoords(const Eigen::MatrixXd& coords) {
-    this->coords = coords;
+    this->_coords = coords;
 }
 void gsp::VertexGraph::setCoords(const std::vector<gsp::Coord>& src) {
     assert(src.size() == num_nodes && "coords size mismatch");
@@ -20,7 +20,11 @@ void gsp::VertexGraph::setCoords(const std::vector<gsp::Coord>& src) {
     Eigen::Map<const Eigen::Matrix<double, Eigen::Dynamic, 3, Eigen::RowMajor>>
         mapped(reinterpret_cast<const double*>(src.data()), num_nodes, 3);
 
-    coords = mapped; // one contiguous copy
+    _coords = mapped; // one contiguous copy
 }
-gsp::VertexGraph::~VertexGraph() {}
 
+gsp::VertexGraph::CoordMat gsp::VertexGraph::coords() {
+    return _coords;
+}
+gsp::VertexGraph::~VertexGraph() {
+}

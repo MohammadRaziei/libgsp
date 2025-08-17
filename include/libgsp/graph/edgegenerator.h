@@ -5,6 +5,7 @@
 #ifndef LIBGSP_EDGEGENERATOR_H
 #define LIBGSP_EDGEGENERATOR_H
 #pragma once
+
 #include <Eigen/Dense>
 #include <Eigen/SparseCore>
 
