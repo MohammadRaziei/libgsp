@@ -50,7 +50,7 @@ class gsp::Graph : public gsp::BaseGraph {
     Graph(const gsp::VertexGraph& other);
     virtual ~Graph();
 
-    virtual void edgeIter() override;
+    virtual void edgeIter(double thresh = 0.) override;
     virtual std::optional<gsp::Edge> edgeNext() override;
     virtual std::vector<gsp::Edge> edges() override;
 

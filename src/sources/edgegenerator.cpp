@@ -13,10 +13,9 @@
 namespace gsp {
 
 template <class Matrix>
-EdgeGenerator<Matrix>::EdgeGenerator(const gsp::Graph<Matrix>* graph, types::elem_t<Matrix> thresh) {
+EdgeGenerator<Matrix>::EdgeGenerator(const gsp::Graph<Matrix>* graph) {
     _weights  = graph ? &graph->weights() : nullptr;
     _num_nodes= graph ? static_cast<int>(graph->num_nodes) : 0;
-    _thresh      = thresh;
     _is_directed = graph ? graph->isDirected() : false;
     _state = new State(_weights);
     iter();
@@ -29,7 +28,8 @@ EdgeGenerator<Matrix>::~EdgeGenerator() {
 }
 
 template <class Matrix>
-void EdgeGenerator<Matrix>::iter() {
+void EdgeGenerator<Matrix>::iter(types::elem_t<Matrix> thresh) {
+    _thresh      = thresh;
     _state->reset();
 }
 

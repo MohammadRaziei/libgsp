@@ -79,8 +79,8 @@ void gsp::Graph<Matrix>::invalidateCache() {
 
 
 template <class Matrix>
-void gsp::Graph<Matrix>::edgeIter() {
-    this->cache()->_generator.iter();
+void gsp::Graph<Matrix>::edgeIter(double thresh) {
+    this->cache()->_generator.iter(thresh);
 }
 
 template <class Matrix>

@@ -25,12 +25,12 @@ class Edge; // forward: must expose row(), col(), weight()
 template <class Matrix>
 class EdgeGenerator {
 public:
-    explicit EdgeGenerator(const Graph<Matrix>* graph, types::elem_t<Matrix> thresh = 0.0);
+    explicit EdgeGenerator(const Graph<Matrix>* graph);
     EdgeGenerator(const EdgeGenerator&) = delete;
     EdgeGenerator& operator=(const EdgeGenerator&) = delete;
     ~EdgeGenerator();
 
-    void iter();                       // reset internal cursor
+    void iter(types::elem_t<Matrix> thresh = 0.0);                       // reset internal cursor
     std::optional<Edge> next();        // next edge or std::nullopt
     std::vector<Edge> toVector();   // all edges as vector<Edge>
 
