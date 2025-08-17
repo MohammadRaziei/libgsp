@@ -22,6 +22,11 @@ void gsp::Graph<Matrix>::setWeights(const Matrix& matrix, bool is_directed){
 
 template <class Matrix>
 void gsp::Graph<Matrix>::setWeights(const std::vector<gsp::Edge>& edges, bool is_directed) {
+    setEdges(edges, is_directed);
+}
+
+template <class Matrix>
+void gsp::Graph<Matrix>::setEdges(const std::vector<gsp::Edge>& edges, bool is_directed) {
     invalidateCache();
     this->_is_directed = is_directed;
     gsp::matrix::free(this->_weights);
@@ -46,6 +51,11 @@ void gsp::Graph<Matrix>::setWeights(const std::vector<gsp::Edge>& edges, bool is
 template <class Matrix>
 bool gsp::Graph<Matrix>::isDirected() const {
     return this->_is_directed;
+}
+
+template <class Matrix>
+void gsp::Graph<Matrix>::setIsDirectedUnsafe(bool is_directed) {
+    this->_is_directed = is_directed;
 }
 
 

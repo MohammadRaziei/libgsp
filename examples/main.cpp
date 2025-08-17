@@ -154,7 +154,8 @@ int main(int argc, char** argv) {
     // Build graph
     gsp::DenseGraph graph(num_nodes);
     graph.setCoords(coords_vec);
-    graph.setWeights(edges);           // fills graph.weights (Eigen::MatrixXd)
+    graph.setEdges(edges, false);           // fills graph.weights
+    graph.setIsDirectedUnsafe(true);
     graph.setNames({"A", "B", "C", "D"});
 
     gsp::EdgeGenerator gen(&graph);

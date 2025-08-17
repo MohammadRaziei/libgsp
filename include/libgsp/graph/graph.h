@@ -14,9 +14,6 @@
 #include "libgsp/graph/edgegenerator.h"
 
 
-#define GSP_IS_DIRECTED_DEFAULT false
-
-
 
 
 namespace gsp {
@@ -57,6 +54,7 @@ class gsp::Graph : public gsp::BaseGraph {
     virtual std::optional<gsp::Edge> edgeNext() override;
     virtual std::vector<gsp::Edge> edges() override;
 
+    virtual void setEdges(const std::vector<gsp::Edge>& edges, bool is_directed = GSP_IS_DIRECTED_DEFAULT) override;
     virtual void setWeights(const Matrix& matrix, bool is_directed = GSP_IS_DIRECTED_DEFAULT);
     virtual void setWeights(const std::vector<gsp::Edge>& edges, bool is_directed = GSP_IS_DIRECTED_DEFAULT);
 
@@ -64,6 +62,7 @@ class gsp::Graph : public gsp::BaseGraph {
 
 
     bool isDirected() const;
+    void setIsDirectedUnsafe(bool);
 
     virtual const Matrix& weights() const;
     virtual const Matrix& laplacian();
