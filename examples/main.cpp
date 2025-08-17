@@ -154,8 +154,7 @@ int main(int argc, char** argv) {
     // Build graph
     gsp::DenseGraph graph(num_nodes);
     graph.setCoords(coords_vec);
-    graph.setEdges(edges, false);           // fills graph.weights
-    graph.setIsDirectedUnsafe(true);
+    graph.setEdges(edges);           // fills graph.weights
     graph.setNames({"A", "B", "C", "D"});
 
     gsp::EdgeGenerator gen(&graph);
@@ -184,6 +183,10 @@ int main(int argc, char** argv) {
 //    std::cout << "num edges = " << num_edges << std::endl;
 //
 //
+
+    graph.setEdges(edges, false);           // fills graph.weights
+    graph.setIsDirectedUnsafe(true);
+
     num_edges = 0;
     graph.edgeIter();
     while (auto edge = graph.edgeNext()) {
@@ -225,8 +228,8 @@ int main(int argc, char** argv) {
     };
 
     std::string svg = render_svg(edges, coords_vec, signal_vec, options);
-    writeFile("graph.svg", svg);
+//    writeFile("graph.svg", svg);
     spdlog::info("SVG file written to graph.svg");
 
-    return svg2png(svg);
+//    return svg2png(svg);
 }
