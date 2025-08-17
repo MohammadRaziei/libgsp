@@ -9,7 +9,7 @@
 
 template <class Matrix>
 gsp::Graph<Matrix>::Graph(uint32_t num_nodes):
-      BaseGraph(num_nodes) {
+      BaseGraph(num_nodes), _cache(nullptr) {
 }
 
 template <class Matrix>

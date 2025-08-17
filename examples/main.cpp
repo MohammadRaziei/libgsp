@@ -162,7 +162,7 @@ int main(int argc, char** argv) {
     tic;
     uint32_t num_edges = 0;
     while (auto edge = gen.next()) {
-//        printf("from %d to %d with weight %.2f\n", edge->source, edge->target, edge->weight);
+        printf("from %d to %d with weight %.2f\n", edge->source, edge->target, edge->weight);
         num_edges++;
     }
     toc;
@@ -186,7 +186,7 @@ int main(int argc, char** argv) {
     num_edges = 0;
     graph.edgeIter();
     while (auto edge = graph.edgeNext()) {
-//        printf("from %d to %d with weight %.2f\n", edge->source, edge->target, edge->weight);
+        printf("from %d to %d with weight %.2f\n", edge->source, edge->target, edge->weight);
         num_edges++;
     }
     std::cout << "num edges = " << num_edges << std::endl;
