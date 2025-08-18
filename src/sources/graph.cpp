@@ -5,11 +5,52 @@
 
 #include "libgsp/graph/graph.h"
 #include "libgsp/utils/matrix.h"
+#include "libgsp/graph/edgegenerator.h"
+
+
+
+
+template<class Matrix>
+class gsp::MatrixBox {
+   public:
+    MatrixBox() = default;
+    MatrixBox(const MatrixBox&) = delete;
+    MatrixBox& operator=(const MatrixBox&) = delete;
+
+    explicit MatrixBox(const Matrix* weights);
+    ~MatrixBox();
+
+    void reset();
+
+    void setWeights(Matrix* weights);
+
+    const Matrix& weights() const;
+    Matrix& normalizedWeight();
+    Matrix& laplacian();
+    Matrix& normalizedLaplacian();
+    typename gsp::Graph<Matrix>::densevector& degrees();
+   private:
+    bool isCalculated(const Matrix&);
+    bool isCalculated(const typename gsp::Graph<Matrix>::densevector&);
+
+    const Matrix* _weights;
+    Matrix _laplacian, _normalized_weights, _normalized_laplacian;
+    typename gsp::Graph<Matrix>::densevector _degrees;
+};
+
+template <class Matrix>
+class gsp::CacheBox {
+   public:
+    CacheBox(gsp::Graph<Matrix>* graph);
+
+    gsp::EdgeGenerator<Matrix> _generator;
+    gsp::MatrixBox<Matrix> _matrix;
+};
 
 
 template <class Matrix>
 gsp::Graph<Matrix>::Graph(uint32_t num_nodes):
-      BaseGraph(num_nodes), _cache(nullptr) {
+      BaseGraph(num_nodes), _cache(nullptr), _is_directed(GSP_IS_DIRECTED_DEFAULT) {
 }
 
 template <class Matrix>
@@ -156,7 +197,7 @@ gsp::densematrix& gsp::MatrixBox<gsp::densematrix>::laplacian() {
         return this->_laplacian;
     }
     // degree[i] = sum_j W(i,j)
-    densevector& cached_degrees = this->degrees();
+    auto& cached_degrees = this->degrees();
 
     // L = D - W (dense, no extra temporaries)
     _laplacian = -*_weights;
@@ -174,7 +215,7 @@ gsp::sparsematrix& gsp::MatrixBox<gsp::sparsematrix>::laplacian() {
     const auto n = static_cast<int>(_weights->rows());
 
     // degree[i] = sum_j W(i,j)
-    densevector& cached_degrees = this->degrees();
+    auto& cached_degrees = this->degrees();
 
     // Build L = D - W using triplets
     std::vector<Eigen::Triplet<double>> triplets;
@@ -206,7 +247,7 @@ gsp::densematrix& gsp::MatrixBox<gsp::densematrix>::normalizedWeight() {
     if (isCalculated(this->_normalized_weights)) {
         return this->_normalized_weights; // already computed
     }
-    densevector& cached_degrees = this->degrees();
+    auto& cached_degrees = this->degrees();
 
 
     Eigen::VectorXd d_inv_sqrt = cached_degrees.unaryExpr(
@@ -226,7 +267,7 @@ gsp::sparsematrix& gsp::MatrixBox<gsp::sparsematrix>::normalizedWeight() {
         return this->_normalized_weights; // already computed
     }
 
-    densevector& cached_degrees = this->degrees();
+    auto& cached_degrees = this->degrees();
 
     Eigen::VectorXd d_inv_sqrt = cached_degrees.unaryExpr(
         [](double x){ return (x > 0.0) ? 1.0/std::sqrt(x) : 0.0; });
@@ -253,7 +294,7 @@ gsp::densematrix& gsp::MatrixBox<gsp::densematrix>::normalizedLaplacian() {
         return this->_normalized_laplacian;
     }
 
-    densevector& cached_degrees = this->degrees();
+    auto& cached_degrees = this->degrees();
 
     Eigen::VectorXd d_inv_sqrt = cached_degrees.unaryExpr(
         [](double x){ return (x > 0.0) ? 1.0/std::sqrt(x) : 0.0; });
@@ -276,7 +317,7 @@ gsp::sparsematrix& gsp::MatrixBox<gsp::sparsematrix>::normalizedLaplacian() {
 
     const auto n = static_cast<int>(_weights->rows());
 
-    densevector& cached_degrees = this->degrees();
+    auto& cached_degrees = this->degrees();
 
     Eigen::VectorXd d_inv_sqrt = cached_degrees.unaryExpr(
         [](double x){ return (x > 0.0) ? 1.0/std::sqrt(x) : 0.0; });
@@ -297,7 +338,7 @@ gsp::sparsematrix& gsp::MatrixBox<gsp::sparsematrix>::normalizedLaplacian() {
 }
 
 template <class Matrix>
-const typename gsp::MatrixBox<Matrix>::densevector& gsp::Graph<Matrix>::degrees() {
+const typename gsp::Graph<Matrix>::densevector& gsp::Graph<Matrix>::degrees() {
     return this->cache()->_matrix.degrees();
 }
 
@@ -317,11 +358,11 @@ const Matrix& gsp::Graph<Matrix>::normalizedLaplacian() {
 
 
 template <class Matrix>
-typename gsp::MatrixBox<Matrix>::densevector& gsp::MatrixBox<Matrix>::degrees() {
+typename gsp::Graph<Matrix>::densevector& gsp::MatrixBox<Matrix>::degrees() {
     if (isCalculated(this->_degrees)) {
         return _degrees;
     }
-    _degrees = *_weights * densevector::Ones(_weights->cols());
+    _degrees = *_weights * gsp::Graph<Matrix>::densevector::Ones(_weights->cols());
     return _degrees;
 }
 
@@ -338,7 +379,7 @@ bool gsp::MatrixBox<Matrix>::isCalculated(const Matrix& m) {
     return m.rows() == _weights->rows();
 }
 template <class Matrix>
-bool gsp::MatrixBox<Matrix>::isCalculated(const typename gsp::MatrixBox<Matrix>::densevector& m) {
+bool gsp::MatrixBox<Matrix>::isCalculated(const typename gsp::Graph<Matrix>::densevector& m) {
     return m.rows() == _weights->rows();
 }
 

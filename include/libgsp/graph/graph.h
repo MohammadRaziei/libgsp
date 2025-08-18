@@ -11,7 +11,6 @@
 
 #include "libgsp/utils/types.h"
 #include "libgsp/graph/basegraph.h"
-#include "libgsp/graph/edgegenerator.h"
 
 
 
@@ -44,6 +43,9 @@ enum class gsp::ShiftType {
 template <class Matrix>
 class gsp::Graph : public gsp::BaseGraph {
    public:
+    using densevector = typename Eigen::Matrix<gsp::types::elem_t<Matrix>, Eigen::Dynamic, 1, Eigen::ColMajor>;
+
+   public:
     explicit Graph(uint32_t num_nodes);
     Graph(const gsp::Graph<Matrix>& other) = delete;
     void operator=(const gsp::Graph<Matrix>& other) = delete;
@@ -67,7 +69,7 @@ class gsp::Graph : public gsp::BaseGraph {
     virtual const Matrix& weights() const;
     virtual const Matrix& laplacian();
     virtual const Matrix& normalizedLaplacian();
-    virtual const typename gsp::MatrixBox<Matrix>::densevector& degrees();
+    virtual const  densevector& degrees();
 
     void invalidateCache();
    protected:
@@ -78,45 +80,6 @@ class gsp::Graph : public gsp::BaseGraph {
    private:
     gsp::CacheBox<Matrix>* cache();
     gsp::CacheBox<Matrix>* _cache;
-};
-
-template<class Matrix>
-class gsp::MatrixBox {
-public:
-    using densevector = Eigen::Matrix<gsp::types::elem_t<Matrix>, Eigen::Dynamic, 1, Eigen::ColMajor>;
-
-    MatrixBox() = default;
-    MatrixBox(const MatrixBox&) = delete;
-    MatrixBox& operator=(const MatrixBox&) = delete;
-
-    explicit MatrixBox(const Matrix* weights);
-    ~MatrixBox();
-
-    void reset();
-
-    void setWeights(Matrix* weights);
-
-    const Matrix& weights() const;
-    Matrix& normalizedWeight();
-    Matrix& laplacian();
-    Matrix& normalizedLaplacian();
-    densevector& degrees();
-private:
-    bool isCalculated(const Matrix&);
-    bool isCalculated(const densevector&);
-
-    const Matrix* _weights;
-    Matrix _laplacian, _normalized_weights, _normalized_laplacian;
-    densevector _degrees;
-};
-
-template <class Matrix>
-class gsp::CacheBox {
-public:
-    CacheBox(gsp::Graph<Matrix>* graph);
-
-    gsp::EdgeGenerator<Matrix> _generator;
-    gsp::MatrixBox<Matrix> _matrix;
 };
 
 
