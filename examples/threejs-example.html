@@ -1,0 +1,424 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>3D Graph + Billboarded Signal Stems + Live Tooltip</title>
+
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://unpkg.com/three@0.173.0/build/three.module.js",
+      "three/addons/": "https://unpkg.com/three@0.173.0/examples/jsm/"
+    }
+  }
+  </script>
+
+  <style>
+    html, body { margin:0; height:100%; overflow:hidden; }
+    canvas { display:block; }
+    .tooltip {
+      position: fixed;
+      pointer-events: none;
+      background: rgba(0,0,0,0.78);
+      color: #fff;
+      font: 12px/1.4 system-ui, sans-serif;
+      padding: 8px 10px;
+      border-radius: 8px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+      transform: translate(12px, -50%);
+      white-space: nowrap;
+      z-index: 9999;
+      display: none;
+    }
+    .tooltip.left { transform: translate(-12px, -50%); }
+    .tooltip .row { margin: 2px 0; }
+    .tooltip .k { opacity: 0.7; padding-right: 6px; }
+    .tooltip .v { font-weight: 600; }
+  </style>
+</head>
+<body>
+
+<div id="tooltip" class="tooltip"></div>
+
+<script type="module">
+  import * as THREE from "three";
+  import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+  import { DragControls }  from "three/addons/controls/DragControls.js";
+
+  // Scene / Camera / Renderer
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(0xffffff);
+  scene.add(new THREE.AmbientLight(0xffffff, 0.35));
+  const dir = new THREE.DirectionalLight(0xffffff, 0.7); dir.position.set(60,100,80); scene.add(dir);
+  const pt  = new THREE.PointLight(0xffffff, 0.5, 300);  pt.position.set(-40,-30,90); scene.add(pt);
+
+  const camera = new THREE.PerspectiveCamera(60, innerWidth/innerHeight, 0.1, 2000);
+  camera.position.set(0, 0, 140);
+
+  const renderer = new THREE.WebGLRenderer({ antialias:true });
+  renderer.setSize(innerWidth, innerHeight);
+  document.body.appendChild(renderer.domElement);
+
+  const orbit = new OrbitControls(camera, renderer.domElement);
+  orbit.enableDamping = true;
+
+  // Data
+  const nodes = [
+    { id:1, name:"v1", x:-40, y:  0, z: 0, s: 1.0 },
+    { id:2, name:"v2", x:  0, y: 30, z: 0, s: 0.5 },
+    { id:3, name:"v3", x:-10, y:-20, z:10, s:-0.5 },
+    { id:4, name:"v4", x: 40, y:-20, z: 0, s: 0.5 },
+  ];
+  const edges = [{a:1,b:2},{a:1,b:3},{a:2,b:3},{a:3,b:4}];
+
+  // Nodes
+  const nodeGeom = new THREE.SphereGeometry(2.8, 16, 16);
+  const nodeMat  = new THREE.MeshStandardMaterial({ color:0x00FFFF, metalness:0.2, roughness:0.9, transparent:true, opacity:0.7 });
+  const nodeMeshes = [];
+  nodes.forEach(n=>{
+    const m = new THREE.Mesh(nodeGeom, nodeMat.clone());
+    m.position.set(n.x,n.y,n.z);
+    m.scale.setScalar(1 + 0.5*Math.abs(n.s));
+    m.userData.node = n;
+    n.mesh = m;
+    nodeMeshes.push(m);
+    scene.add(m);
+  });
+
+  // Edges
+  const edgePos = new Float32Array(edges.length*2*3);
+  const edgeGeom = new THREE.BufferGeometry().setAttribute("position", new THREE.BufferAttribute(edgePos,3));
+  const edgeLines = new THREE.LineSegments(edgeGeom, new THREE.LineBasicMaterial({ color:0x777777 }));
+  scene.add(edgeLines);
+  function updateEdges(){
+    let p=0; const idMap=Object.fromEntries(nodes.map(n=>[n.id,n]));
+    edges.forEach(e=>{
+      const A=idMap[e.a].mesh.position, B=idMap[e.b].mesh.position;
+      edgePos[p++]=A.x; edgePos[p++]=A.y; edgePos[p++]=A.z;
+      edgePos[p++]=B.x; edgePos[p++]=B.y; edgePos[p++]=B.z;
+    });
+    edgeGeom.attributes.position.needsUpdate = true;
+  }
+  updateEdges();
+
+  // Signal stems (billboard)
+  const STEM_WORLD=18, LABEL_OFFSET=2.4;
+  function makeTextSprite(text,{fontSize=28,fontFamily="system-ui, sans-serif",textColor="red",padding=8,worldScale=0.06,background=null}={}){
+    const cvs=document.createElement("canvas"), ctx=cvs.getContext("2d");
+    const dpr=Math.max(1,Math.min(devicePixelRatio||1,2));
+    const font=`${fontSize}px ${fontFamily}`;
+    ctx.font=font; const tw=Math.ceil(ctx.measureText(text).width), th=Math.ceil(fontSize*1.2);
+    const w=tw+padding*2, h=th+padding*2; cvs.width=w*dpr; cvs.height=h*dpr; ctx.setTransform(dpr,0,0,dpr,0,0);
+    if(background){ ctx.fillStyle=background; ctx.fillRect(0,0,w,h); }
+    ctx.font=font; ctx.fillStyle=textColor; ctx.textBaseline="middle"; ctx.fillText(text, padding, h/2);
+    const tex=new THREE.CanvasTexture(cvs);
+    const spr=new THREE.Sprite(new THREE.SpriteMaterial({ map:tex, transparent:true }));
+    spr.scale.set(w*worldScale, h*worldScale, 1); return spr;
+  }
+  function makeSignalStem(n){
+    const g=new THREE.Object3D();
+    const lineGeom=new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0,0,0),new THREE.Vector3(0,1,0)]);
+    const line=new THREE.Line(lineGeom,new THREE.LineBasicMaterial({color:0xff0000}));
+    const tip=new THREE.Mesh(new THREE.SphereGeometry(0.9,12,12),new THREE.MeshBasicMaterial({color:0xff0000}));
+    tip.position.y=1;
+    const label=makeTextSprite(n.s.toFixed(2),{fontSize:28,textColor:"red"});
+    label.position.set(0,1+LABEL_OFFSET,0);
+    g.add(line,tip,label);
+    g.userData={node:n,line,tip,label};
+    n.stem=g; scene.add(g);
+  }
+  nodes.forEach(makeSignalStem);
+  function syncSignalStems(){
+    nodes.forEach(n=>{
+      const g=n.stem; g.position.copy(n.mesh.position); g.quaternion.copy(camera.quaternion);
+      const L=STEM_WORLD*Math.abs(n.s), s=n.s>=0?1:-1;
+      const a=g.userData.line.geometry.attributes.position.array;
+      a[3]=0; a[4]=s*L; a[5]=0; g.userData.line.geometry.attributes.position.needsUpdate=true;
+      g.userData.tip.position.y=s*L; g.userData.label.position.y=s*L+(s>0?LABEL_OFFSET:-LABEL_OFFSET);
+    });
+  }
+  syncSignalStems();
+
+
+
+
+
+
+
+
+
+
+
+
+ /////////////////////////////// GRID BEGIN
+
+
+// MATLAB-like SURF box grid on all 6 faces + corner axes with labels
+function addMatlabSurfBoxGrid({
+  divisions = 20,           // grid subdivisions per face
+  opacity = 0.28,           // grid line opacity
+  colorMajor = 0xcccccc,    // main grid color
+  colorMinor = 0xeeeeee,    // minor grid color (GridHelper uses both)
+  axesCorner = "min",       // "min" -> axes at (minX,minY,minZ), "max" -> (maxX,maxY,maxZ)
+  margin = 20,              // padding around data bounds
+  overrideSize = null       // if set, force cube size (number or {x,y,z})
+} = {}) {
+  // 1) compute bounds from nodes
+  const bb = new THREE.Box3();
+  if (nodes.length === 0) {
+    bb.setFromCenterAndSize(new THREE.Vector3(0,0,0), new THREE.Vector3(100,100,100));
+  } else {
+    nodes.forEach(n => bb.expandByPoint(n.mesh.position));
+  }
+  const center = bb.getCenter(new THREE.Vector3());
+  const sizeV  = bb.getSize(new THREE.Vector3());
+  // make it a cube (like MATLAB axis equal); add margin
+  const side = Math.max(sizeV.x, sizeV.y, sizeV.z) + margin*2;
+
+  // allow override
+  const Lx = overrideSize?.x ?? overrideSize ?? side;
+  const Ly = overrideSize?.y ?? overrideSize ?? side;
+  const Lz = overrideSize?.z ?? overrideSize ?? side;
+
+  // min/max corners (cube centered at data center)
+  const min = new THREE.Vector3(
+    center.x - Lx/2, center.y - Ly/2, center.z - Lz/2
+  );
+  const max = new THREE.Vector3(
+    center.x + Lx/2, center.y + Ly/2, center.z + Lz/2
+  );
+
+  // helper to place a GridHelper on a plane at given position + rotation
+  function addPlaneGrid(length, divs, pos, rotEuler) {
+    const g = new THREE.GridHelper(length, divs, colorMajor, colorMinor);
+    g.material.transparent = true;
+    g.material.opacity = opacity;
+    g.material.depthWrite = false;
+    g.renderOrder = -1; // draw behind meshes
+    g.position.copy(pos);
+    g.rotation.set(rotEuler.x, rotEuler.y, rotEuler.z);
+    scene.add(g);
+    return g;
+  }
+
+  // 2) six faces: XY at z=min,max; XZ at y=min,max; YZ at x=min,max
+  // XY @ z = min, max
+  addPlaneGrid(Math.max(Lx, Ly), divisions,
+               new THREE.Vector3(center.x, center.y, min.z),
+               new THREE.Euler(Math.PI/2, 0, 0)); // rotate to XY
+  addPlaneGrid(Math.max(Lx, Ly), divisions,
+               new THREE.Vector3(center.x, center.y, max.z),
+               new THREE.Euler(Math.PI/2, 0, 0));
+
+  // XZ @ y = min, max  (default GridHelper plane is XZ, rotation 0)
+  addPlaneGrid(Math.max(Lx, Lz), divisions,
+               new THREE.Vector3(center.x, min.y, center.z),
+               new THREE.Euler(0, 0, 0));
+  addPlaneGrid(Math.max(Lx, Lz), divisions,
+               new THREE.Vector3(center.x, max.y, center.z),
+               new THREE.Euler(0, 0, 0));
+
+  // YZ @ x = min, max
+  addPlaneGrid(Math.max(Ly, Lz), divisions,
+               new THREE.Vector3(min.x, center.y, center.z),
+               new THREE.Euler(0, 0, Math.PI/2)); // rotate to YZ
+  addPlaneGrid(Math.max(Ly, Lz), divisions,
+               new THREE.Vector3(max.x, center.y, center.z),
+               new THREE.Euler(0, 0, Math.PI/2));
+
+  // 3) draw axes on a corner edge (MATLAB style)
+  const corner = (axesCorner === "max")
+    ? max.clone()
+    : min.clone();
+
+  // axis lines along positive directions from the corner
+  const axisMatX = new THREE.LineBasicMaterial({ color: 0xff0000 });
+  const axisMatY = new THREE.LineBasicMaterial({ color: 0x00ff00 });
+  const axisMatZ = new THREE.LineBasicMaterial({ color: 0x0000ff });
+
+  function axisLine(from, to, mat) {
+    const geom = new THREE.BufferGeometry().setFromPoints([from, to]);
+    const ln = new THREE.Line(geom, mat);
+    ln.renderOrder = 0.5; // above grids
+    scene.add(ln);
+    return ln;
+    }
+
+  // X axis: corner -> +X edge
+  axisLine(
+    corner,
+    new THREE.Vector3(max.x, corner.y, corner.z),
+    axisMatX
+  );
+  // Y axis: corner -> +Y edge
+  axisLine(
+    corner,
+    new THREE.Vector3(corner.x, max.y, corner.z),
+    axisMatY
+  );
+  // Z axis: corner -> +Z edge
+  axisLine(
+    corner,
+    new THREE.Vector3(corner.x, corner.y, max.z),
+    axisMatZ
+  );
+
+  // 4) axis labels (X Y Z) at ends
+  const labelScale = 0.09;
+  const pad = 2; // small offset away from edge
+  const xLbl = makeTextSprite("X", { fontSize: 24, textColor: "#c00", worldScale: labelScale });
+  xLbl.position.set(max.x + pad, corner.y, corner.z); scene.add(xLbl);
+  const yLbl = makeTextSprite("Y", { fontSize: 24, textColor: "#090", worldScale: labelScale });
+  yLbl.position.set(corner.x, max.y + pad, corner.z); scene.add(yLbl);
+  const zLbl = makeTextSprite("Z", { fontSize: 24, textColor: "#06f", worldScale: labelScale });
+  zLbl.position.set(corner.x, corner.y, max.z + pad); scene.add(zLbl);
+
+  // return bounds if caller needs them
+  return { min, max, center, size: new THREE.Vector3(Lx, Ly, Lz) };
+}
+
+
+addMatlabSurfBoxGrid({
+  divisions: 20,     // مثل MATLAB، با این کم/زیاد کن
+  opacity: 0.3,      // کم‌رنگ که مزاحم گراف نباشه
+  axesCorner: "min", // محورها در گوشه‌ی (minX,minY,minZ). "max" هم می‌تونی بدی
+  margin: 20
+});
+
+
+
+
+
+ ///////////////////////////// GRID END
+
+
+
+
+
+
+
+
+
+
+
+
+  // Tooltip helpers
+  const tooltip  = document.getElementById("tooltip");
+  const raycaster= new THREE.Raycaster();
+  const mouse    = new THREE.Vector2();
+  let hovered = null;       // mesh under cursor
+  let dragging = null;      // mesh being dragged
+
+  function worldToScreen(pos3){
+    const v=pos3.clone().project(camera);
+    return { x:( v.x*0.5+0.5)*innerWidth, y:(-v.y*0.5+0.5)*innerHeight };
+  }
+  function setTooltipContent(n){
+    tooltip.innerHTML =
+      `<div class="row"><span class="k">vertex id:</span><span class="v">${n.id}</span></div>
+       <div class="row"><span class="k">name:</span><span class="v">${n.name ?? "—"}</span></div>
+       <div class="row"><span class="k">signal:</span><span class="v">${n.s.toFixed(3)}</span></div>
+       <div class="row"><span class="k">(x,y,z):</span>
+         <span class="v">(${n.mesh.position.x.toFixed(2)}, ${n.mesh.position.y.toFixed(2)}, ${n.mesh.position.z.toFixed(2)})</span>
+       </div>`;
+  }
+  function positionTooltip(screenPt){
+    const margin=12, w=tooltip.offsetWidth||180, rightSpace=innerWidth-screenPt.x;
+    const useRight = rightSpace > w + margin;
+    tooltip.style.left = (useRight ? (screenPt.x + margin) : (screenPt.x - margin)) + "px";
+    tooltip.style.top  = screenPt.y + "px";
+    tooltip.classList.toggle("left", !useRight);
+  }
+  function showTooltipForMesh(mesh){
+    const n=mesh.userData.node; setTooltipContent(n);
+    const p=worldToScreen(mesh.getWorldPosition(new THREE.Vector3()));
+    positionTooltip(p); tooltip.style.display="block";
+  }
+  function hideTooltip(){ tooltip.style.display="none"; }
+  function updateTooltipIfAny(){
+    const target = dragging || hovered;
+    if(!target) return;
+    // refresh content (coords may change while dragging)
+    setTooltipContent(target.userData.node);
+    const p=worldToScreen(target.getWorldPosition(new THREE.Vector3()));
+    positionTooltip(p);
+  }
+
+  // Raycast (hover)
+  window.addEventListener("mousemove",(ev)=>{
+    if(dragging){ // while dragging, keep tooltip bound to dragged mesh
+      updateTooltipIfAny();
+      return;
+    }
+    mouse.x =  (ev.clientX / innerWidth)  * 2 - 1;
+    mouse.y = -(ev.clientY / innerHeight) * 2 + 1;
+    raycaster.setFromCamera(mouse, camera);
+    const hits = raycaster.intersectObjects(nodeMeshes, false);
+    if(hits.length){
+      const hit=hits[0].object;
+      if(hovered!==hit){
+        hovered=hit; renderer.domElement.style.cursor="pointer";
+        showTooltipForMesh(hit);
+      } else {
+        updateTooltipIfAny();
+      }
+    } else {
+      hovered=null; renderer.domElement.style.cursor="";
+      if(!dragging) hideTooltip();
+    }
+  });
+  renderer.domElement.addEventListener("mouseleave",()=>{ if(!dragging){ hovered=null; hideTooltip(); } });
+
+  // DragControls with live tooltip
+  const drag = new DragControls(nodeMeshes, camera, renderer.domElement);
+  drag.addEventListener("dragstart",(e)=>{
+    orbit.enabled=false;
+    dragging = e.object;          // remember which mesh is being dragged
+    showTooltipForMesh(dragging); // show tooltip and start following
+  });
+  drag.addEventListener("drag",()=>{
+    updateEdges(); syncSignalStems();
+    updateTooltipIfAny();         // live coords while dragging
+  });
+  drag.addEventListener("dragend",()=>{
+    orbit.enabled=true;
+    // keep tooltip shown at final place (or hide if نمی‌خوای)
+    updateTooltipIfAny();
+    // dragging ends, but keep hovered on last object under cursor
+    dragging = null;
+  });
+
+
+
+
+
+
+
+
+  
+
+  // Resize + loop
+  addEventListener("resize",()=>{
+    camera.aspect=innerWidth/innerHeight; camera.updateProjectionMatrix();
+    renderer.setSize(innerWidth, innerHeight);
+  });
+
+  (function animate(){
+    requestAnimationFrame(animate);
+    orbit.update();
+    renderer.render(scene, camera);
+    syncSignalStems();
+    updateTooltipIfAny(); // in case camera moves during hover/drag
+  })();
+
+
+
+
+
+
+
+
+  
+</script>
+</body>
+</html>
