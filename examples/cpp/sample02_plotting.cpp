@@ -6,9 +6,9 @@
 
 
 int main() {
-    auto& figman = FigureManager::instance();
+    auto& manager = FigureManager::instance();
 
-    figman.serve();
+    manager.serve();
 
     return 0;
 }

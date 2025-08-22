@@ -163,16 +163,16 @@ if (BUILD_EXAMPLES)
     message(STATUS "Building examples")
 
     # Add an example executable
-    add_executable(example examples/main.cpp)
+    add_executable(example examples/cpp/main.cpp)
     target_link_libraries(example PUBLIC libgsp::libgsp)
 
-    add_executable(matrix examples/matrix.cpp)
+    add_executable(matrix examples/cpp/matrix.cpp)
     target_link_libraries(matrix PUBLIC eigen)
 
 
 
 
-    file(GLOB SAMPLES_SOURCES ${PROJECT_SOURCE_DIR}/examples/sample*)
+    file(GLOB SAMPLES_SOURCES ${PROJECT_SOURCE_DIR}/examples/cpp/sample*)
     foreach(SAMPLE_SOURCE IN LISTS SAMPLES_SOURCES)
         get_filename_component(SAMPLE_NAME ${SAMPLE_SOURCE} NAME)
         string(REGEX REPLACE "(sample[0-9]+).*" "\\1" SAMPLE_NAME ${SAMPLE_NAME})
