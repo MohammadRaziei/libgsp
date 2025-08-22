@@ -5,12 +5,15 @@
 #ifndef LIBGSP_VERTEXGRAPH_H
 #define LIBGSP_VERTEXGRAPH_H
 
+#include <utility>
 #include <vector>
-#include <Eigen/Eigen>
+#include <optional>
 
+#include <Eigen/Eigen>
 
 namespace gsp {
     struct Coord;
+    struct Node;
 
 
     class VertexGraph;
@@ -19,6 +22,14 @@ namespace gsp {
 struct gsp::Coord {
     Coord(double x, double y, double z = 0) : x(x), y(y), z(z) {}
     double x, y, z;
+};
+
+struct gsp::Node {
+    Node(uint32_t id, const Coord& coord, const std::string& name):
+          id(id), coord(coord), name(name) {}
+    uint32_t id;
+    gsp::Coord coord;
+    std::string name;
 };
 
 
@@ -35,6 +46,12 @@ public:
     virtual CoordMat coords();
     virtual void setCoords(const std::vector<gsp::Coord>&);
     virtual void setNames(const std::vector<std::string>&);
+    virtual gsp::Coord getCoord(uint32_t idx);
+    virtual std::string getName(uint32_t idx);
+
+    virtual void nodeIter();
+    virtual std::optional<gsp::Node> nodeNext();
+    virtual std::vector<gsp::Node> nodes();
 
 public:
     const uint32_t num_nodes;
@@ -42,6 +59,7 @@ public:
 
    private:
     CoordMat _coords; // size fixed elsewhere to (num_nodes x 3)
+    uint32_t _state_vertex;
 };
 
 
