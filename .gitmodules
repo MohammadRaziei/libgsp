@@ -40,3 +40,6 @@
 [submodule "src/third_party/spectra"]
 	path = src/third_party/spectra
 	url = https://github.com/yixuan/spectra
+[submodule "src/third_party/cpp-httplib"]
+	path = src/third_party/cpp-httplib
+	url = https://github.com/yhirose/cpp-httplib.git
