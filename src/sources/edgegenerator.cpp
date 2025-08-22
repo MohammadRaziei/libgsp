@@ -12,11 +12,51 @@
 
 namespace gsp {
 
+
+
+
+template <>
+struct EdgeGenerator<densematrix>::State {
+    State(const densematrix*) { reset(); }
+    void reset() { _row = _col = 0; }
+    uint32_t _row, _col;
+};
+
+template <>
+struct EdgeGenerator<sparsematrix>::State {
+    using InnerIt = sparsematrix::InnerIterator;
+
+    explicit State(const sparsematrix* W) : W(W) { reset(); }
+
+    void reset() {
+        outer = 0;
+        it.reset();
+        // jump to first non-empty row
+        advance_to_next_nonempty_row();
+    }
+
+    void advance_to_next_nonempty_row() {
+        if (!W) return;
+        const int outerSize = W->outerSize(); // == rows for RowMajor
+        while (outer < outerSize) {
+            it = std::make_unique<InnerIt>(*W, outer);
+            if (*it) break;   // row has at least one nnz
+            ++outer;          // try next row
+        }
+    }
+
+    const sparsematrix* W = nullptr;
+    uint32_t outer = 0;                          // current row
+    std::unique_ptr<InnerIt> it;            // iterator within current row
+};
+
+
+
 template <class Matrix>
 EdgeGenerator<Matrix>::EdgeGenerator(const gsp::Graph<Matrix>* graph) {
     _weights  = graph ? &graph->weights() : nullptr;
     _num_nodes= graph ? static_cast<int>(graph->num_nodes) : 0;
-    _is_directed = graph ? graph->isDirected() : false;
+    _is_directed = graph && graph->isDirected();
     _state = new State(_weights);
     iter();
 }
@@ -36,7 +76,7 @@ void EdgeGenerator<Matrix>::iter(types::elem_t<Matrix> thresh) {
 
 template <>
 std::optional<Edge> EdgeGenerator<densematrix>::next() {
-    if (!_weights || _num_nodes <= 0) return std::nullopt;
+    if (!_weights || _num_nodes <= 0 || !_state || _weights->rows() == 0) return std::nullopt;
 
     while (_state->_row < _num_nodes) {
         // for undirected we emit only upper triangle: col starts at row
@@ -60,7 +100,7 @@ std::optional<Edge> EdgeGenerator<densematrix>::next() {
 
 template <>
 std::optional<Edge> EdgeGenerator<sparsematrix>::next() {
-    if (!_weights || _num_nodes <= 0 || !_state) return std::nullopt;
+    if (!_weights || _num_nodes <= 0 || !_state || _weights->rows() == 0) return std::nullopt;
 
     auto* st = _state; // convenience
 
@@ -75,9 +115,9 @@ std::optional<Edge> EdgeGenerator<sparsematrix>::next() {
         }
 
         // snapshot current entry, advance iterator state BEFORE checks
-        const int    r = st->it->row();
-        const int    c = st->it->col();
-        const double w = st->it->value();
+        const Eigen::Index r = st->it->row();
+        const Eigen::Index c = st->it->col();
+        const double       w = st->it->value();
         ++(*st->it);
 
         // undirected: keep only upper triangle (i <= j)
