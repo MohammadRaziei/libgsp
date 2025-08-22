@@ -1,0 +1,51 @@
+//
+// Created by Mohammad on 8/22/2025.
+//
+
+#ifndef LIBGSP_FIGUREMANAGER_H
+#define LIBGSP_FIGUREMANAGER_H
+
+#include <vector>
+#include <string>
+#include <cstdint>
+#include <mutex>
+
+
+class Figure {
+   public:
+    Figure(const std::string& title="");
+    const std::string& title() const;
+
+   private:
+    std::string _title;
+};
+
+class FigureManager {
+   public:
+    FigureManager(const FigureManager&) = delete;
+    // --- default instance (empty name) ---
+    static FigureManager& defaultInstance();
+
+    // --- named instance registry ---
+    static FigureManager& instance(const std::string& name = "");
+
+    // --- API ---
+    uint32_t addFigure(const Figure& f);
+    const Figure& getFigure(size_t i) const;
+    Figure& getFigure(size_t i);
+
+    size_t count() const;
+    uint32_t counter() const;
+
+    void serve(int port=8080);
+    void save(const std::string& path);
+
+   private:
+    FigureManager();
+
+    mutable std::mutex _mtx;
+    std::vector<Figure> _figures;
+    uint32_t _counter;
+};
+
+#endif // LIBGSP_FIGUREMANAGER_H
