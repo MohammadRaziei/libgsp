@@ -27,7 +27,7 @@ class FigureManager {
     static FigureManager& defaultInstance();
 
     // --- named instance registry ---
-    static FigureManager& instance(const std::string& name = "");
+    static FigureManager& instance(const std::string& name = "default");
 
     // --- API ---
     uint32_t addFigure(const Figure& f);
@@ -41,10 +41,11 @@ class FigureManager {
     void save(const std::string& path);
 
    private:
-    FigureManager();
+    FigureManager(const std::string& name);
 
     mutable std::mutex _mtx;
     std::vector<Figure> _figures;
+    std::string _name;
     uint32_t _counter;
 };
 
