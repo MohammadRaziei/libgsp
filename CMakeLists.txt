@@ -53,7 +53,8 @@ target_include_directories(gsp
         PRIVATE ${PROJECT_SOURCE_DIR}/src/sources
 )
 target_include_directories(gsp PUBLIC src/third_party/spdlog/include)
-target_include_directories(gsp PRIVATE src/third_party/mustache)
+target_include_directories(gsp PUBLIC src/third_party/spdlog/include/spdlog)
+target_include_directories(gsp PUBLIC src/third_party/mustache)
 target_include_directories(gsp PRIVATE src/third_party/cpp-httplib)
 target_link_libraries(gsp PUBLIC lunasvg::lunasvg)
 target_link_libraries(gsp PUBLIC eigen)
