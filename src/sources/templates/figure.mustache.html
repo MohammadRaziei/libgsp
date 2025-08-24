@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <title>{{title}}</title>
+    <style>
+        html,body{margin:0;height:100%;font-family:system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif;background:#fff}
+        h1{margin:20px 24px 8px 24px;font-weight:800;font-size:20px}
+        .figure{display:grid;gap:{{gap_px}}px;grid-template-columns:repeat({{cols}},1fr);padding:0 24px 24px 24px}
+        .axis{border:1px solid #e5e7eb;border-radius:10px;overflow:hidden;background:#fff}
+        .axis-header{font-weight:700;padding:10px 12px;border-bottom:1px solid #f0f0f0;background:#fafafa}
+        .axis-body{padding:8px}
+    </style>
+</head>
+<body>
+<h1>{{title}}</h1>
+<div class="figure {{css_class}}">
+    {{#axes}}
+    <div class="axis">
+        {{#has_title}}<div class="axis-header">{{title}}</div>{{/has_title}}
+        <div class="axis-body">
+            {{{inner_html}}}
+        </div>
+    </div>
+    {{/axes}}
+</div>
+</body>
+</html>
