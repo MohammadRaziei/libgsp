@@ -242,6 +242,10 @@
             );
             m.scale.setScalar(1.0 + 0.5*Math.abs(n.s));
             m.userData.node = n;
+            // n.mesh = m;
+            n.coords = ()=>({x: m.position.x / unitScale + center.x,
+                y: m.position.y / unitScale + center.y,
+                z: m.position.z / unitScale + center.z});
             nodeMeshes.push(m);
             scene.add(m);
         });
@@ -355,10 +359,14 @@
                 y:(-v.y*0.5+0.5)*renderer.domElement.clientHeight + renderer.domElement.getBoundingClientRect().top };
         }
         function setTipContent(n) {
+            const coords = n.coords();
             tip.innerHTML =
                 `<div class="row"><span class="k">vertex id:</span><span class="v">${n.id}</span></div>
        <div class="row"><span class="k">name:</span><span class="v">${n.name}</span></div>
-       <div class="row"><span class="k">signal:</span><span class="v">${n.s.toFixed(3)}</span></div>`;
+       <div class="row"><span class="k">signal:</span><span class="v">${n.s.toFixed(3)}</span></div>
+       <div class="row"><span class="k">(x,y,z):</span>
+         <span class="v">(${coords.x.toFixed(2)}, ${coords.y.toFixed(2)}, ${coords.z.toFixed(2)})</span>
+       </div>`;
         }
         function showTip3D(mesh) {
             const n = mesh.userData.node; setTipContent(n);
@@ -367,6 +375,8 @@
         }
         function updateTip3DIfAny(){
             const m = dragging || hovering; if (!m) return;
+            // refresh content (coords may change while dragging)
+            setTipContent(m.userData.node);
             const p = worldToScreen(m.getWorldPosition(new THREE.Vector3()));
             positionTip(p.x, p.y);
         }
