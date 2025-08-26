@@ -63,7 +63,7 @@
         <!-- === Paste your exact SVG below === -->
         <svg id="graphSVG" xmlns="http://www.w3.org/2000/svg" width="340" height="171">
             <metadata>
-                <generator name="libgsp" author="Mohammad Raziei" site="https://mohammadraziei.github.io/libgsp" />
+                <generator name="libgsp" author="Mohammad Raziei" site="https://mohammadraziei.github.io/libgsp  " />
                 <libgsp version="0.0.0" language="cpp" os="linux"/>
                 <content format="svg" tags="plot graph signal bar"/>
                 <plotinfo signalscale="100" nodespacescale="100"/>
@@ -323,6 +323,153 @@
             });
         }
         syncStems();
+
+        // =====================================================================
+        // MATLAB-like SURF box grid on all 6 faces + corner axes with labels
+        // =====================================================================
+
+        function addMatlabSurfBoxGrid({
+                                          divisions = 20,           // grid subdivisions per face
+                                          opacity = 0.28,           // grid line opacity
+                                          colorMajor = 0xcccccc,    // main grid color
+                                          colorMinor = 0xeeeeee,    // minor grid color (GridHelper uses both)
+                                          axesCorner = "min",       // "min" -> axes at (minX,minY,minZ), "max" -> (maxX,maxY,maxZ)
+                                          margin = 20,              // padding around data bounds
+                                          overrideSize = null       // if set, force cube size (number or {x,y,z})
+                                      } = {}) {
+            // 1) compute bounds from nodes
+            const boundingBox = new THREE.Box3();
+            if (nodes.length === 0) {
+                boundingBox.setFromCenterAndSize(new THREE.Vector3(0,0,0), new THREE.Vector3(100,100,100));
+            } else {
+                nodes.forEach(n => {
+                    // Convert original coordinates to 3D positions
+                    const x = (n.vx - center.x) * unitScale;
+                    const y = (n.vy - center.y) * unitScale;
+                    const z = (n.vz - center.z) * unitScale;
+                    boundingBox.expandByPoint(new THREE.Vector3(x, y, z));
+                });
+            }
+
+            const gridCenter = boundingBox.getCenter(new THREE.Vector3());
+            const size = boundingBox.getSize(new THREE.Vector3());
+
+            // make it a cube (like MATLAB axis equal); add margin
+            const side = Math.max(size.x, size.y, size.z) + margin * 2;
+
+            // allow override
+            const Lx = overrideSize?.x ?? overrideSize ?? side;
+            const Ly = overrideSize?.y ?? overrideSize ?? side;
+            const Lz = overrideSize?.z ?? overrideSize ?? side;
+
+            // min/max corners (cube centered at data center)
+            const min = new THREE.Vector3(
+                gridCenter.x - Lx/2,
+                gridCenter.y - Ly/2,
+                gridCenter.z - Lz/2
+            );
+            const max = new THREE.Vector3(
+                gridCenter.x + Lx/2,
+                gridCenter.y + Ly/2,
+                gridCenter.z + Lz/2
+            );
+
+            // helper to place a GridHelper on a plane at given position + rotation
+            function addPlaneGrid(length, divs, pos, rotEuler) {
+                const g = new THREE.GridHelper(length, divs, colorMajor, colorMinor);
+                g.material.transparent = true;
+                g.material.opacity = opacity;
+                g.material.depthWrite = false;
+                g.renderOrder = -1; // draw behind meshes
+                g.position.copy(pos);
+                g.rotation.set(rotEuler.x, rotEuler.y, rotEuler.z);
+                scene.add(g);
+                return g;
+            }
+
+            // 2) six faces: XY at z=min,max; XZ at y=min,max; YZ at x=min,max
+            // XY @ z = min, max
+            addPlaneGrid(Math.max(Lx, Ly), divisions,
+                new THREE.Vector3(gridCenter.x, gridCenter.y, min.z),
+                new THREE.Euler(Math.PI/2, 0, 0)); // rotate to XY
+            addPlaneGrid(Math.max(Lx, Ly), divisions,
+                new THREE.Vector3(gridCenter.x, gridCenter.y, max.z),
+                new THREE.Euler(Math.PI/2, 0, 0));
+
+            // XZ @ y = min, max  (default GridHelper plane is XZ, rotation 0)
+            addPlaneGrid(Math.max(Lx, Lz), divisions,
+                new THREE.Vector3(gridCenter.x, min.y, gridCenter.z),
+                new THREE.Euler(0, 0, 0));
+            addPlaneGrid(Math.max(Lx, Lz), divisions,
+                new THREE.Vector3(gridCenter.x, max.y, gridCenter.z),
+                new THREE.Euler(0, 0, 0));
+
+            // YZ @ x = min, max
+            addPlaneGrid(Math.max(Ly, Lz), divisions,
+                new THREE.Vector3(min.x, gridCenter.y, gridCenter.z),
+                new THREE.Euler(0, 0, Math.PI/2)); // rotate to YZ
+            addPlaneGrid(Math.max(Ly, Lz), divisions,
+                new THREE.Vector3(max.x, gridCenter.y, gridCenter.z),
+                new THREE.Euler(0, 0, Math.PI/2));
+
+            // 3) draw axes on a corner edge (MATLAB style)
+            const corner = (axesCorner === "max")
+                ? max.clone()
+                : min.clone();
+
+            // axis lines along positive directions from the corner
+            const axisMatX = new THREE.LineBasicMaterial({ color: 0xff0000 });
+            const axisMatY = new THREE.LineBasicMaterial({ color: 0x00ff00 });
+            const axisMatZ = new THREE.LineBasicMaterial({ color: 0x0000ff });
+
+            function axisLine(from, to, mat) {
+                const geom = new THREE.BufferGeometry().setFromPoints([from, to]);
+                const ln = new THREE.Line(geom, mat);
+                ln.renderOrder = 0.5; // above grids
+                scene.add(ln);
+                return ln;
+            }
+
+            // X axis: corner -> +X edge
+            axisLine(
+                corner,
+                new THREE.Vector3(max.x, corner.y, corner.z),
+                axisMatX
+            );
+            // Y axis: corner -> +Y edge
+            axisLine(
+                corner,
+                new THREE.Vector3(corner.x, max.y, corner.z),
+                axisMatY
+            );
+            // Z axis: corner -> +Z edge
+            axisLine(
+                corner,
+                new THREE.Vector3(corner.x, corner.y, max.z),
+                axisMatZ
+            );
+
+            // 4) axis labels (X Y Z) at ends
+            const labelScale = 0.09;
+            const pad = 2; // small offset away from edge
+            const xLbl = makeTextSprite("X", { fontSize: 24, textColor: "#c00", worldScale: labelScale });
+            xLbl.position.set(max.x + pad, corner.y, corner.z); scene.add(xLbl);
+            const yLbl = makeTextSprite("Y", { fontSize: 24, textColor: "#090", worldScale: labelScale });
+            yLbl.position.set(corner.x, max.y + pad, corner.z); scene.add(yLbl);
+            const zLbl = makeTextSprite("Z", { fontSize: 24, textColor: "#06f", worldScale: labelScale });
+            zLbl.position.set(corner.x, corner.y, max.z + pad); scene.add(zLbl);
+
+            // return bounds if caller needs them
+            return { min, max, center: gridCenter, size: new THREE.Vector3(Lx, Ly, Lz) };
+        }
+
+        // Add the MATLAB-style grid
+        addMatlabSurfBoxGrid({
+            divisions: 20,
+            opacity: 0.3,
+            axesCorner: "min",
+            margin: 20
+        });
 
         // Drag controls for nodes
         drag = new DragControls(nodeMeshes, camera, renderer.domElement);
