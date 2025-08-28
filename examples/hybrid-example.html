@@ -66,8 +66,6 @@
         }
 
         #graphSVG {
-            max-width: 100%;
-            max-height: 100%;
             border: 0px solid #eee;
             border-radius: 8px;
             transition: transform 0.1s ease;
@@ -105,7 +103,7 @@
             <!-- === Paste your exact SVG below === -->
             <svg id="graphSVG" xmlns="http://www.w3.org/2000/svg" width="340" height="171">
                 <metadata>
-                    <generator name="libgsp" author="Mohammad Raziei" site="https://mohammadraziei.github.io/libgsp    " />
+                    <generator name="libgsp" author="Mohammad Raziei" site="https://mohammadraziei.github.io/libgsp      " />
                     <libgsp version="0.0.0" language="cpp" os="linux"/>
                     <content format="svg" tags="plot graph signal bar"/>
                     <plotinfo signalscale="100" nodespacescale="100"/>
@@ -187,12 +185,44 @@
 
     // ---------------------------- SVG Zoom Controls ----------------------------
     let svgScale = 1;
-    const minScale = 0.25;
+    const minScale = 0.1;
     const maxScale = 5;
-    const scaleStep = 0.1;
+    const scaleStepFactor = 0.1; // Scale step as a factor of current scale
+
+    // Reference to the initial SVG dimensions
+    const svgWidth = svg.width.baseVal.value;
+    const svgHeight = svg.height.baseVal.value;
+
+    // Calculate the appropriate base scale to fit SVG at 80% of container
+    function calculateBaseScale() {
+        const containerRect = svgContainer.getBoundingClientRect();
+        const containerWidth = containerRect.width;
+        const containerHeight = containerRect.height;
+
+        // Calculate scale factors for width and height to fit at 80% of container
+        const scaleX = (containerWidth * 0.8) / svgWidth;
+        const scaleY = (containerHeight * 0.8) / svgHeight;
+
+        // Use the smaller scale to ensure the entire SVG fits within 80% of container
+        return Math.min(scaleX, scaleY);
+    }
+
+    // Base scale represents 1.0 in our scaling system (80% of container)
+    let baseScale = calculateBaseScale();
 
     function updateSVGScale() {
-        svg.style.transform = `scale(${svgScale})`;
+        // Apply the scale relative to the base scale
+        const finalScale = baseScale * svgScale;
+        svg.style.transform = `scale(${finalScale})`;
+    }
+
+    // Update base scale when window is resized
+    function updateBaseScale() {
+        baseScale = calculateBaseScale();
+        if (svgScale === 1) {
+            // If user is at default scale, update the display
+            updateSVGScale();
+        }
     }
 
     // Add scroll wheel zoom to SVG
@@ -200,11 +230,14 @@
         // Prevent page scroll
         event.preventDefault();
 
-        // Calculate zoom direction
-        const delta = event.deltaY > 0 ? -1 : 1;
+        // Calculate zoom direction and delta
+        const delta = event.deltaY > 0 ? 1 : -1;
 
-        // Update scale
-        svgScale += delta * scaleStep;
+        // Use a multiplicative scale factor for more natural zooming
+        const scaleFactor = delta > 0 ? 0.9 : 1.1;
+
+        // Apply scale factor
+        svgScale *= scaleFactor;
         svgScale = Math.max(minScale, Math.min(maxScale, svgScale));
 
         // Apply new scale
@@ -213,16 +246,18 @@
 
     // Reset zoom when switching back to 2D view
     function resetSVGZoom() {
-        svgScale = 1;
+        svgScale = 1; // Reset to default (80% of container)
         updateSVGScale();
     }
 
     // Ensure viewBox for consistent scaling in 2D view
     if (!svg.getAttribute('viewBox')) {
-        const w = svg.width.baseVal.value, h = svg.height.baseVal.value;
-        svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
+        svg.setAttribute('viewBox', `0 0 ${svgWidth} ${svgHeight}`);
         svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
     }
+
+    // Initial scale setup
+    updateSVGScale();
 
     // ---------------------------- Parse SVG data ----------------------------
     // Read scales from metadata (optional)
@@ -711,6 +746,9 @@
             });
         }
     });
+
+    // Handle window resize to update base scale
+    window.addEventListener('resize', updateBaseScale);
 
     // Default view = 2D (already visible)
 </script>
