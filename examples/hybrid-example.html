@@ -49,6 +49,14 @@
 
         /* Keep the inline SVG nicely sized in 2D panel */
         #graphSVG{width:min(96vw,1200px);height:calc(100vh - 96px);border:0px solid #eee;border-radius:8px}
+
+        svg {
+            user-select: none;
+            /* Vendor prefixes for broader browser compatibility */
+            -webkit-user-select: none; /* Safari */
+            -moz-user-select: none;    /* Firefox */
+            -ms-user-select: none;     /* IE 10+ */
+        }
     </style>
 </head>
 <body>
@@ -72,47 +80,47 @@
             </metadata>
             <title>Network</title>
             <style>
-                .node { fill: #00BCE3; stroke: black; stroke-width: 0.7; opacity: 0.8}
+                .node { fill: #00BCE3; stroke: #009be3; stroke-width: 0.7; opacity: 0.8}
                 .node-label { font-size: 12; text-anchor:middle; dominant-baseline:middle; }
-                .signal { stroke: red; fill: red; stroke-width: 2;}
+                .signal { stroke: red; fill: red; stroke-width: 1;}
                 circle.signal { r: 1; }
-                .signal-text { fill: red; }
-                .edge { stroke: black; stroke-width: 1.5; }
+                .signal-text { fill: red; text-anchor:middle; dominant-baseline:middle; font-size:6px;}
+                .edge { stroke: black; stroke-width: 1; }
             </style>
 
             <!-- edges -->
-            <line class="edge" x1="20" y1="51.0" x2="220" y2="51.0" v1="0" v2="1" weight="1"/>
-            <line class="edge" x1="20" y1="51.0" x2="120" y2="151.0" v1="0" v2="2" weight="1"/>
-            <line class="edge" x1="220" y1="51.0" x2="120" y2="151.0" v1="1" v2="2" weight="1"/>
-            <line class="edge" x1="120" y1="151.0" x2="320" y2="151.0" v1="2" v2="3" weight="1"/>
+            <line class="edge" x1="20" y1="51.0" x2="220" y2="51.0" v1="0" v2="1" w="1"/>
+            <line class="edge" x1="20" y1="51.0" x2="120" y2="151.0" v1="0" v2="2" w="1"/>
+            <line class="edge" x1="220" y1="51.0" x2="120" y2="151.0" v1="1" v2="2" w="1"/>
+            <line class="edge" x1="120" y1="151.0" x2="320" y2="151.0" v1="2" v2="3" w="1"/>
 
             <!-- node 0 -->
             <circle class="node" cx="20"  cy="51.0"  r="8" sig="-0.04" vx="0" vy="0"  vz="0" v="0" name="v0"/>
-            <text class="node-label" x="20"  y="51.0">v0</text>
-            <line class="signal" x1="20" y1="51.0" x2="20" y2="55.0"/>
-            <circle class="signal" cx="20" cy="55.0" r="1"/>
-            <text class="signal-text" text-anchor="middle" dominant-baseline="middle" font-size="6px" x="20" y="61.0">-0.04</text>
+            <text class="node-label" x="20"  y="51.0" v="0">v0</text>
+            <line class="signal" x1="20" y1="51.0" x2="20" y2="55.0" v="0"/>
+            <circle class="signal" cx="20" cy="55.0" r="1" v="0"/>
+            <text class="signal-text" x="20" y="61.0" v="0">-0.04</text>
 
             <!-- node 1 -->
             <circle class="node" cx="220" cy="51.0"  r="8" sig="0.31" vx="2" vy="0"  vz="0" v="1" name="v1"/>
-            <text class="node-label" x="220" y="51.0">v1</text>
-            <line class="signal" x1="220" y1="51.0" x2="220" y2="20.0"/>
-            <circle class="signal" cx="220" cy="20.0" r="1"/>
-            <text class="signal-text" text-anchor="middle" dominant-baseline="middle" font-size="6px" x="220" y="14.0">0.31</text>
+            <text class="node-label" x="220" y="51.0" v="1">v1</text>
+            <line class="signal" x1="220" y1="51.0" x2="220" y2="20.0" v="1"/>
+            <circle class="signal" cx="220" cy="20.0" r="1" v="1"/>
+            <text class="signal-text" x="220" y="14.0" v="1">0.31</text>
 
             <!-- node 2 -->
             <circle class="node" cx="120" cy="151.0" r="8" sig="0.06" vx="1" vy="-1" vz="0" v="2" name="v2"/>
-            <text class="node-label" x="120" y="151.0">v2</text>
-            <line class="signal" x1="120" y1="151.0" x2="120" y2="145.0"/>
-            <circle class="signal" cx="120" cy="145.0" r="1"/>
-            <text class="signal-text" text-anchor="middle" dominant-baseline="middle" font-size="6px" x="120" y="139.0">0.06</text>
+            <text class="node-label" x="120" y="151.0" v="2">v2</text>
+            <line class="signal" x1="120" y1="151.0" x2="120" y2="145.0" v="2"/>
+            <circle class="signal" cx="120" cy="145.0" r="1" v="2"/>
+            <text class="signal-text" x="120" y="139.0" v="2">0.06</text>
 
             <!-- node 3 -->
             <circle class="node" cx="320" cy="151.0" r="8" sig="0.39" vx="3" vy="-1" vz="0" v="3" name="v3"/>
-            <text class="node-label" x="320" y="151.0">v3</text>
-            <line class="signal" x1="320" y1="151.0" x2="320" y2="112.0"/>
-            <circle class="signal" cx="320" cy="112.0" r="1"/>
-            <text class="signal-text" text-anchor="middle" dominant-baseline="middle" font-size="6px" x="320" y="106.0">0.39</text>
+            <text class="node-label" x="320" y="151.0" v="3">v3</text>
+            <line class="signal" x1="320" y1="151.0" x2="320" y2="112.0" v="3"/>
+            <circle class="signal" cx="320" cy="112.0" r="1" v="3"/>
+            <text class="signal-text" x="320" y="106.0" v="3">0.39</text>
         </svg>
     </div>
 
@@ -136,6 +144,11 @@
     const panel3d = document.getElementById('panel3d');
     const tip = document.getElementById('tooltip');
     const svg = document.getElementById('graphSVG');
+
+    const titleElement = svg.querySelector('title');
+    if (titleElement) {
+        titleElement.remove(); // Removes the <title> element
+    }
 
     // Ensure viewBox for consistent scaling in 2D view
     if (!svg.getAttribute('viewBox')) {
@@ -165,28 +178,31 @@
     const edges = Array.from(svg.querySelectorAll('line.edge')).map(el => ({
         a: parseInt(el.getAttribute('v1')),
         b: parseInt(el.getAttribute('v2')),
+        w: parseInt(el.getAttribute('w') || '1')
     }));
 
     // 2D hover tooltip (simple)
     svg.addEventListener('mousemove', (ev) => {
         const t = ev.target;
-        if (t && t.classList.contains('node')) {
+        if (t && (t.classList.contains('node') || t.classList.contains('node-label'))) {
             const id = parseInt(t.getAttribute('v'));
             const n = idMap.get(id);
-            if (n) showTooltip(n, ev.clientX, ev.clientY);
+            if (n) showTooltip2D(n, ev.clientX, ev.clientY);
+            t.style.cursor = "pointer"
         } else {
             hideTooltip();
+            t.style.cursor = "auto";
         }
     });
     svg.addEventListener('mouseleave', hideTooltip);
 
     // Tooltip helpers
-    function showTooltip(n, clientX, clientY) {
+    function showTooltip2D(n, clientX, clientY) {
         tip.innerHTML =
             `<div class="row"><span class="k">vertex id:</span><span class="v">${n.id}</span></div>
      <div class="row"><span class="k">name:</span><span class="v">${n.name}</span></div>
-     <div class="row"><span class="k">signal:</span><span class="v">${n.s.toFixed(3)}</span></div>
-     <div class="row"><span class="k">(x,y,z):</span><span class="v">(${n.vx.toFixed(2)}, ${n.vy.toFixed(2)}, ${n.vz.toFixed(2)})</span></div>`;
+     <div class="row"><span class="k">(x,y,z):</span><span class="v">(${n.vx.toFixed(2)}, ${n.vy.toFixed(2)}, ${n.vz.toFixed(2)})</span></div>
+     <div class="row"><span class="k">signal:</span><span class="v">${n.s.toFixed(3)}</span></div>`;
         const margin=12, w=tip.offsetWidth||180, rightSpace=innerWidth-clientX;
         const right = rightSpace > w + margin;
         tip.style.left = (right ? (clientX + margin) : (clientX - margin)) + 'px';
@@ -512,10 +528,8 @@
             tip.innerHTML =
                 `<div class="row"><span class="k">vertex id:</span><span class="v">${n.id}</span></div>
        <div class="row"><span class="k">name:</span><span class="v">${n.name}</span></div>
-       <div class="row"><span class="k">signal:</span><span class="v">${n.s.toFixed(3)}</span></div>
-       <div class="row"><span class="k">(x,y,z):</span>
-         <span class="v">(${coords.x.toFixed(2)}, ${coords.y.toFixed(2)}, ${coords.z.toFixed(2)})</span>
-       </div>`;
+       <div class="row"><span class="k">(x,y,z):</span><span class="v">(${coords.x.toFixed(2)}, ${coords.y.toFixed(2)}, ${coords.z.toFixed(2)})</span></div>
+       <div class="row"><span class="k">signal:</span><span class="v">${n.s.toFixed(3)}</span></div>`;
         }
         function showTip3D(mesh) {
             const n = mesh.userData.node; setTipContent(n);
