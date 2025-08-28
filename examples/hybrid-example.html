@@ -18,22 +18,111 @@
     </script>
 
     <style>
-        html,body{margin:0;height:100%;font-family:system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif;background:#fff}
-        .topbar{position:fixed;top:12px;left:12px;z-index:10000;background:#fff;border:1px solid #e5e7eb;border-radius:10px;overflow:hidden;box-shadow:0 4px 16px rgba(0,0,0,.08)}
-        .topbar button{border:0;background:#f6f7f9;padding:8px 12px;font-weight:600}
-        .topbar button.active{background:#1f6feb;color:#fff}
+        html,body{margin:0;height:100%;font-family:system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif;background:#fff;}
 
-        .legend{position:fixed;top:12px;right:12px;z-index:10000;background:#fff;border:1px solid #e5e7eb;border-radius:10px;overflow:hidden;box-shadow:0 4px 16px rgba(0,0,0,.08);padding:8px 12px;display:flex;align-items:center;gap:8px;}
-        .legend-item{display:flex;align-items:center;cursor:pointer;}
-        .legend-color{width:12px;height:12px;background:red;margin-right:6px;border-radius:50%;}
-        .legend-text{font-size:14px;color:#333;}
-        .legend-item.hidden .legend-color{opacity:0.3;}
-        .legend-item.hidden .legend-text{opacity:0.5;text-decoration:line-through;}
+        /* Fixed size container - change these values to resize everything */
+        .visualization-container {
+            width: 100%;
+            height: 100vh;
+            margin: 0px auto;
+            position: relative;
+            border: 1px solid #e5e7eb;
+            /*border-radius: 12px;*/
+            overflow: hidden;
+            box-sizing: border-box;
+            /*box-shadow: 0 4px 16px rgba(0,0,0,0.1);*/
+        }
 
-        .container{position:absolute;inset:0;padding-top:56px}
-        #panel2d,#panel3d{position:absolute;inset:0}
-        #panel3d{display:none}
-        #panel2d{display:flex;align-items:center;justify-content:center;overflow:hidden}
+        .topbar{
+            position:absolute;
+            top:12px;
+            left:12px;
+            z-index:10000;
+            background:#fff;
+            border:1px solid #e5e7eb;
+            border-radius:10px;
+            overflow:hidden;
+            box-shadow:0 4px 16px rgba(0,0,0,.08);
+        }
+
+        .topbar button{
+            border:0;
+            background:#f6f7f9;
+            padding:8px 12px;
+            font-weight:600;
+            cursor: pointer;
+        }
+
+        .topbar button.active{
+            background:#1f6feb;
+            color:#fff;
+        }
+
+        .legend{
+            position:absolute;
+            top:12px;
+            right:12px;
+            z-index:10000;
+            background:#fff;
+            border:1px solid #e5e7eb;
+            border-radius:10px;
+            overflow:hidden;
+            box-shadow:0 4px 16px rgba(0,0,0,.08);
+            padding:8px 12px;
+            display:flex;
+            align-items:center;
+            gap:8px;
+        }
+
+        .legend-item{
+            display:flex;
+            align-items:center;
+            cursor:pointer;
+        }
+
+        .legend-color{
+            width:12px;
+            height:12px;
+            background:red;
+            margin-right:6px;
+            border-radius:50%;
+        }
+
+        .legend-text{
+            font-size:14px;
+            color:#333;
+        }
+
+        .legend-item.hidden .legend-color{
+            opacity:0.3;
+        }
+
+        .legend-item.hidden .legend-text{
+            opacity:0.5;
+            text-decoration:line-through;
+        }
+
+        .container{
+            position:absolute;
+            inset:0;
+            padding-top:56px;
+        }
+
+        #panel2d,#panel3d{
+            position:absolute;
+            inset:0;
+        }
+
+        #panel3d{
+            display:none;
+        }
+
+        #panel2d{
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            overflow:hidden;
+        }
 
         /* Tooltip (shared) */
         .tooltip {
@@ -50,10 +139,23 @@
             z-index: 9999;
             display: none;
         }
-        .tooltip.left { transform: translate(-12px, -50%); }
-        .tooltip .row { margin: 2px 0; }
-        .tooltip .k { opacity: 0.7; padding-right: 6px; }
-        .tooltip .v { font-weight: 600; }
+
+        .tooltip.left {
+            transform: translate(-12px, -50%);
+        }
+
+        .tooltip .row {
+            margin: 2px 0;
+        }
+
+        .tooltip .k {
+            opacity: 0.7;
+            padding-right: 6px;
+        }
+
+        .tooltip .v {
+            font-weight: 600;
+        }
 
         /* Keep the inline SVG nicely sized in 2D panel */
         #graphSVG-container {
@@ -82,81 +184,83 @@
 </head>
 <body>
 
-<!-- Segmented toggle -->
-<div class="topbar">
-    <button id="btn2d" class="active">2D (SVG)</button>
-    <button id="btn3d">3D (WebGL)</button>
-</div>
-
-<!-- Signal legend -->
-<div class="legend">
-    <div id="signal-legend" class="legend-item">
-        <div class="legend-color"></div>
-        <div class="legend-text">Signal Values</div>
+<div class="visualization-container">
+    <!-- Segmented toggle -->
+    <div class="topbar">
+        <button id="btn2d" class="active">2D (SVG)</button>
+        <button id="btn3d">3D (WebGL)</button>
     </div>
-</div>
 
-<div class="container">
-    <!-- 2D panel (your data-carrying SVG lives here) -->
-    <div id="panel2d">
-        <div id="graphSVG-container">
-            <!-- === Paste your exact SVG below === -->
-            <svg id="graphSVG" xmlns="http://www.w3.org/2000/svg" width="340" height="171">
-                <metadata>
-                    <generator name="libgsp" author="Mohammad Raziei" site="https://mohammadraziei.github.io/libgsp      " />
-                    <libgsp version="0.0.0" language="cpp" os="linux"/>
-                    <content format="svg" tags="plot graph signal bar"/>
-                    <plotinfo signalscale="100" nodespacescale="100"/>
-                </metadata>
-                <title>Network</title>
-                <style>
-                    .node { fill: #00BCE3; stroke: #009be3; stroke-width: 0.7; opacity: 0.8}
-                    .node-label { font-size: 12; text-anchor:middle; dominant-baseline:middle; }
-                    .signal { stroke: red; fill: red; stroke-width: 1;}
-                    circle.signal { r: 1; }
-                    .signal-text { fill: red; text-anchor:middle; dominant-baseline:middle; font-size:6px;}
-                    .edge { stroke: black; stroke-width: 1; }
-                </style>
-
-                <!-- edges -->
-                <line class="edge" x1="20" y1="51.0" x2="220" y2="51.0" v1="0" v2="1" w="1"/>
-                <line class="edge" x1="20" y1="51.0" x2="120" y2="151.0" v1="0" v2="2" w="1"/>
-                <line class="edge" x1="220" y1="51.0" x2="120" y2="151.0" v1="1" v2="2" w="1"/>
-                <line class="edge" x1="120" y1="151.0" x2="320" y2="151.0" v1="2" v2="3" w="1"/>
-
-                <!-- node 0 -->
-                <circle class="node" cx="20"  cy="51.0"  r="8" sig="-0.04" vx="0" vy="0"  vz="0" v="0" name="v0"/>
-                <text class="node-label" x="20"  y="51.0" v="0">v0</text>
-                <line class="signal" x1="20" y1="51.0" x2="20" y2="55.0" v="0"/>
-                <circle class="signal" cx="20" cy="55.0" r="1" v="0"/>
-                <text class="signal-text" x="20" y="61.0" v="0">-0.04</text>
-
-                <!-- node 1 -->
-                <circle class="node" cx="220" cy="51.0"  r="8" sig="0.31" vx="2" vy="0"  vz="0" v="1" name="v1"/>
-                <text class="node-label" x="220" y="51.0" v="1">v1</text>
-                <line class="signal" x1="220" y1="51.0" x2="220" y2="20.0" v="1"/>
-                <circle class="signal" cx="220" cy="20.0" r="1" v="1"/>
-                <text class="signal-text" x="220" y="14.0" v="1">0.31</text>
-
-                <!-- node 2 -->
-                <circle class="node" cx="120" cy="151.0" r="8" sig="0.06" vx="1" vy="-1" vz="0" v="2" name="v2"/>
-                <text class="node-label" x="120" y="151.0" v="2">v2</text>
-                <line class="signal" x1="120" y1="151.0" x2="120" y2="145.0" v="2"/>
-                <circle class="signal" cx="120" cy="145.0" r="1" v="2"/>
-                <text class="signal-text" x="120" y="139.0" v="2">0.06</text>
-
-                <!-- node 3 -->
-                <circle class="node" cx="320" cy="151.0" r="8" sig="0.39" vx="3" vy="-1" vz="0" v="3" name="v3"/>
-                <text class="node-label" x="320" y="151.0" v="3">v3</text>
-                <line class="signal" x1="320" y1="151.0" x2="320" y2="112.0" v="3"/>
-                <circle class="signal" cx="320" cy="112.0" r="1" v="3"/>
-                <text class="signal-text" x="320" y="106.0" v="3">0.39</text>
-            </svg>
+    <!-- Signal legend -->
+    <div class="legend">
+        <div id="signal-legend" class="legend-item">
+            <div class="legend-color"></div>
+            <div class="legend-text">Signal Values</div>
         </div>
     </div>
 
-    <!-- 3D panel (will be populated from the SVG above) -->
-    <div id="panel3d"></div>
+    <div class="container">
+        <!-- 2D panel (your data-carrying SVG lives here) -->
+        <div id="panel2d">
+            <div id="graphSVG-container">
+                <!-- === Paste your exact SVG below === -->
+                <svg id="graphSVG" xmlns="http://www.w3.org/2000/svg" width="340" height="171">
+                    <metadata>
+                        <generator name="libgsp" author="Mohammad Raziei" site="https://mohammadraziei.github.io/libgsp      " />
+                        <libgsp version="0.0.0" language="cpp" os="linux"/>
+                        <content format="svg" tags="plot graph signal bar"/>
+                        <plotinfo signalscale="100" nodespacescale="100"/>
+                    </metadata>
+                    <title>Network</title>
+                    <style>
+                        .node { fill: #00BCE3; stroke: #009be3; stroke-width: 0.7; opacity: 0.8}
+                        .node-label { font-size: 12; text-anchor:middle; dominant-baseline:middle; }
+                        .signal { stroke: red; fill: red; stroke-width: 1;}
+                        circle.signal { r: 1; }
+                        .signal-text { fill: red; text-anchor:middle; dominant-baseline:middle; font-size:6px;}
+                        .edge { stroke: black; stroke-width: 1; }
+                    </style>
+
+                    <!-- edges -->
+                    <line class="edge" x1="20" y1="51.0" x2="220" y2="51.0" v1="0" v2="1" w="1"/>
+                    <line class="edge" x1="20" y1="51.0" x2="120" y2="151.0" v1="0" v2="2" w="1"/>
+                    <line class="edge" x1="220" y1="51.0" x2="120" y2="151.0" v1="1" v2="2" w="1"/>
+                    <line class="edge" x1="120" y1="151.0" x2="320" y2="151.0" v1="2" v2="3" w="1"/>
+
+                    <!-- node 0 -->
+                    <circle class="node" cx="20"  cy="51.0"  r="8" sig="-0.04" vx="0" vy="0"  vz="0" v="0" name="v0"/>
+                    <text class="node-label" x="20"  y="51.0" v="0">v0</text>
+                    <line class="signal" x1="20" y1="51.0" x2="20" y2="55.0" v="0"/>
+                    <circle class="signal" cx="20" cy="55.0" r="1" v="0"/>
+                    <text class="signal-text" x="20" y="61.0" v="0">-0.04</text>
+
+                    <!-- node 1 -->
+                    <circle class="node" cx="220" cy="51.0"  r="8" sig="0.31" vx="2" vy="0"  vz="0" v="1" name="v1"/>
+                    <text class="node-label" x="220" y="51.0" v="1">v1</text>
+                    <line class="signal" x1="220" y1="51.0" x2="220" y2="20.0" v="1"/>
+                    <circle class="signal" cx="220" cy="20.0" r="1" v="1"/>
+                    <text class="signal-text" x="220" y="14.0" v="1">0.31</text>
+
+                    <!-- node 2 -->
+                    <circle class="node" cx="120" cy="151.0" r="8" sig="0.06" vx="1" vy="-1" vz="0" v="2" name="v2"/>
+                    <text class="node-label" x="120" y="151.0" v="2">v2</text>
+                    <line class="signal" x1="120" y1="151.0" x2="120" y2="145.0" v="2"/>
+                    <circle class="signal" cx="120" cy="145.0" r="1" v="2"/>
+                    <text class="signal-text" x="120" y="139.0" v="2">0.06</text>
+
+                    <!-- node 3 -->
+                    <circle class="node" cx="320" cy="151.0" r="8" sig="0.39" vx="3" vy="-1" vz="0" v="3" name="v3"/>
+                    <text class="node-label" x="320" y="151.0" v="3">v3</text>
+                    <line class="signal" x1="320" y1="151.0" x2="320" y2="112.0" v="3"/>
+                    <circle class="signal" cx="320" cy="112.0" r="1" v="3"/>
+                    <text class="signal-text" x="320" y="106.0" v="3">0.39</text>
+                </svg>
+            </div>
+        </div>
+
+        <!-- 3D panel (will be populated from the SVG above) -->
+        <div id="panel3d"></div>
+    </div>
 </div>
 
 <!-- Shared tooltip (used in both 2D hover and 3D raycast) -->
@@ -177,17 +281,29 @@
     const svg = document.getElementById('graphSVG');
     const svgContainer = document.getElementById('graphSVG-container');
     const signalLegend = document.getElementById('signal-legend');
+    const container = document.querySelector('.visualization-container');
 
     const titleElement = svg.querySelector('title');
     if (titleElement) {
         titleElement.remove(); // Removes the <title> element
     }
 
+    // ---------------------------- Get container dimensions dynamically ----------------------------
+    function getContainerSize() {
+        const rect = container.getBoundingClientRect();
+        return {
+            width: rect.width,
+            height: rect.height
+        };
+    }
+
+    // Initial container size
+    let containerSize = getContainerSize();
+
     // ---------------------------- SVG Zoom Controls ----------------------------
     let svgScale = 1;
     const minScale = 0.1;
-    const maxScale = 5;
-    const scaleStepFactor = 0.1; // Scale step as a factor of current scale
+    const maxScale = 10;
 
     // Reference to the initial SVG dimensions
     const svgWidth = svg.width.baseVal.value;
@@ -195,9 +311,9 @@
 
     // Calculate the appropriate base scale to fit SVG at 80% of container
     function calculateBaseScale() {
-        const containerRect = svgContainer.getBoundingClientRect();
-        const containerWidth = containerRect.width;
-        const containerHeight = containerRect.height;
+        const size = getContainerSize();
+        const containerWidth = size.width;
+        const containerHeight = size.height;
 
         // Calculate scale factors for width and height to fit at 80% of container
         const scaleX = (containerWidth * 0.8) / svgWidth;
@@ -218,10 +334,24 @@
 
     // Update base scale when window is resized
     function updateBaseScale() {
+        // Get new container size
+        containerSize = getContainerSize();
+
+        // Recalculate base scale
         baseScale = calculateBaseScale();
+
+        // If user is at default scale, update the display
         if (svgScale === 1) {
-            // If user is at default scale, update the display
             updateSVGScale();
+        }
+
+        // Update 3D renderer if it exists
+        if (renderer) {
+            renderer.setSize(containerSize.width, containerSize.height);
+            if (camera) {
+                camera.aspect = containerSize.width / containerSize.height;
+                camera.updateProjectionMatrix();
+            }
         }
     }
 
@@ -304,7 +434,7 @@
      <div class="row"><span class="k">name:</span><span class="v">${n.name}</span></div>
      <div class="row"><span class="k">(x,y,z):</span><span class="v">(${n.vx.toFixed(2)}, ${n.vy.toFixed(2)}, ${n.vz.toFixed(2)})</span></div>
      <div class="row"><span class="k">signal:</span><span class="v">${n.s.toFixed(3)}</span></div>`;
-        const margin=12, w=tip.offsetWidth||180, rightSpace=innerWidth-clientX;
+        const margin=12, w=tip.offsetWidth||180, rightSpace=window.innerWidth-clientX;
         const right = rightSpace > w + margin;
         tip.style.left = (right ? (clientX + margin) : (clientX - margin)) + 'px';
         tip.style.top  = clientY + 'px';
@@ -328,11 +458,16 @@
         scene = new THREE.Scene();
         scene.background = new THREE.Color(0xffffff);
 
-        camera = new THREE.PerspectiveCamera(60, panel3d.clientWidth/panel3d.clientHeight, 0.1, 5000);
+        // Get current container size
+        containerSize = getContainerSize();
+
+        // Create camera with current aspect ratio
+        camera = new THREE.PerspectiveCamera(60, containerSize.width / containerSize.height, 0.1, 5000);
         camera.position.set(0, 0, 140);
 
+        // Create renderer with current container dimensions
         renderer = new THREE.WebGLRenderer({ antialias:true });
-        renderer.setSize(panel3d.clientWidth, panel3d.clientHeight);
+        renderer.setSize(containerSize.width, containerSize.height);
         panel3d.appendChild(renderer.domElement);
 
         orbit = new OrbitControls(camera, renderer.domElement);
@@ -625,9 +760,13 @@
 
         function worldToScreen(p) {
             const v = p.clone().project(camera);
-            return { x:( v.x*0.5+0.5)*renderer.domElement.clientWidth + renderer.domElement.getBoundingClientRect().left,
-                y:(-v.y*0.5+0.5)*renderer.domElement.clientHeight + renderer.domElement.getBoundingClientRect().top };
+            const containerRect = container.getBoundingClientRect();
+            return {
+                x: (v.x * 0.5 + 0.5) * containerSize.width + containerRect.left,
+                y: (-v.y * 0.5 + 0.5) * containerSize.height + containerRect.top
+            };
         }
+
         function setTipContent(n) {
             const coords = n.coords();
             tip.innerHTML =
@@ -636,20 +775,25 @@
        <div class="row"><span class="k">(x,y,z):</span><span class="v">(${coords.x.toFixed(2)}, ${coords.y.toFixed(2)}, ${coords.z.toFixed(2)})</span></div>
        <div class="row"><span class="k">signal:</span><span class="v">${n.s.toFixed(3)}</span></div>`;
         }
+
         function showTip3D(mesh) {
-            const n = mesh.userData.node; setTipContent(n);
+            const n = mesh.userData.node;
+            setTipContent(n);
             const p = worldToScreen(mesh.getWorldPosition(new THREE.Vector3()));
             positionTip(p.x, p.y);
         }
+
         function updateTip3DIfAny(){
-            const m = dragging || hovering; if (!m) return;
+            const m = dragging || hovering;
+            if (!m) return;
             // refresh content (coords may change while dragging)
             setTipContent(m.userData.node);
             const p = worldToScreen(m.getWorldPosition(new THREE.Vector3()));
             positionTip(p.x, p.y);
         }
+
         function positionTip(x,y){
-            const margin=12, w=tip.offsetWidth||180, rightSpace=innerWidth-x;
+            const margin=12, w=tip.offsetWidth||180, rightSpace=window.innerWidth-x;
             const right = rightSpace > w + margin;
             tip.style.left = (right ? (x + margin) : (x - margin)) + "px";
             tip.style.top  = y + "px";
@@ -657,13 +801,8 @@
             tip.style.display = "block";
         }
 
-        // Resize handling
-        window.addEventListener('resize', ()=>{
-            if (!renderer) return;
-            renderer.setSize(panel3d.clientWidth, panel3d.clientHeight);
-            camera.aspect = panel3d.clientWidth / panel3d.clientHeight;
-            camera.updateProjectionMatrix();
-        });
+        // Resize handling - now uses the centralized updateBaseScale function
+        window.addEventListener('resize', updateBaseScale);
 
         // Animation loop
         (function animate(){
@@ -747,7 +886,7 @@
         }
     });
 
-    // Handle window resize to update base scale
+    // Handle window resize to update base scale and renderer
     window.addEventListener('resize', updateBaseScale);
 
     // Default view = 2D (already visible)
