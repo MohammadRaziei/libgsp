@@ -22,6 +22,14 @@
         .topbar{position:fixed;top:12px;left:12px;z-index:10000;background:#fff;border:1px solid #e5e7eb;border-radius:10px;overflow:hidden;box-shadow:0 4px 16px rgba(0,0,0,.08)}
         .topbar button{border:0;background:#f6f7f9;padding:8px 12px;font-weight:600}
         .topbar button.active{background:#1f6feb;color:#fff}
+
+        .legend{position:fixed;top:12px;right:12px;z-index:10000;background:#fff;border:1px solid #e5e7eb;border-radius:10px;overflow:hidden;box-shadow:0 4px 16px rgba(0,0,0,.08);padding:8px 12px;display:flex;align-items:center;gap:8px;}
+        .legend-item{display:flex;align-items:center;cursor:pointer;}
+        .legend-color{width:12px;height:12px;background:red;margin-right:6px;border-radius:50%;}
+        .legend-text{font-size:14px;color:#333;}
+        .legend-item.hidden .legend-color{opacity:0.3;}
+        .legend-item.hidden .legend-text{opacity:0.5;text-decoration:line-through;}
+
         .container{position:absolute;inset:0;padding-top:56px}
         #panel2d,#panel3d{position:absolute;inset:0}
         #panel3d{display:none}
@@ -67,13 +75,21 @@
     <button id="btn3d">3D (WebGL)</button>
 </div>
 
+<!-- Signal legend -->
+<div class="legend">
+    <div id="signal-legend" class="legend-item">
+        <div class="legend-color"></div>
+        <div class="legend-text">Signal Values</div>
+    </div>
+</div>
+
 <div class="container">
     <!-- 2D panel (your data-carrying SVG lives here) -->
     <div id="panel2d">
         <!-- === Paste your exact SVG below === -->
         <svg id="graphSVG" xmlns="http://www.w3.org/2000/svg" width="340" height="171">
             <metadata>
-                <generator name="libgsp" author="Mohammad Raziei" site="https://mohammadraziei.github.io/libgsp  " />
+                <generator name="libgsp" author="Mohammad Raziei" site="https://mohammadraziei.github.io/libgsp    " />
                 <libgsp version="0.0.0" language="cpp" os="linux"/>
                 <content format="svg" tags="plot graph signal bar"/>
                 <plotinfo signalscale="100" nodespacescale="100"/>
@@ -144,6 +160,7 @@
     const panel3d = document.getElementById('panel3d');
     const tip = document.getElementById('tooltip');
     const svg = document.getElementById('graphSVG');
+    const signalLegend = document.getElementById('signal-legend');
 
     const titleElement = svg.querySelector('title');
     if (titleElement) {
@@ -161,7 +178,6 @@
     // Read scales from metadata (optional)
     const plotinfo = svg.querySelector('plotinfo') || svg.querySelector('metadata plotinfo');
     const signalscale = plotinfo ? parseFloat(plotinfo.getAttribute('signalscale')||'100') : 100;
-    // const nodespacescale = plotinfo ? parseFloat(plotinfo.getAttribute('nodespacescale')||'100') : 100;
 
     // Collect nodes
     const nodes = Array.from(svg.querySelectorAll('circle.node')).map(el => ({
@@ -217,6 +233,8 @@
     let nodeMeshes = [], edgeLines, edgeGeom, edgePos;
     let raycaster, mouse;
     let hovering = null, dragging = null;
+    let signalVisible = true;  // Track signal visibility state
+    let signalStems = [];      // Store references to signal stem objects
 
     function build3DOnce() {
         if (scene) return; // already built
@@ -304,6 +322,7 @@
             spr.scale.set(w*worldScale, h*worldScale, 1); return spr;
         }
 
+        // Create signal stems and store references
         nodes.forEach((n,i) => {
             const g = new THREE.Object3D();
             const lineGeom = new THREE.BufferGeometry().setFromPoints([ new THREE.Vector3(0,0,0), new THREE.Vector3(0,1,0) ]);
@@ -319,6 +338,7 @@
             g.position.copy(m.position);
             scene.add(g);
             n._stem = g;
+            signalStems.push(g);  // Store reference for visibility toggling
         });
 
         function syncStems() {
@@ -582,6 +602,33 @@
         return {minx,miny,minz,maxx,maxy,maxz};
     }
 
+    // ---------------------------- Signal Legend Functionality ----------------------------
+    signalLegend.addEventListener('click', () => {
+        signalVisible = !signalVisible;
+
+        // Update legend appearance
+        if (signalVisible) {
+            signalLegend.classList.remove('hidden');
+        } else {
+            signalLegend.classList.add('hidden');
+        }
+
+        // Show or hide signal stems in 3D view
+        if (scene && signalStems.length > 0) {
+            signalStems.forEach(stem => {
+                stem.visible = signalVisible;
+            });
+        }
+
+        // Show or hide signals in 2D SVG view
+        if (!running) {  // Only if we're in 2D view
+            const signalElements = svg.querySelectorAll('.signal,.signal-text');
+            signalElements.forEach(el => {
+                el.style.display = signalVisible ? 'inline' : 'none';
+            });
+        }
+    });
+
     // ---------------------------- Toggle logic ----------------------------
     btn2d.addEventListener('click', ()=>{
         btn2d.classList.add('active'); btn3d.classList.remove('active');
@@ -589,20 +636,30 @@
         panel3d.style.display = 'none';
         hideTooltip();
         running = false; // pause 3D loop work
+
+        // Update signal visibility in SVG view based on current state
+        const signalElements = svg.querySelectorAll('.signal,.signal-text');
+        signalElements.forEach(el => {
+            el.style.display = signalVisible ? 'inline' : 'none';
+        });
     });
+
     btn3d.addEventListener('click', ()=>{
         btn3d.classList.add('active'); btn2d.classList.remove('active');
         panel2d.style.display = 'none';
         panel3d.style.display = 'block';
         build3DOnce();
         running = true; // resume 3D loop work
+
+        // Apply current signal visibility state to 3D view
+        if (signalStems.length > 0) {
+            signalStems.forEach(stem => {
+                stem.visible = signalVisible;
+            });
+        }
     });
 
     // Default view = 2D (already visible)
-
-    // Optional: if you want 3D by default, just trigger the click:
-    // btn3d.click();
-
 </script>
 </body>
 </html>
