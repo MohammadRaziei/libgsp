@@ -33,7 +33,7 @@
         .container{position:absolute;inset:0;padding-top:56px}
         #panel2d,#panel3d{position:absolute;inset:0}
         #panel3d{display:none}
-        #panel2d{display:flex;align-items:center;justify-content:center}
+        #panel2d{display:flex;align-items:center;justify-content:center;overflow:hidden}
 
         /* Tooltip (shared) */
         .tooltip {
@@ -56,7 +56,22 @@
         .tooltip .v { font-weight: 600; }
 
         /* Keep the inline SVG nicely sized in 2D panel */
-        #graphSVG{width:min(96vw,1200px);height:calc(100vh - 96px);border:0px solid #eee;border-radius:8px}
+        #graphSVG-container {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        #graphSVG {
+            max-width: 100%;
+            max-height: 100%;
+            border: 0px solid #eee;
+            border-radius: 8px;
+            transition: transform 0.1s ease;
+        }
 
         svg,.legend {
             user-select: none;
@@ -86,58 +101,60 @@
 <div class="container">
     <!-- 2D panel (your data-carrying SVG lives here) -->
     <div id="panel2d">
-        <!-- === Paste your exact SVG below === -->
-        <svg id="graphSVG" xmlns="http://www.w3.org/2000/svg" width="340" height="171">
-            <metadata>
-                <generator name="libgsp" author="Mohammad Raziei" site="https://mohammadraziei.github.io/libgsp    " />
-                <libgsp version="0.0.0" language="cpp" os="linux"/>
-                <content format="svg" tags="plot graph signal bar"/>
-                <plotinfo signalscale="100" nodespacescale="100"/>
-            </metadata>
-            <title>Network</title>
-            <style>
-                .node { fill: #00BCE3; stroke: #009be3; stroke-width: 0.7; opacity: 0.8}
-                .node-label { font-size: 12; text-anchor:middle; dominant-baseline:middle; }
-                .signal { stroke: red; fill: red; stroke-width: 1;}
-                circle.signal { r: 1; }
-                .signal-text { fill: red; text-anchor:middle; dominant-baseline:middle; font-size:6px;}
-                .edge { stroke: black; stroke-width: 1; }
-            </style>
+        <div id="graphSVG-container">
+            <!-- === Paste your exact SVG below === -->
+            <svg id="graphSVG" xmlns="http://www.w3.org/2000/svg" width="340" height="171">
+                <metadata>
+                    <generator name="libgsp" author="Mohammad Raziei" site="https://mohammadraziei.github.io/libgsp    " />
+                    <libgsp version="0.0.0" language="cpp" os="linux"/>
+                    <content format="svg" tags="plot graph signal bar"/>
+                    <plotinfo signalscale="100" nodespacescale="100"/>
+                </metadata>
+                <title>Network</title>
+                <style>
+                    .node { fill: #00BCE3; stroke: #009be3; stroke-width: 0.7; opacity: 0.8}
+                    .node-label { font-size: 12; text-anchor:middle; dominant-baseline:middle; }
+                    .signal { stroke: red; fill: red; stroke-width: 1;}
+                    circle.signal { r: 1; }
+                    .signal-text { fill: red; text-anchor:middle; dominant-baseline:middle; font-size:6px;}
+                    .edge { stroke: black; stroke-width: 1; }
+                </style>
 
-            <!-- edges -->
-            <line class="edge" x1="20" y1="51.0" x2="220" y2="51.0" v1="0" v2="1" w="1"/>
-            <line class="edge" x1="20" y1="51.0" x2="120" y2="151.0" v1="0" v2="2" w="1"/>
-            <line class="edge" x1="220" y1="51.0" x2="120" y2="151.0" v1="1" v2="2" w="1"/>
-            <line class="edge" x1="120" y1="151.0" x2="320" y2="151.0" v1="2" v2="3" w="1"/>
+                <!-- edges -->
+                <line class="edge" x1="20" y1="51.0" x2="220" y2="51.0" v1="0" v2="1" w="1"/>
+                <line class="edge" x1="20" y1="51.0" x2="120" y2="151.0" v1="0" v2="2" w="1"/>
+                <line class="edge" x1="220" y1="51.0" x2="120" y2="151.0" v1="1" v2="2" w="1"/>
+                <line class="edge" x1="120" y1="151.0" x2="320" y2="151.0" v1="2" v2="3" w="1"/>
 
-            <!-- node 0 -->
-            <circle class="node" cx="20"  cy="51.0"  r="8" sig="-0.04" vx="0" vy="0"  vz="0" v="0" name="v0"/>
-            <text class="node-label" x="20"  y="51.0" v="0">v0</text>
-            <line class="signal" x1="20" y1="51.0" x2="20" y2="55.0" v="0"/>
-            <circle class="signal" cx="20" cy="55.0" r="1" v="0"/>
-            <text class="signal-text" x="20" y="61.0" v="0">-0.04</text>
+                <!-- node 0 -->
+                <circle class="node" cx="20"  cy="51.0"  r="8" sig="-0.04" vx="0" vy="0"  vz="0" v="0" name="v0"/>
+                <text class="node-label" x="20"  y="51.0" v="0">v0</text>
+                <line class="signal" x1="20" y1="51.0" x2="20" y2="55.0" v="0"/>
+                <circle class="signal" cx="20" cy="55.0" r="1" v="0"/>
+                <text class="signal-text" x="20" y="61.0" v="0">-0.04</text>
 
-            <!-- node 1 -->
-            <circle class="node" cx="220" cy="51.0"  r="8" sig="0.31" vx="2" vy="0"  vz="0" v="1" name="v1"/>
-            <text class="node-label" x="220" y="51.0" v="1">v1</text>
-            <line class="signal" x1="220" y1="51.0" x2="220" y2="20.0" v="1"/>
-            <circle class="signal" cx="220" cy="20.0" r="1" v="1"/>
-            <text class="signal-text" x="220" y="14.0" v="1">0.31</text>
+                <!-- node 1 -->
+                <circle class="node" cx="220" cy="51.0"  r="8" sig="0.31" vx="2" vy="0"  vz="0" v="1" name="v1"/>
+                <text class="node-label" x="220" y="51.0" v="1">v1</text>
+                <line class="signal" x1="220" y1="51.0" x2="220" y2="20.0" v="1"/>
+                <circle class="signal" cx="220" cy="20.0" r="1" v="1"/>
+                <text class="signal-text" x="220" y="14.0" v="1">0.31</text>
 
-            <!-- node 2 -->
-            <circle class="node" cx="120" cy="151.0" r="8" sig="0.06" vx="1" vy="-1" vz="0" v="2" name="v2"/>
-            <text class="node-label" x="120" y="151.0" v="2">v2</text>
-            <line class="signal" x1="120" y1="151.0" x2="120" y2="145.0" v="2"/>
-            <circle class="signal" cx="120" cy="145.0" r="1" v="2"/>
-            <text class="signal-text" x="120" y="139.0" v="2">0.06</text>
+                <!-- node 2 -->
+                <circle class="node" cx="120" cy="151.0" r="8" sig="0.06" vx="1" vy="-1" vz="0" v="2" name="v2"/>
+                <text class="node-label" x="120" y="151.0" v="2">v2</text>
+                <line class="signal" x1="120" y1="151.0" x2="120" y2="145.0" v="2"/>
+                <circle class="signal" cx="120" cy="145.0" r="1" v="2"/>
+                <text class="signal-text" x="120" y="139.0" v="2">0.06</text>
 
-            <!-- node 3 -->
-            <circle class="node" cx="320" cy="151.0" r="8" sig="0.39" vx="3" vy="-1" vz="0" v="3" name="v3"/>
-            <text class="node-label" x="320" y="151.0" v="3">v3</text>
-            <line class="signal" x1="320" y1="151.0" x2="320" y2="112.0" v="3"/>
-            <circle class="signal" cx="320" cy="112.0" r="1" v="3"/>
-            <text class="signal-text" x="320" y="106.0" v="3">0.39</text>
-        </svg>
+                <!-- node 3 -->
+                <circle class="node" cx="320" cy="151.0" r="8" sig="0.39" vx="3" vy="-1" vz="0" v="3" name="v3"/>
+                <text class="node-label" x="320" y="151.0" v="3">v3</text>
+                <line class="signal" x1="320" y1="151.0" x2="320" y2="112.0" v="3"/>
+                <circle class="signal" cx="320" cy="112.0" r="1" v="3"/>
+                <text class="signal-text" x="320" y="106.0" v="3">0.39</text>
+            </svg>
+        </div>
     </div>
 
     <!-- 3D panel (will be populated from the SVG above) -->
@@ -160,11 +177,44 @@
     const panel3d = document.getElementById('panel3d');
     const tip = document.getElementById('tooltip');
     const svg = document.getElementById('graphSVG');
+    const svgContainer = document.getElementById('graphSVG-container');
     const signalLegend = document.getElementById('signal-legend');
 
     const titleElement = svg.querySelector('title');
     if (titleElement) {
         titleElement.remove(); // Removes the <title> element
+    }
+
+    // ---------------------------- SVG Zoom Controls ----------------------------
+    let svgScale = 1;
+    const minScale = 0.25;
+    const maxScale = 5;
+    const scaleStep = 0.1;
+
+    function updateSVGScale() {
+        svg.style.transform = `scale(${svgScale})`;
+    }
+
+    // Add scroll wheel zoom to SVG
+    svgContainer.addEventListener('wheel', (event) => {
+        // Prevent page scroll
+        event.preventDefault();
+
+        // Calculate zoom direction
+        const delta = event.deltaY > 0 ? -1 : 1;
+
+        // Update scale
+        svgScale += delta * scaleStep;
+        svgScale = Math.max(minScale, Math.min(maxScale, svgScale));
+
+        // Apply new scale
+        updateSVGScale();
+    });
+
+    // Reset zoom when switching back to 2D view
+    function resetSVGZoom() {
+        svgScale = 1;
+        updateSVGScale();
     }
 
     // Ensure viewBox for consistent scaling in 2D view
@@ -636,6 +686,9 @@
         panel3d.style.display = 'none';
         hideTooltip();
         running = false; // pause 3D loop work
+
+        // Reset zoom when switching to 2D view
+        resetSVGZoom();
 
         // Update signal visibility in SVG view based on current state
         const signalElements = svg.querySelectorAll('.signal,.signal-text');
