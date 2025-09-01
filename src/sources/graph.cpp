@@ -130,8 +130,9 @@ std::optional<gsp::Edge> gsp::Graph<Matrix>::edgeNext() {
 }
 
 template <class Matrix>
-std::vector<gsp::Edge> gsp::Graph<Matrix>::edges() {
-    return this->cache()->_generator.toVector();
+std::vector<gsp::Edge> gsp::Graph<Matrix>::edges() const {
+    gsp::EdgeGenerator gen(this);
+    return gen.toVector();
 }
 
 

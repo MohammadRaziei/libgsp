@@ -10,15 +10,7 @@
 #include <cstdint>
 #include <mutex>
 
-
-class Figure {
-   public:
-    Figure(const std::string& title="");
-    const std::string& title() const;
-
-   private:
-    std::string _title;
-};
+#include "libgsp/plotting/figure.h"
 
 class FigureManager {
    public:
@@ -30,9 +22,9 @@ class FigureManager {
     static FigureManager& instance(const std::string& name = "default");
 
     // --- API ---
-    uint32_t addFigure(const Figure& f);
-    const Figure& getFigure(size_t i) const;
-    Figure& getFigure(size_t i);
+    uint32_t addFigure(const gsp::Figure& f);
+    const gsp::Figure& getFigure(size_t i) const;
+    gsp::Figure& getFigure(size_t i);
 
     size_t count() const;
     uint32_t counter() const;
@@ -44,7 +36,7 @@ class FigureManager {
     FigureManager(const std::string& name);
 
     mutable std::mutex _mtx;
-    std::vector<Figure> _figures;
+    std::vector<gsp::Figure> _figures;
     std::string _name;
     uint32_t _counter;
 };

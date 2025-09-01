@@ -6,11 +6,14 @@
 
 
 int main() {
-    auto& manager = FigureManager::instance();
-    Figure fig1, fig2("test");
-    manager.addFigure(fig1);
-    manager.addFigure(fig2);
-    manager.serve();
+//    auto& manager = FigureManager::instance();
+    gsp::Figure fig1, fig2("test");
+//    manager.addFigure(fig1);
+//    manager.addFigure(fig2);
+//    fig1.setSubplots(2,2);
+//    ax = fig1.getSubplot(1);
+//    Plot(graph, ax);
+//    manager.serve();
 
     return 0;
 }

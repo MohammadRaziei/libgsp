@@ -37,7 +37,7 @@ class gsp::BaseGraph : public gsp::VertexGraph {
     virtual void setEdges(const std::vector<gsp::Edge>& edges, bool is_directed = GSP_IS_DIRECTED_DEFAULT) = 0;
     virtual void edgeIter(double thresh = 0.) = 0;
     virtual std::optional<gsp::Edge> edgeNext() = 0;
-    virtual std::vector<gsp::Edge> edges() = 0;
+    virtual std::vector<gsp::Edge> edges() const = 0;
 };
 
 #endif  // LIBGSP_BASEGRAPH_H

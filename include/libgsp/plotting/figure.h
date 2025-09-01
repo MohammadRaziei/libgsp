@@ -4,98 +4,73 @@
 
 #ifndef LIBGSP_FIGURE_H
 #define LIBGSP_FIGURE_H
-
 #pragma once
+
 #include <string>
 #include <vector>
+#include <memory>
 #include <cstdint>
-#include <stdexcept>
-#include <sstream>
 
+namespace gsp {
+
+// Forward declaration
 class Axis;
 
+// Layout configuration for the figure grid
 struct FigureLayout {
     uint32_t rows = 1;
     uint32_t cols = 1;
-    float    gap_px  = 12.0f;
+    float gap_px = 12.0f;
     std::string css_class;
 };
 
-/**
- * Figure is a lightweight HTML layout container of Axis cells.
- * It does NOT own Axis objects; it stores non-owning pointers.
- * Callers must ensure Axis lifetime outlives the Figure::render() call.
- */
 class Figure {
    public:
-    explicit Figure(std::string title = "")
-        : _title(std::move(title)) { resize(1, 1); }
+    // Constructor: creates a 1x1 figure by default
+    explicit Figure(const std::string& title = "");
 
-    // --- basics ---
-    Figure& setTitle(const std::string& t) { _title = t; _dirty = true; return *this; }
-    const std::string& title() const { return _title; }
+    // --- Title ---
+    Figure& setTitle(const std::string& t);
+    const std::string& title() const;
 
-    Figure& setSubplot(uint32_t r, uint32_t c) { return resize(r, c); }
-    Figure& setLayout(FigureLayout l) { _layout = std::move(l); remake(); _dirty = true; return *this; }
-    const FigureLayout& layout() const { return _layout; }
+    // --- Grid setup ---
+    Figure& setSubplot(uint32_t r, uint32_t c);
+    Figure& setLayout(FigureLayout l);
+    const FigureLayout& layout() const;
 
-    uint32_t rows() const { return _layout.rows; }
-    uint32_t cols() const { return _layout.cols; }
-    uint32_t size() const { return static_cast<uint32_t>(_axes.size()); }
+    uint32_t rows() const;
+    uint32_t cols() const;
+    uint32_t subplotCount() const;  // total number of subplots
 
-    // --- subplot setters/getters (pointer-based, non-owning) ---
-    // Set all subplots at once; size must be rows*cols
-    Figure& setSubplots(const std::vector<Axis*>& axes);
+    // --- Subplot access (by index or row/col) ---
+    Axis& subplot(uint32_t i);
+    Axis& subplot(uint32_t r, uint32_t c);
 
-    // Get the underlying pointer grid (row-major)
-    const std::vector<Axis*>& getSubplots() const { return _axes; }
-
-    // Set a single cell (row, col)
-    Figure& setSubplot(uint32_t r, uint32_t c, Axis* ax);
-
-    // Get by (row, col)
-    Axis*       getSubplot(uint32_t r, uint32_t c)       { return _axes.at(idx(r, c)); }
-    const Axis* getSubplot(uint32_t r, uint32_t c) const { return _axes.at(idx(r, c)); }
-
-    // 1-arg accessors by flat index
-    Axis*       getSubplot(uint32_t i)       { return _axes.at(i); }
-    const Axis* getSubplot(uint32_t i) const { return _axes.at(i); }
-
-    // Aliases
-    Axis*       at(uint32_t i)       { return _axes.at(i); }
-    const Axis* at(uint32_t i) const { return _axes.at(i); }
-
-    // --- rendering with cache ---
-    // Builds a full, self-contained HTML page (no external deps).
-    // Caches the result until Figure is mutated.
+    // --- Rendering ---
     std::string render() const;
 
    private:
-    Figure& resize(uint32_t r, uint32_t c) {
-        if (r == 0 || c == 0) throw std::invalid_argument("rows/cols must be >= 1");
-        _layout.rows = r; _layout.cols = c; remake(); _dirty = true; return *this;
-    }
+    // Resize the grid to r x c (minimum 1x1)
+    Figure& resize(uint32_t r, uint32_t c);
 
-    void remake() {
-        _axes.assign(static_cast<size_t>(_layout.rows) * _layout.cols, nullptr);
-        _dirty = true;
-    }
+    // Recreates the axes vector with new shared_ptr<Axis>
+    void remake();
 
-    uint32_t idx(uint32_t r, uint32_t c) const {
-        if (r >= _layout.rows || c >= _layout.cols) throw std::out_of_range("subplot index");
-        return r * _layout.cols + c;
-    }
+    // Converts (row, col) to flat index
+    uint32_t idx(uint32_t r, uint32_t c) const;
 
    private:
-    std::string   _title;
-    FigureLayout  _layout{};
+    std::string _title;
+    FigureLayout _layout;
 
-    // Row-major grid of non-owning pointers
-    std::vector<Axis*> _axes;
+    // Managed collection of subplots
+    std::vector<std::shared_ptr<Axis>> _axes;
 
     // Render cache
-    mutable bool        _dirty    = true;
+    mutable bool _dirty = true;
     mutable std::string _rendered;
 };
+
+} // namespace gsp
 
 #endif  // LIBGSP_FIGURE_H

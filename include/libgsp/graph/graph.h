@@ -54,7 +54,7 @@ class gsp::Graph : public gsp::BaseGraph {
 
     virtual void edgeIter(double thresh = 0.) override;
     virtual std::optional<gsp::Edge> edgeNext() override;
-    virtual std::vector<gsp::Edge> edges() override;
+    virtual std::vector<gsp::Edge> edges() const override;
 
     virtual void setEdges(const std::vector<gsp::Edge>& edges, bool is_directed = GSP_IS_DIRECTED_DEFAULT) override;
     virtual void setWeights(const Matrix& matrix, bool is_directed = GSP_IS_DIRECTED_DEFAULT);

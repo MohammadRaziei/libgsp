@@ -12,15 +12,18 @@
 #include <thread>       // optional if you later want async
 #include <fstream>  // for std::ofstream
 #include <mustache.hpp>
+
 #include "libgsp/plotting/figuremanager.h"
 
 using namespace kainjow;
 
+#ifdef __linux__
 #ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
 #endif
 #include <httplib.h>    // <--- cpp-httplib (header-only)
+#endif
 
 #include <fmt/fmt.h>
 
@@ -29,9 +32,6 @@ using namespace kainjow;
 
 namespace fs = std::filesystem;
 
-// ---------------- Figure ----------------
-Figure::Figure(const std::string& title) : _title(title) {}
-const std::string& Figure::title() const { return _title; }
 
 // ---------------- FigureManager ----------------
 FigureManager::FigureManager(const std::string& name) : _counter(0), _name(name) {}
@@ -60,14 +60,14 @@ FigureManager& FigureManager::instance(const std::string& name_ws) {
     return *(it->second);
 }
 
-uint32_t FigureManager::addFigure(const Figure& f) {
+uint32_t FigureManager::addFigure(const gsp::Figure& f) {
     std::lock_guard<std::mutex> lock(_mtx);
     _figures.push_back(f);
     return ++_counter;
 }
 
-const Figure& FigureManager::getFigure(size_t i) const { return _figures.at(i); }
-Figure& FigureManager::getFigure(size_t i) { return _figures.at(i); }
+const gsp::Figure& FigureManager::getFigure(size_t i) const { return _figures.at(i); }
+gsp::Figure& FigureManager::getFigure(size_t i) { return _figures.at(i); }
 
 size_t FigureManager::count() const { return _figures.size(); }
 uint32_t FigureManager::counter() const { return _counter; }
@@ -126,7 +126,7 @@ static std::string html_index(const FigureManager& mgr) {
 }
 
 // ---------------- single figure page ----------------
-static std::string html_figure(const Figure& fig, size_t idx) {
+static std::string html_figure(const gsp::Figure& fig, size_t idx) {
     std::string body = fmt::format(
         R"(<h1>Figure #{}</h1>
 <p>Title: <b>{}</b></p>
@@ -178,6 +178,8 @@ static std::string createHtmlIndex(const FigureManager& mgr) {
 
 
 void FigureManager::serve(int port) {
+#ifdef __linux__
+
     httplib::Server svr;
 
     // GET / -> index listing
@@ -220,6 +222,8 @@ void FigureManager::serve(int port) {
     std::cout << "[serve] http://127.0.0.1:" << port << "  (routes: /, /figure/{i}, /health)\n";
     // blocking; if you want async, run in a std::thread
     svr.listen("0.0.0.0", port);
+
+#endif
 }
 
 void FigureManager::save(const std::string& path) {
