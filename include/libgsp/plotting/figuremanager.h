@@ -25,7 +25,6 @@ namespace gsp {
         // --- API ---
         uint32_t addFigure(const gsp::Figure& f);
         const gsp::Figure& getFigure(size_t i) const;
-        gsp::Figure& getFigure(size_t i);
         
         size_t count() const;
         uint32_t counter() const;

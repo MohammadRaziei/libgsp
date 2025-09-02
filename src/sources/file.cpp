@@ -4,6 +4,11 @@
 
 #include "libgsp/io/file.h"
 
+#include <filesystem>
+
+#include <fmt/fmt.h>
+
+namespace fs = std::filesystem;
 
 std::string gsp::io::readFile(const std::string& filename) {
     // Open the file in binary mode
@@ -39,4 +44,16 @@ void gsp::io::writeFile(const std::string& filename, const std::string& data) {
     }
 
     file.write(data.c_str(), data.size());
+}
+
+/**
+ * Loads a Mustache template file from the 'templates/' directory.
+ * Returns error string if file is missing.
+ */
+std::string gsp::io::loadTemplate(const std::string& filename) {
+    const auto template_path = fs::path(__FILE__).parent_path() / "templates" / filename;
+    if (!fs::exists(template_path)) {
+        return fmt::format("<h3>Template not found: {}</h3>", template_path.string());
+    }
+    return gsp::io::readFile(template_path.string());
 }

@@ -19,15 +19,11 @@ using namespace kainjow;
 namespace gsp {
 
 // --- Static: Get template or fallback message ---
-static std::string render_with_template(const kainjow::mustache::data& view) {
-    std::string template_content = gsp::io::readFile("templates/figure_template.html");
-
-    if (template_content.empty()) {
-        return "<h3>template not found</h3>";
-    }
+std::string render_with_template(const mustache::data& view) {
+    std::string template_content = gsp::io::loadTemplate("figure.mustache.html");
 
     try {
-        kainjow::mustache::mustache tpl(template_content);
+        mustache::mustache tpl(template_content);
         return tpl.render(view);
     } catch (const std::exception&) {
         return "<h3>template error: invalid mustache</h3>";
