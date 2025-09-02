@@ -12,33 +12,35 @@
 
 #include "libgsp/plotting/figure.h"
 
-class FigureManager {
-   public:
-    FigureManager(const FigureManager&) = delete;
-    // --- default instance (empty name) ---
-    static FigureManager& defaultInstance();
+namespace gsp {
+    class FigureManager {
+        public:
+        FigureManager(const FigureManager&) = delete;
+        // --- default instance (empty name) ---
+        static FigureManager& defaultInstance();
+        
+        // --- named instance registry ---
+        static FigureManager& instance(const std::string& name = "default");
+        
+        // --- API ---
+        uint32_t addFigure(const gsp::Figure& f);
+        const gsp::Figure& getFigure(size_t i) const;
+        gsp::Figure& getFigure(size_t i);
+        
+        size_t count() const;
+        uint32_t counter() const;
+        
+        void serve(int port=8080);
+        void save(const std::string& path);
 
-    // --- named instance registry ---
-    static FigureManager& instance(const std::string& name = "default");
-
-    // --- API ---
-    uint32_t addFigure(const gsp::Figure& f);
-    const gsp::Figure& getFigure(size_t i) const;
-    gsp::Figure& getFigure(size_t i);
-
-    size_t count() const;
-    uint32_t counter() const;
-
-    void serve(int port=8080);
-    void save(const std::string& path);
-
-   private:
-    FigureManager(const std::string& name);
-
-    mutable std::mutex _mtx;
+        private:
+        FigureManager(const std::string& name);
+        
+        mutable std::mutex _mtx;
     std::vector<gsp::Figure> _figures;
     std::string _name;
     uint32_t _counter;
 };
+} // namespace gsp
 
 #endif // LIBGSP_FIGUREMANAGER_H

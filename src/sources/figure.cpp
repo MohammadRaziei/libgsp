@@ -20,7 +20,7 @@ namespace gsp {
 
 // --- Static: Get template or fallback message ---
 static std::string render_with_template(const kainjow::mustache::data& view) {
-    std::string template_content = readFile("templates/figure_template.html");
+    std::string template_content = gsp::io::readFile("templates/figure_template.html");
 
     if (template_content.empty()) {
         return "<h3>template not found</h3>";

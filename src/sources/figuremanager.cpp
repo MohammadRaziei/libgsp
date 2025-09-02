@@ -34,14 +34,14 @@ namespace fs = std::filesystem;
 
 
 // ---------------- FigureManager ----------------
-FigureManager::FigureManager(const std::string& name) : _counter(0), _name(name) {}
+gsp::FigureManager::FigureManager(const std::string& name) : _counter(0), _name(name) {}
 
-FigureManager& FigureManager::defaultInstance() {
+gsp::FigureManager& gsp::FigureManager::defaultInstance() {
     static FigureManager inst("default");
     return inst;
 }
 
-FigureManager& FigureManager::instance(const std::string& name_ws) {
+gsp::FigureManager& gsp::FigureManager::instance(const std::string& name_ws) {
     std::string name = trim(name_ws);
     assert(!name.empty());
     if (name == "default") {
@@ -60,17 +60,17 @@ FigureManager& FigureManager::instance(const std::string& name_ws) {
     return *(it->second);
 }
 
-uint32_t FigureManager::addFigure(const gsp::Figure& f) {
+uint32_t gsp::FigureManager::addFigure(const gsp::Figure& f) {
     std::lock_guard<std::mutex> lock(_mtx);
     _figures.push_back(f);
     return ++_counter;
 }
 
-const gsp::Figure& FigureManager::getFigure(size_t i) const { return _figures.at(i); }
-gsp::Figure& FigureManager::getFigure(size_t i) { return _figures.at(i); }
+const gsp::Figure& gsp::FigureManager::getFigure(size_t i) const { return _figures.at(i); }
+gsp::Figure& gsp::FigureManager::getFigure(size_t i) { return _figures.at(i); }
 
-size_t FigureManager::count() const { return _figures.size(); }
-uint32_t FigureManager::counter() const { return _counter; }
+size_t gsp::FigureManager::count() const { return _figures.size(); }
+uint32_t gsp::FigureManager::counter() const { return _counter; }
 
 // --- tiny helpers to build html pages ---
 
@@ -98,7 +98,7 @@ static std::string html_layout(const std::string& title, const std::string& body
 }
 
 // ---------------- index page ----------------
-static std::string html_index(const FigureManager& mgr) {
+static std::string html_index(const gsp::FigureManager& mgr) {
     std::string body;
     body += "<h1>Figure Manager</h1>\n";
     body += fmt::format("<p>Total figures: <b>{}</b></p>\n", mgr.count());
@@ -145,7 +145,7 @@ static std::string html_figure(const gsp::Figure& fig, size_t idx) {
 
 
 
-static std::string createHtmlIndex(const FigureManager& mgr) {
+static std::string createHtmlIndex(const gsp::FigureManager& mgr) {
     // 1) build mustache data
     mustache::data ctx;
     const size_t n = mgr.count();
@@ -164,7 +164,7 @@ static std::string createHtmlIndex(const FigureManager& mgr) {
 
     // 2) render template
     const auto template_path = fs::path(__FILE__).parent_path()/ "templates" / "index.mustache.html";
-    const std::string tmpl_text = readFile(template_path.string());  // adjust path if needed
+    const std::string tmpl_text = gsp::io::readFile(template_path.string());  // adjust path if needed
     mustache::mustache tmpl(tmpl_text);
 
     // optional: check validity
@@ -177,7 +177,7 @@ static std::string createHtmlIndex(const FigureManager& mgr) {
 
 
 
-void FigureManager::serve(int port) {
+void gsp::FigureManager::serve(int port) {
 #ifdef __linux__
 
     httplib::Server svr;
@@ -226,7 +226,7 @@ void FigureManager::serve(int port) {
 #endif
 }
 
-void FigureManager::save(const std::string& path) {
+void gsp::FigureManager::save(const std::string& path) {
     // You can dump a static index page with links to per-figure HTML
     std::lock_guard<std::mutex> lock(_mtx);
     std::ofstream ofs(path, std::ios::binary);
