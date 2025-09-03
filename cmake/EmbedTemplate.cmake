@@ -1,6 +1,15 @@
+# Helper: turn "figure.mustache.html" into "html_mustache_figure"
+function(make_identifier_from_filename INPUT OUT_VAR)
+    get_filename_component(_FNAME "${INPUT}" NAME)
+    string(REPLACE "." ";" _PARTS "${_FNAME}")
+    string(REPLACE "-" "_" _PARTS "${_PARTS}")
+    list(REVERSE _PARTS)
+    string(JOIN "_" RESULT ${_PARTS})
+    set(${OUT_VAR} "${RESULT}" PARENT_SCOPE)
+endfunction()
+
 # Function: embed one template file into a header
 function(embed_template INPUT OUTPUT)
-    # Path to the config header template
     set(TEMPLATES_HEADER_IN ${PROJECT_SOURCE_DIR}/cmake/templates.in.h)
     if(NOT EXISTS "${TEMPLATES_HEADER_IN}")
         message(FATAL_ERROR "embed_template: TEMPLATES_HEADER_IN not set or missing: ${TEMPLATES_HEADER_IN}")
@@ -13,15 +22,9 @@ function(embed_template INPUT OUTPUT)
     # Read template content
     file(READ "${INPUT}" CONTENT)
 
-    # Vars used by templates.h.in
+    # Vars used by templates.in.h
     get_filename_component(INPUT_BASENAME "${INPUT}" NAME)
-
-    # Compute VAR name by reversing dot-separated parts of file name
-    # e.g. "figure.mustache.html" -> "html_mustache_figure"
-    get_filename_component(_FNAME "${INPUT}" NAME)
-    string(REPLACE "." ";" _PARTS "${_FNAME}")
-    list(REVERSE _PARTS)
-    string(JOIN "_" VAR ${_PARTS})
+    make_identifier_from_filename("${INPUT}" VAR)
 
     # Ensure output dir exists
     get_filename_component(_OUTDIR "${OUTPUT}" DIRECTORY)
@@ -38,22 +41,13 @@ set(TEMPLATES_DIR ${PROJECT_SOURCE_DIR}/src/sources/templates)
 file(GLOB TEMPLATE_FILES CONFIGURE_DEPENDS "${TEMPLATES_DIR}/*")
 
 # Generate one header per template into the build tree
-
-
 set(GENERATED_TEMPLATE_HEADERS_DIR "${CMAKE_CURRENT_BINARY_DIR}/generated")
 set(GENERATED_TEMPLATE_HEADERS)
+
 foreach(TPL IN LISTS TEMPLATE_FILES)
-    get_filename_component(TPL_NAME "${TPL}" NAME)
-    string(REPLACE "." ";" PARTS "${TPL_NAME}")
-    string(REPLACE "-" "_" PARTS "${PARTS}")
-    list(REVERSE PARTS)
-    string(JOIN "_" VAR_NAME ${PARTS})
+    make_identifier_from_filename("${TPL}" VAR_NAME)
     set(OUT_HDR "${GENERATED_TEMPLATE_HEADERS_DIR}/templates/${VAR_NAME}.h")
 
-    # Call the function for this file
     embed_template("${TPL}" "${OUT_HDR}")
-
     list(APPEND GENERATED_TEMPLATE_HEADERS "${OUT_HDR}")
 endforeach()
-
-
