@@ -15,8 +15,11 @@
 #include <mutex>
 
 #include "mustache.hpp"           // for Mustache templating
-#include "httplib.h"              // cpp-httplib (header-only)
 #include "fmt/fmt.h"              // for string formatting
+
+#ifdef __linux__
+#include "httplib.h"              // cpp-httplib (header-only)
+#endif
 
 #include "libgsp/utils/string.h"  // for trim()
 #include "libgsp/io/file.h"       // for readFile()
