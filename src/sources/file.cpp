@@ -50,6 +50,7 @@ void gsp::io::writeFile(const std::string& filename, const std::string& data) {
  * Loads a Mustache template file from the 'templates/' directory.
  * Returns error string if file is missing.
  */
+/*
 std::string gsp::io::loadTemplate(const std::string& filename) {
     const auto template_path = fs::path(__FILE__).parent_path() / "templates" / filename;
     if (!fs::exists(template_path)) {
@@ -57,3 +58,4 @@ std::string gsp::io::loadTemplate(const std::string& filename) {
     }
     return gsp::io::readFile(template_path.string());
 }
+*/

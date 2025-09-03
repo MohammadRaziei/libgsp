@@ -43,11 +43,13 @@ target_include_directories(eigen INTERFACE
 )
 
 
-
+include(EmbedTemplate)
 
 file(GLOB GSP_SOURCES src/sources/*.cpp)
-add_library(gsp ${GSP_SOURCES})
+add_library(gsp ${GSP_SOURCES} ${GENERATED_TEMPLATE_HEADERS})
 add_library(libgsp::libgsp ALIAS gsp)
+target_include_directories(gsp PRIVATE ${GENERATED_TEMPLATE_HEADERS_DIR})
+
 target_include_directories(gsp
         PUBLIC ${PROJECT_SOURCE_DIR}/include
         PRIVATE ${PROJECT_SOURCE_DIR}/src/sources
