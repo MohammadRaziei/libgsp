@@ -13,7 +13,7 @@
 
 #include <mustache.hpp>
 
-#include "templates/html_mustache_figure.h"
+#include "templates/figure_mustache_html.h"
 
 namespace fs = std::filesystem;
 using namespace kainjow;
@@ -23,7 +23,7 @@ namespace gsp {
 // --- Static: Get template or fallback message ---
 std::string render_with_template(const mustache::data& view) {
     try {
-        mustache::mustache tpl(templates::html_mustache_figure);
+        mustache::mustache tpl(templates::figure_mustache_html);
         return tpl.render(view);
     } catch (const std::exception&) {
         return "<h3>template error: invalid mustache</h3>";

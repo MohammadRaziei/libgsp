@@ -22,10 +22,8 @@
 #endif
 
 #include "libgsp/utils/string.h"  // for trim()
-#include "libgsp/io/file.h"       // for readFile()
 
-#include "templates/html_mustache_figure.h"
-#include "templates/html_mustache_index.h"
+#include "templates/index_mustache_html.h"
 
 namespace fs = std::filesystem;
 using namespace kainjow;
@@ -129,7 +127,7 @@ static std::string createHtmlIndex(const FigureManager& mgr) {
     }
     ctx.set("figures", figures);
 
-    mustache::mustache tmpl(templates::html_mustache_index);
+    mustache::mustache tmpl(templates::index_mustache_html);
 
     if (!tmpl.is_valid()) {
         return std::string("Template error: ") + tmpl.error_message();
