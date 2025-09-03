@@ -37,6 +37,9 @@ endfunction()
 # Where your source templates live
 set(TEMPLATES_DIR ${PROJECT_SOURCE_DIR}/src/sources/templates)
 
+# Ensure CMake re-runs when files are added/removed
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${TEMPLATES_DIR}/*")
+
 # Collect all files (reconfigure when the set changes)
 file(GLOB TEMPLATE_FILES CONFIGURE_DEPENDS "${TEMPLATES_DIR}/*")
 

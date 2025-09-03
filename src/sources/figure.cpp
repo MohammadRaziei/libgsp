@@ -22,10 +22,8 @@ namespace gsp {
 
 // --- Static: Get template or fallback message ---
 std::string render_with_template(const mustache::data& view) {
-    std::string template_content = templates::html_mustache_figure;
-
     try {
-        mustache::mustache tpl(template_content);
+        mustache::mustache tpl(templates::html_mustache_figure);
         return tpl.render(view);
     } catch (const std::exception&) {
         return "<h3>template error: invalid mustache</h3>";

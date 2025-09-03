@@ -40,7 +40,9 @@ static std::string createHtmlIndex(const FigureManager& mgr);
 /**
  * Constructor: initializes the manager with a given name.
  */
-FigureManager::FigureManager(const std::string& name) : _counter(0), _name(name) {}
+FigureManager::FigureManager(const std::string& name) : _counter(0), _name(name) {
+    _figures.reserve(4);
+}
 
 /**
  * Returns the default global instance of FigureManager.
@@ -127,8 +129,7 @@ static std::string createHtmlIndex(const FigureManager& mgr) {
     }
     ctx.set("figures", figures);
 
-    const std::string tmpl_text = (templates::html_mustache_index);
-    mustache::mustache tmpl(tmpl_text);
+    mustache::mustache tmpl(templates::html_mustache_index);
 
     if (!tmpl.is_valid()) {
         return std::string("Template error: ") + tmpl.error_message();
