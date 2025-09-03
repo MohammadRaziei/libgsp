@@ -32,6 +32,8 @@ namespace gsp {
         void serve(int port=8080);
         void save(const std::string& path);
 
+        const std::string& name() const;
+
         private:
         FigureManager(const std::string& name);
         

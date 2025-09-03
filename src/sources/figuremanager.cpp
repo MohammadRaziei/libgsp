@@ -24,6 +24,7 @@
 #include "libgsp/utils/string.h"  // for trim()
 
 #include "templates/index_mustache_html.h"
+#include "templates/libgsp_logo_svg.h"
 
 namespace fs = std::filesystem;
 using namespace kainjow;
@@ -111,28 +112,43 @@ uint32_t FigureManager::counter() const {
 /**
  * Renders the index page listing all figures using 'index.mustache.html'.
  */
+
+// Overload 1: explicit manager
 static std::string createHtmlIndex(const FigureManager& mgr) {
     mustache::data ctx;
+
     const size_t n = mgr.count();
     ctx.set("count", std::to_string(n));
-    ctx.set("has_figures", n > 0 ? "true" : ""); // for conditional block
 
+    // Mustache truthy handling: non-empty is true, empty is false.
+    // Many C++ impls also accept bool directly; keep string for compatibility.
+    ctx.set("has_figures", n > 0 ? "true" : "");
+
+    // figuremanager.name
+    mustache::data fm;
+    const std::string& name = mgr.name().empty() ? std::string("default") : mgr.name();
+    ctx.set("figuremanager_name", name);
+
+    // Optional raw SVG (unescaped in template via {{& logo_svg}})
+    ctx.set("logo_svg", templates::libgsp_logo_svg);
+
+    // figures list
     mustache::data figures = mustache::list();
     for (size_t i = 0; i < n; ++i) {
         const auto& f = mgr.getFigure(i);
         mustache::data row;
         row.set("index1", std::to_string(i + 1)); // 1-based index
-        row.set("title", f.title());
+        row.set("title",  f.title());
         figures.push_back(row);
     }
     ctx.set("figures", figures);
 
+    // In-memory template (generated header)
     mustache::mustache tmpl(templates::index_mustache_html);
 
     if (!tmpl.is_valid()) {
         return std::string("Template error: ") + tmpl.error_message();
     }
-
     return tmpl.render(ctx);
 }
 
@@ -220,6 +236,11 @@ void FigureManager::save(const std::string& path) {
     ofs.close();
 
     std::cout << "[save] Static index page written to: " << path << "\n";
+}
+
+
+const std::string& FigureManager::name() const {
+    return _name;
 }
 
 } // namespace gsp
