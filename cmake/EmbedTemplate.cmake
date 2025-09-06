@@ -8,6 +8,16 @@ function(make_identifier_from_filename INPUT OUT_VAR)
     set(${OUT_VAR} "${RESULT}" PARENT_SCOPE)
 endfunction()
 
+# Helper: build include guard
+# e.g. ali.html -> LIBGSP_TEMPLATE_ALI_HTML_H
+function(make_include_guard INPUT OUT_VAR)
+    get_filename_component(_REL_FILE "${INPUT}" NAME)
+    string(REPLACE "." "_" GUARD "${_REL_FILE}")
+    string(REPLACE "-" "_" GUARD "${GUARD}")
+    string(TOUPPER "LIBGSP_TEMPLATE_${GUARD}_H" GUARD)
+    set(${OUT_VAR} "${GUARD}" PARENT_SCOPE)
+endfunction()
+
 # Function: embed one template file into a header
 function(embed_template INPUT OUTPUT)
     set(TEMPLATES_HEADER_IN ${PROJECT_SOURCE_DIR}/cmake/templates.in.h)
@@ -49,6 +59,7 @@ set(GENERATED_TEMPLATE_HEADERS)
 
 foreach(TPL IN LISTS TEMPLATE_FILES)
     make_identifier_from_filename("${TPL}" VAR_NAME)
+    make_include_guard(${VAR_NAME} GUARD)
     set(OUT_HDR "${GENERATED_TEMPLATE_HEADERS_DIR}/templates/${VAR_NAME}.h")
 
     embed_template("${TPL}" "${OUT_HDR}")
