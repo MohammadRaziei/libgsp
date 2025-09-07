@@ -8,7 +8,6 @@
 #include <map>
 #include <memory>
 #include <filesystem>
-#include <sstream>
 #include <thread>
 #include <fstream>
 #include <cassert>
@@ -21,7 +20,7 @@
 #include "libgsp/utils/string.h"  // for trim()
 
 #include "templates/index_mustache_html.h"
-#include "templates/libgsp_logo_svg.h"
+#include "templates/assets/libgsp_logo_svg.h"
 
 namespace fs = std::filesystem;
 using namespace kainjow;
@@ -41,7 +40,7 @@ std::string createHtmlIndex(const gsp::FigureManager& mgr) {
     const std::string& name = mgr.name().empty() ? std::string("default") : mgr.name();
     ctx.set("figuremanager_name", name);
 
-    ctx.set("logo_svg", templates::libgsp_logo_svg);
+    ctx.set("logo_svg", templates::assets::libgsp_logo_svg);
 
     mustache::data figures = mustache::list();
     for (size_t i = 0; i < n; ++i) {

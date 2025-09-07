@@ -1,14 +1,27 @@
-#ifndef @GUARD@
-#define @GUARD@
+// -----------------------------------------------------------------------------
+// This file is AUTO-GENERATED. Do not edit manually.
+// Generated for package: libgsp
+//
+// Author: Mohammad Raziei
+// Contact: mohammadraziei1375@gmail.com
+//
+// Source template:
+// @INPUT@
+//
+// Any changes should be made to the original template file in the
+// "src/templates" directory and then regenerated via CMake.
+// -----------------------------------------------------------------------------
+
+#ifndef @INCLUDE_GUARD@
+#define @INCLUDE_GUARD@
 #pragma once
 
 #include <string>
 
-// Generated from: @INPUT_BASENAME@
-namespace templates {
-inline const std::string @VAR@ = R"gsptpl(
+namespace @NAMESPACE@ {
+    inline const std::string @VAR@ = R"gsptpl(
 @CONTENT@
 )gsptpl";
-}
+} // namespace @NAMESPACE@
 
-#endif // @GUARD@
+#endif // @INCLUDE_GUARD@

@@ -1,67 +1,73 @@
-# Helper: turn "figure.mustache.html" into "html_mustache_figure"
+# ---- Helpers ----
+
 function(make_identifier_from_filename INPUT OUT_VAR)
     get_filename_component(_FNAME "${INPUT}" NAME)
     string(REPLACE "." ";" _PARTS "${_FNAME}")
     string(REPLACE "-" "_" _PARTS "${_PARTS}")
-#    list(REVERSE _PARTS)
     string(JOIN "_" RESULT ${_PARTS})
     set(${OUT_VAR} "${RESULT}" PARENT_SCOPE)
 endfunction()
 
-# Helper: build include guard
-# e.g. ali.html -> LIBGSP_TEMPLATE_ALI_HTML_H
 function(make_include_guard INPUT OUT_VAR)
-    get_filename_component(_REL_FILE "${INPUT}" NAME)
-    string(REPLACE "." "_" GUARD "${_REL_FILE}")
+    get_filename_component(_BASE "${INPUT}" NAME)
+    string(REPLACE "." "_" GUARD "${_BASE}")
     string(REPLACE "-" "_" GUARD "${GUARD}")
     string(TOUPPER "LIBGSP_TEMPLATE_${GUARD}_H" GUARD)
     set(${OUT_VAR} "${GUARD}" PARENT_SCOPE)
 endfunction()
 
-# Function: embed one template file into a header
-function(embed_template INPUT OUTPUT)
+# Build namespace from relative dir under templates/
+#   ""              -> "templates"
+#   "assets"        -> "templates::assets"
+#   "foo/bar"       -> "templates::foo::bar"
+function(make_namespace REL_DIR OUT_VAR)
+    set(_NS "templates")
+    if(REL_DIR)
+        string(REPLACE "-" "_" REL_DIR "${REL_DIR}")
+        string(REPLACE "/" "::" REL_DIR "${REL_DIR}")
+        set(_NS "templates::${REL_DIR}")
+    endif()
+    set(${OUT_VAR} "${_NS}" PARENT_SCOPE)
+endfunction()
+
+# ---- Core embedding ----
+function(embed_template INPUT OUTPUT REL_DIR)
     set(TEMPLATES_HEADER_IN ${PROJECT_SOURCE_DIR}/cmake/templates.in.h)
-    if(NOT EXISTS "${TEMPLATES_HEADER_IN}")
-        message(FATAL_ERROR "embed_template: TEMPLATES_HEADER_IN not set or missing: ${TEMPLATES_HEADER_IN}")
-    endif()
 
-    if(NOT EXISTS "${INPUT}")
-        message(FATAL_ERROR "embed_template: INPUT not found: ${INPUT}")
-    endif()
-
-    # Read template content
     file(READ "${INPUT}" CONTENT)
-
-    # Vars used by templates.in.h
     get_filename_component(INPUT_BASENAME "${INPUT}" NAME)
-    make_identifier_from_filename("${INPUT}" VAR)
 
-    # Ensure output dir exists
+    make_identifier_from_filename("${INPUT}" VAR)
+    make_include_guard("${INPUT}" INCLUDE_GUARD)
+    make_namespace("${REL_DIR}" NAMESPACE)
+
     get_filename_component(_OUTDIR "${OUTPUT}" DIRECTORY)
     file(MAKE_DIRECTORY "${_OUTDIR}")
 
-    # Generate the header from the template (configure-time)
     configure_file("${TEMPLATES_HEADER_IN}" "${OUTPUT}" @ONLY)
 endfunction()
 
-# Where your source templates live
-set(TEMPLATES_DIR ${PROJECT_SOURCE_DIR}/src/sources/templates)
-
-# Ensure CMake re-runs when files are added/removed
-set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${TEMPLATES_DIR}/*")
-
-# Collect all files (reconfigure when the set changes)
-file(GLOB TEMPLATE_FILES CONFIGURE_DEPENDS "${TEMPLATES_DIR}/*")
-
-# Generate one header per template into the build tree
+# ---- Main ----
+set(TEMPLATES_DIR ${PROJECT_SOURCE_DIR}/src/templates)
 set(GENERATED_TEMPLATE_HEADERS_DIR "${CMAKE_CURRENT_BINARY_DIR}/generated")
 set(GENERATED_TEMPLATE_HEADERS)
 
-foreach(TPL IN LISTS TEMPLATE_FILES)
-    make_identifier_from_filename("${TPL}" VAR_NAME)
-    make_include_guard(${VAR_NAME} GUARD)
-    set(OUT_HDR "${GENERATED_TEMPLATE_HEADERS_DIR}/templates/${VAR_NAME}.h")
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${TEMPLATES_DIR}/*")
+file(GLOB_RECURSE TEMPLATE_FILES CONFIGURE_DEPENDS "${TEMPLATES_DIR}/*")
 
-    embed_template("${TPL}" "${OUT_HDR}")
+foreach(TPL IN LISTS TEMPLATE_FILES)
+    file(RELATIVE_PATH REL_PATH "${TEMPLATES_DIR}" "${TPL}")
+    get_filename_component(REL_DIR "${REL_PATH}" DIRECTORY)
+    string(REPLACE "-" "_" REL_DIR "${REL_DIR}")
+
+    make_identifier_from_filename("${TPL}" VAR_NAME)
+
+    if(REL_DIR STREQUAL "")
+        set(OUT_HDR "${GENERATED_TEMPLATE_HEADERS_DIR}/templates/${VAR_NAME}.h")
+    else()
+        set(OUT_HDR "${GENERATED_TEMPLATE_HEADERS_DIR}/templates/${REL_DIR}/${VAR_NAME}.h")
+    endif()
+
+    embed_template("${TPL}" "${OUT_HDR}" "${REL_DIR}")
     list(APPEND GENERATED_TEMPLATE_HEADERS "${OUT_HDR}")
 endforeach()
