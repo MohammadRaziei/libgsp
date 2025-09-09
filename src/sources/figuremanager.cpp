@@ -8,7 +8,6 @@
 #include <map>
 #include <memory>
 #include <filesystem>
-#include <thread>
 #include <fstream>
 #include <cassert>
 #include <mutex>
@@ -62,69 +61,85 @@ std::string createHtmlIndex(const gsp::FigureManager& mgr) {
 
 // ---------------- FileManagerRoute Utility ----------------
 #ifdef __linux__
-#include "httplib.h"              // cpp-httplib (header-only)
+#include <httplib.h>
+#include <string>
 
-class FileManagerRoute {
-   public:
-    using LockFn = std::function<std::unique_lock<std::mutex>()>;
 
-    FileManagerRoute(gsp::FigureManager* mgr, LockFn lock_fn)
-        : _mgr(mgr), _lock_fn(std::move(lock_fn)) {}
+#define ROUTE_GET(PATH, METHOD_PTR) _svr.Get((PATH), [this](const httplib::Request& req, httplib::Response& res) { METHOD_PTR(req, res); })
 
-    void registerRoutes(httplib::Server& svr) const {
-        // Index
-        svr.Get("/", [this](const httplib::Request&, httplib::Response& res) {
-            auto guard = _lock_fn();
-            res.set_content(createHtmlIndex(*_mgr), "text/html; charset=utf-8");
+class FileManagerServer {
+public:
+    FileManagerServer(gsp::FigureManager* mgr, std::mutex& mtx)
+        : _mgr(mgr), _mtx(mtx) {
+        assert(_mgr != nullptr);
+
+        _svr.set_default_headers({
+            {"Access-Control-Allow-Origin", "*"},
+            {"Access-Control-Allow-Headers", "Content-Type"},
         });
 
-        // Status (health + meta info)
-        svr.Get("/status", [this](const httplib::Request&, httplib::Response& res) {
-            std::string figures_json;
-            figures_json.reserve(_mgr->count() * 15);
-
-            for (size_t i = 0; i < _mgr->count(); ++i) {
-                if (i > 0) figures_json += ",";
-                figures_json += fmt::format("\"/figure/{}\"", i + 1);
-            }
-
-            auto json = fmt::format(
-                "{{\"ok\":true, \"instance\":\"{}\", \"count\":{}, \"figures\":[{}]}}",
-                _mgr->name(), _mgr->count(), figures_json
-            );
-
-            res.set_content(json, "application/json");
-        });
-
-        // Individual figure
-        svr.Get(R"(/figure/(\d+))", [this](const httplib::Request& req, httplib::Response& res) {
-            size_t idx = 0;
-            try {
-                idx = static_cast<size_t>(std::stoul(req.matches[1].str()));
-            } catch (...) {
-                res.status = 400;
-                res.set_content("Invalid figure index", "text/plain");
-                return;
-            }
-
-            auto guard = _lock_fn();
-            if (idx == 0 || idx > _mgr->count()) {
-                res.status = 404;
-                res.set_content("Figure not found", "text/plain");
-                return;
-            }
-
-            const auto& fig = _mgr->getFigure(idx - 1);
-            std::string html = fig.render();
-            res.set_content(html, "text/html; charset=utf-8");
-        });
+        ROUTE_GET("/", getIndexRoute);
+        ROUTE_GET("/status", getStatusRoute);
+        ROUTE_GET(R"(/figure/(\d+))",  getFigureRoute);
     }
 
-   private:
-    gsp::FigureManager* _mgr;
-    LockFn _lock_fn;
-};
+    bool listen(const char* host, const int port) { return _svr.listen(host, port); }
+    httplib::Server& server() { return _svr; }
 
+private:
+    // no Request needed
+    void getIndexRoute(const httplib::Request&, httplib::Response& res) const {
+        std::lock_guard<std::mutex> g(_mtx);
+        res.set_content(createHtmlIndex(*_mgr), "text/html; charset=utf-8");
+    }
+
+    // no Request needed
+    void getStatusRoute(const httplib::Request&, httplib::Response& res) const {
+        std::lock_guard<std::mutex> g(_mtx);
+        const auto c = _mgr->count();
+
+        std::string figs;
+        figs.reserve(c * 16);
+        for (size_t i = 0; i < c; ++i) {
+            if (i) figs += ',';
+            figs += fmt::format("\"/figure/{}\"", i + 1);
+        }
+
+        const std::string inst = _mgr->name().empty() ? "default" : _mgr->name();
+        auto json = fmt::format(
+            "{{\"ok\":true,\"instance\":\"{}\",\"count\":{},\"figures\":[{}]}}",
+            inst, c, figs
+        );
+        res.set_content(json, "application/json");
+    }
+
+    // needs Request (path param)
+    void getFigureRoute(const httplib::Request& req, httplib::Response& res) const {
+        size_t idx1{};
+        try {
+            idx1 = static_cast<size_t>(std::stoul(req.matches[1].str()));
+        } catch (...) {
+            res.status = 400;
+            res.set_content("Invalid figure index", "text/plain; charset=utf-8");
+            return;
+        }
+
+        std::lock_guard<std::mutex> g(_mtx);
+        if (idx1 == 0 || idx1 > _mgr->count()) {
+            res.status = 404;
+            res.set_content("Figure not found", "text/plain; charset=utf-8");
+            return;
+        }
+
+        const auto& fig = _mgr->getFigure(idx1 - 1);
+        res.set_content(fig.render(), "text/html; charset=utf-8");
+    }
+
+private:
+    gsp::FigureManager* _mgr;
+    std::mutex& _mtx;
+    httplib::Server _svr;
+};
 #endif
 
 
@@ -183,23 +198,12 @@ const std::string& FigureManager::name() const {
 
 void FigureManager::serve(int port) {
 #ifdef __linux__
-    httplib::Server svr;
-
-    FileManagerRoute route(
-        this,
-        [this]() { return std::unique_lock<std::mutex>(_mtx); }
-    );
-    route.registerRoutes(svr);
-
-    svr.set_default_headers({
-        {"Access-Control-Allow-Origin", "*"},
-        {"Access-Control-Allow-Headers", "Content-Type"},
-    });
+    FileManagerServer server(this,_mtx);
 
     std::cout << fmt::format("[serve] Starting server on http://127.0.0.1:{}/\n", port);
     std::cout << "[routes] /, /figure/{id}, /status\n";
 
-    svr.listen("0.0.0.0", port);
+    server.listen("0.0.0.0", port);
 #else
     std::cerr << "[serve] HTTP server is only supported on Linux.\n";
 #endif
