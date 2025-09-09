@@ -7,10 +7,10 @@
 
 #include <vector>
 #include <string>
-#include <cstdint>
 #include <mutex>
 
 #include "libgsp/plotting/figure.h"
+#include "libgsp/utils/logging.h"
 
 namespace gsp {
     class FigureManager {
@@ -37,9 +37,10 @@ namespace gsp {
         FigureManager(const std::string& name);
         
         mutable std::mutex _mtx;
-    std::vector<gsp::Figure> _figures;
-    std::string _name;
-};
+        std::vector<gsp::Figure> _figures;
+        std::string _name;
+        std::shared_ptr<spdlog::logger> _logger;
+    };
 } // namespace gsp
 
 #endif // LIBGSP_FIGUREMANAGER_H

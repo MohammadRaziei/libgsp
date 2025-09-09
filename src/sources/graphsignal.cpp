@@ -25,5 +25,5 @@ template class gsp::GraphSignal<gsp::densematrix,  Eigen::Map<Eigen::VectorXcd>>
 // for SparseMatrix
 template class gsp::GraphSignal<gsp::sparsematrix, Eigen::VectorXd>;
 template class gsp::GraphSignal<gsp::sparsematrix, Eigen::VectorXcd>;
-template class gsp::GraphSignal<gsp::sparsematrix,  Eigen::Map<Eigen::VectorXd>>;
-template class gsp::GraphSignal<gsp::sparsematrix,  Eigen::Map<Eigen::VectorXcd>>;
+template class gsp::GraphSignal<gsp::sparsematrix, Eigen::Map<Eigen::VectorXd>>;
+template class gsp::GraphSignal<gsp::sparsematrix, Eigen::Map<Eigen::VectorXcd>>;

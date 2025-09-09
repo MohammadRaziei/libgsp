@@ -147,7 +147,8 @@ namespace gsp {
 
 // ---------------- FigureManager Implementation ----------------
 
-FigureManager::FigureManager(const std::string& name) : _name(name) {
+FigureManager::FigureManager(const std::string& name) : _name(name),
+        _logger(gsp::logging::getLogger("FigureManager")){
     _figures.reserve(4);
 }
 
@@ -200,12 +201,12 @@ void FigureManager::serve(int port) {
 #ifdef __linux__
     FileManagerServer server(this,_mtx);
 
-    std::cout << fmt::format("[serve] Starting server on http://127.0.0.1:{}/\n", port);
-    std::cout << "[routes] /, /figure/{id}, /status\n";
-
     server.listen("0.0.0.0", port);
+    _logger->info("Starting server on http://127.0.0.1:{}/", port);
+    _logger->info("routes: /, /figure/{id}, /status");
+
 #else
-    std::cerr << "[serve] HTTP server is only supported on Linux.\n";
+    _logger->warn("HTTP server is only supported on Linux.");
 #endif
 }
 
@@ -215,7 +216,7 @@ void FigureManager::save(const std::string& path) {
     std::lock_guard<std::mutex> lock(_mtx);
     std::ofstream ofs(path, std::ios::binary);
     if (!ofs) {
-        std::cerr << "[save] Cannot open file: " << path << "\n";
+        _logger->error("Cannot open file: {}", path);
         return;
     }
 
@@ -223,7 +224,7 @@ void FigureManager::save(const std::string& path) {
     ofs << html;
     ofs.close();
 
-    std::cout << "[save] Static index page written to: " << path << "\n";
+    _logger->info("Static index page written to: {}", path);
 }
 
 } // namespace gsp

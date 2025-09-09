@@ -11,6 +11,8 @@
 #include <memory>
 #include <cstdint>
 
+#include "libgsp/utils/logging.h"
+
 namespace gsp {
 
 // Forward declaration
@@ -69,6 +71,8 @@ class Figure {
     // Render cache
     mutable bool _dirty = true;
     mutable std::string _rendered;
+
+    std::shared_ptr<spdlog::logger> _logger;
 };
 
 } // namespace gsp

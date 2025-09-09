@@ -32,8 +32,9 @@ std::string render_with_template(const mustache::data& view) {
 
 // --- Constructor ---
 Figure::Figure(const std::string& title)
-    : _title(title) {
+    : _title(title), _logger(gsp::logging::getLogger("Figure")) {
     resize(1, 1);
+
 }
 
 // --- Title ---

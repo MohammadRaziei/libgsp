@@ -3,9 +3,15 @@
 //
 
 #include "libgsp/plotting/figuremanager.h"
-
+#include "libgsp/utils/logging.h"
 
 int main() {
+
+    gsp::logging::setDefaultConfigs(spdlog::level::debug);
+    auto logger = gsp::logging::getLogger("main");
+
+    logger->info("Plotting test");
+
     gsp::Figure fig1, fig2("test");
     {
         auto& manager = gsp::FigureManager::instance();
@@ -18,7 +24,8 @@ int main() {
     // fig1.setSubplots(2,2);
     // ax = fig1.getSubplot(1);
     // Plot(graph, ax);
-    manager.serve();
+    manager.serve(8085);
+
 
     return 0;
 }
