@@ -8,7 +8,7 @@
 int main() {
 
     gsp::logging::setDefaultConfigs(spdlog::level::debug);
-    auto logger = gsp::logging::getLogger("main");
+    auto logger = gsp::logging::getLogger();
 
     logger->info("Plotting test");
 

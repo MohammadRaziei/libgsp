@@ -39,7 +39,9 @@ namespace gsp {
         mutable std::mutex _mtx;
         std::vector<gsp::Figure> _figures;
         std::string _name;
-        std::shared_ptr<spdlog::logger> _logger;
+
+       public:
+        gsp::logging::Logger _logger;
     };
 } // namespace gsp
 

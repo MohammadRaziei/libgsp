@@ -6,14 +6,13 @@
 #include <filesystem>
 
 
-#include <spdlog/spdlog.h>
-
 #include <mustache.hpp>
 #include <lunasvg.h>
 
 #include "libgsp/graph/graph.h"
 #include "libgsp/graph/graphsignal.h"
 #include "libgsp/graph/edgegenerator.h"
+#include "libgsp/utils/logging.h"
 
 
 
@@ -25,9 +24,8 @@ namespace fs = std::filesystem;
 
 
 int main(int argc, char** argv) {
-    spdlog::set_level(spdlog::level::info);
-    spdlog::set_pattern("[%Y-%m-%d %H:%M:%S.%e] [%n] [%^%l%$] %v");
-    spdlog::info("Hello, world!");
+    gsp::logging::setDefaultConfigs(gsp::logging::level::debug);
+    auto logger = gsp::logging::getLoggerByPath(__FILE__);
 
     std::vector<gsp::Edge>  edges      = {{0, 0},{0,1, 3},{0,2},{1,2},{2,3}};
     std::vector<gsp::Coord> coords_vec = {{0,0}, {2,0}, {1,-1}, {3,-1}};
@@ -50,7 +48,7 @@ int main(int argc, char** argv) {
         num_edges++;
     }
     toc;
-    std::cout << "num edges = " << num_edges << std::endl;
+    logger->info("num edges = {}", num_edges);
 
 //
 //    tic;
@@ -77,13 +75,13 @@ int main(int argc, char** argv) {
         printf("from %d to %d with weight %.2f\n", edge->source, edge->target, edge->weight);
         num_edges++;
     }
-    std::cout << "num edges = " << num_edges << std::endl;
+    logger->info("num edges = {}", num_edges);
 
-    std::cout << "coords:\n" << graph.coords() << "\n";
+    logger->info("coords:\n{}", fmt::streamed(graph.coords()));
 
     // Shorthands
     const Eigen::MatrixXd& W = graph.weights();      // adjacency (NxN)
-    std::cout << "Weights matrix W:\n" << W << "\n";
+    logger->info("Weights matrix W:\n{}", fmt::streamed(W));
 
 
     // degree = sum of rows
@@ -94,14 +92,13 @@ int main(int argc, char** argv) {
 
 
     // Log/print
-    std::cout << "Degree vector:\n" << degree.transpose() << "\n";
-    std::cout << "Laplacian matrix L:\n" << L << "\n";
+    logger->info("Degree vector:\n{}", fmt::streamed(degree.transpose()));
+    logger->info("Laplacian matrix L:\n{}", fmt::streamed(L));
 
     // Signal (view over std::vector without copy)
     Eigen::Map<const Eigen::VectorXd> signal(signal_vec.data(), num_nodes);
     gsp::GraphSignal graph_signal(&graph, (Eigen::VectorXd)signal);
 
-    std::puts("\ngood bye :)\n");
 
     // Render SVG (unchanged)
     std::map<std::string, std::string> options = {
@@ -113,7 +110,9 @@ int main(int argc, char** argv) {
 
     // std::string svg = render_svg(edges, coords_vec, signal_vec, options);
 //    writeFile("graph.svg", svg);
-    spdlog::info("SVG file written to graph.svg");
+    logger->info("SVG file written to graph.svg");
+
+    logger->info("\ngood bye :)\n");
 
 //    return svg2png(svg);
 }

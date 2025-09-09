@@ -4,9 +4,12 @@
 
 #include "libgsp/utils/logging.h"
 
+#include <filesystem>
 
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/sinks/basic_file_sink.h>
+
+namespace fs = std::filesystem;
 
 void gsp::logging::setDefaultConfigs(spdlog::level::level_enum level,
                        const std::string& pattern) {
@@ -22,11 +25,10 @@ void gsp::logging::setDefaultConfigs(spdlog::level::level_enum level,
 }
 
 
-std::shared_ptr<spdlog::logger> gsp::logging::getLogger(const std::string& name) {
+gsp::logging::Logger gsp::logging::getLogger(const std::string& name) {
     if (name.empty() || name == "root") {
         return spdlog::default_logger();
     }
-
     auto lg = spdlog::get(name);
     if (!lg) {
         lg = spdlog::default_logger()->clone(name);
@@ -34,3 +36,9 @@ std::shared_ptr<spdlog::logger> gsp::logging::getLogger(const std::string& name)
     }
     return lg;
 }
+
+gsp::logging::Logger gsp::logging::getLoggerByPath(const std::string& path) {
+    const std::string fname = fs::path(path).stem().string();
+    return getLogger(fname);
+}
+

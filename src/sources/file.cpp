@@ -3,19 +3,21 @@
 //
 
 #include "libgsp/io/file.h"
+#include "libgsp/utils/logging.h"
 
 #include <filesystem>
 
-#include <fmt/fmt.h>
 
 namespace fs = std::filesystem;
+
+gsp::logging::Logger _logger = gsp::logging::getLoggerByPath(__FILE__);
 
 std::string gsp::io::readFile(const std::string& filename) {
     // Open the file in binary mode
     std::ifstream file(filename, std::ios::binary);
 
     if (!file) {
-        std::cerr << "Unable to open file: " << filename << std::endl;
+        _logger->error("Unable to open file: {}", filename);
         return "";
     }
 
@@ -39,7 +41,7 @@ void gsp::io::writeFile(const std::string& filename, const std::string& data) {
     std::ofstream file(filename, std::ios::binary);
 
     if (!file) {
-        std::cerr << "Unable to open file for writing: " << filename << std::endl;
+        _logger->error("Unable to open file for writing: {}", filename);
         return;
     }
 

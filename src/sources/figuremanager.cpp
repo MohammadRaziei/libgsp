@@ -52,8 +52,10 @@ std::string createHtmlIndex(const gsp::FigureManager& mgr) {
     ctx.set("figures", figures);
 
     mustache::mustache tmpl(templates::index_mustache_html);
-    if (!tmpl.is_valid()) {
-        return std::string("Template error: ") + tmpl.error_message();
+    if (!tmpl.is_valid()) { 
+        const std::string msg = fmt::format("Template error: {}", tmpl.error_message());
+        mgr._logger->error(msg);
+        return msg;
     }
     return tmpl.render(ctx);
 }
@@ -90,12 +92,18 @@ private:
     // no Request needed
     void getIndexRoute(const httplib::Request&, httplib::Response& res) const {
         std::lock_guard<std::mutex> g(_mtx);
+
+        _mgr->_logger->debug("GET Index");
+
         res.set_content(createHtmlIndex(*_mgr), "text/html; charset=utf-8");
     }
 
     // no Request needed
     void getStatusRoute(const httplib::Request&, httplib::Response& res) const {
         std::lock_guard<std::mutex> g(_mtx);
+
+        _mgr->_logger->debug("GET Status");
+
         const auto c = _mgr->count();
 
         std::string figs;
@@ -120,13 +128,18 @@ private:
             idx1 = static_cast<size_t>(std::stoul(req.matches[1].str()));
         } catch (...) {
             res.status = 400;
+            _mgr->_logger->error("Invalid figure index");
             res.set_content("Invalid figure index", "text/plain; charset=utf-8");
             return;
         }
 
+        _mgr->_logger->debug("GET Figure {}", idx1);
+
+
         std::lock_guard<std::mutex> g(_mtx);
         if (idx1 == 0 || idx1 > _mgr->count()) {
             res.status = 404;
+            _mgr->_logger->error("Figure not found");
             res.set_content("Figure not found", "text/plain; charset=utf-8");
             return;
         }
@@ -199,11 +212,11 @@ const std::string& FigureManager::name() const {
 
 void FigureManager::serve(int port) {
 #ifdef __linux__
-    FileManagerServer server(this,_mtx);
+    FileManagerServer server(this, _mtx);
 
-    server.listen("0.0.0.0", port);
     _logger->info("Starting server on http://127.0.0.1:{}/", port);
     _logger->info("routes: /, /figure/{id}, /status");
+    server.listen("0.0.0.0", port);
 
 #else
     _logger->warn("HTTP server is only supported on Linux.");
