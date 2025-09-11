@@ -8,6 +8,8 @@
 
 
 #include "libgsp/graph/graph.h"
+#include "libgsp/utils/logging.h"
+
 // #include "libgsp/utils/types.h"
 
 
@@ -16,12 +18,13 @@ namespace gsp {
 template <class Matrix, class Signal>
 class GraphSignal {
    public:
-    GraphSignal(gsp::Graph<Matrix>* graph,
+    GraphSignal(gsp::Graph<Matrix>& graph,
                 const Signal& signal);
 
    public:
-    gsp::Graph<Matrix>* graph;
-    Signal signal;
+    gsp::Graph<Matrix>* _graph;
+    Signal _signal;
+    gsp::logging::Logger _logger;
 };
 }
 

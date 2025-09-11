@@ -31,6 +31,7 @@ using namespace kainjow;
  */
 std::string createHtmlIndex(const gsp::FigureManager& mgr) {
     mustache::data ctx;
+    gsp::logging::Logger _logger = gsp::logging::getLogger("FigureManager");
 
     const size_t n = mgr.count();
     ctx.set("count", std::to_string(n));
@@ -54,7 +55,7 @@ std::string createHtmlIndex(const gsp::FigureManager& mgr) {
     mustache::mustache tmpl(templates::index_mustache_html);
     if (!tmpl.is_valid()) { 
         const std::string msg = fmt::format("Template error: {}", tmpl.error_message());
-        mgr._logger->error(msg);
+        _logger->error(msg);
         return msg;
     }
     return tmpl.render(ctx);
@@ -66,13 +67,15 @@ std::string createHtmlIndex(const gsp::FigureManager& mgr) {
 #include <httplib.h>
 #include <string>
 
+#define OK_CODE 200
+#define BAD_REQUEST_CODE 400
+#define PAGE_NOT_FOUND_CODE 404
 
 #define ROUTE_GET(PATH, METHOD_PTR) _svr.Get((PATH), [this](const httplib::Request& req, httplib::Response& res) { METHOD_PTR(req, res); })
-
-class FileManagerServer {
+class FigureManagerServer {
 public:
-    FileManagerServer(gsp::FigureManager* mgr, std::mutex& mtx)
-        : _mgr(mgr), _mtx(mtx) {
+    FigureManagerServer(gsp::FigureManager* mgr, std::mutex& mtx)
+        : _mgr(mgr), _mtx(mtx), _logger(gsp::logging::getLogger("FigureManager")) {
         assert(_mgr != nullptr);
 
         _svr.set_default_headers({
@@ -89,20 +92,20 @@ public:
     httplib::Server& server() { return _svr; }
 
 private:
-    // no Request needed
+    // ROUTE_GET("/", getIndexRoute) // no Request needed
     void getIndexRoute(const httplib::Request&, httplib::Response& res) const {
         std::lock_guard<std::mutex> g(_mtx);
 
-        _mgr->_logger->debug("GET Index");
+        _logger->debug("GET Index");
 
         res.set_content(createHtmlIndex(*_mgr), "text/html; charset=utf-8");
     }
 
-    // no Request needed
+    // ROUTE_GET("/status", getStatusRoute) // no Request needed
     void getStatusRoute(const httplib::Request&, httplib::Response& res) const {
         std::lock_guard<std::mutex> g(_mtx);
 
-        _mgr->_logger->debug("GET Status");
+        _logger->debug("GET Status");
 
         const auto c = _mgr->count();
 
@@ -121,25 +124,25 @@ private:
         res.set_content(json, "application/json");
     }
 
-    // needs Request (path param)
+    // ROUTE_GET(R"(/figure/(\d+))",  getFigureRoute) // needs Request (path param)
     void getFigureRoute(const httplib::Request& req, httplib::Response& res) const {
         size_t idx1{};
         try {
             idx1 = static_cast<size_t>(std::stoul(req.matches[1].str()));
         } catch (...) {
-            res.status = 400;
-            _mgr->_logger->error("Invalid figure index");
+            res.status = BAD_REQUEST_CODE;
+            _logger->error("Invalid figure index");
             res.set_content("Invalid figure index", "text/plain; charset=utf-8");
             return;
         }
 
-        _mgr->_logger->debug("GET Figure {}", idx1);
+        _logger->debug("GET Figure {}", idx1);
 
 
         std::lock_guard<std::mutex> g(_mtx);
         if (idx1 == 0 || idx1 > _mgr->count()) {
-            res.status = 404;
-            _mgr->_logger->error("Figure not found");
+            res.status = PAGE_NOT_FOUND_CODE;
+            _logger->error("Figure not found, idx must be in [1, {}], got {}", _mgr->count(), idx1);
             res.set_content("Figure not found", "text/plain; charset=utf-8");
             return;
         }
@@ -152,6 +155,7 @@ private:
     gsp::FigureManager* _mgr;
     std::mutex& _mtx;
     httplib::Server _svr;
+    gsp::logging::Logger _logger;
 };
 #endif
 
@@ -212,7 +216,7 @@ const std::string& FigureManager::name() const {
 
 void FigureManager::serve(int port) {
 #ifdef __linux__
-    FileManagerServer server(this, _mtx);
+    FigureManagerServer server(this, _mtx);
 
     _logger->info("Starting server on http://127.0.0.1:{}/", port);
     _logger->info("routes: /, /figure/{id}, /status");

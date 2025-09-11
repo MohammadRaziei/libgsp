@@ -8,6 +8,7 @@
 #include <vector>
 #include <string>
 #include <mutex>
+#include <string>
 
 #include "libgsp/plotting/figure.h"
 #include "libgsp/utils/logging.h"
@@ -39,8 +40,6 @@ namespace gsp {
         mutable std::mutex _mtx;
         std::vector<gsp::Figure> _figures;
         std::string _name;
-
-       public:
         gsp::logging::Logger _logger;
     };
 } // namespace gsp

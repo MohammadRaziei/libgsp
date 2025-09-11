@@ -4,13 +4,14 @@
 
 #include "libgsp/graph/graphsignal.h"
 
-
 template <class Matrix, class Signal>
-gsp::GraphSignal<Matrix, Signal>::GraphSignal(gsp::Graph<Matrix>* graph,
+gsp::GraphSignal<Matrix, Signal>::GraphSignal(gsp::Graph<Matrix>& graph,
                               const Signal& signal)
-    : graph(graph), signal(signal) {
-    if (graph->num_nodes != signal.size()) {
-        throw std::length_error("");
+    : _graph(&graph), _signal(signal), _logger(gsp::logging::getLogger("GraphSignal")) {
+    if (_graph->num_nodes != _signal.size()) {
+        const std::string msg = fmt::format("Signal size {} does not match graph size {}", _signal.size(), _graph->num_nodes);
+        _logger->error(msg);
+        throw std::length_error(msg);
     }
 }
 
