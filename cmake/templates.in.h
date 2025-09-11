@@ -19,9 +19,7 @@
 #include <string>
 
 namespace @NAMESPACE@ {
-    inline const std::string @VAR@ = R"gsptpl(
-@CONTENT@
-)gsptpl";
+    inline const std::string @VAR@ = R"gsptpl(@CONTENT@)gsptpl";
 } // namespace @NAMESPACE@
 
 #endif // @INCLUDE_GUARD@

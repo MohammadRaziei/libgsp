@@ -9,13 +9,13 @@
 #include <mustache.hpp>
 #include <lunasvg.h>
 
-#include "libgsp/graph/EdgeGenerator.h"
-#include "libgsp/graph/Graph.h"
-#include "libgsp/graph/GraphGignal.h"
+#include "../../include/libgsp/EdgeGenerator.h"
+#include "../../include/libgsp/Graph.h"
+#include "../../include/libgsp/GraphGignal.h"
 #include "libgsp/utils/Logging.h"
 
+#include "../../include/libgsp/io/File.h"
 #include "common.h"
-#include "libgsp/io/File.h"
 #include "libgsp/utils/Utils.h"
 
 namespace fs = std::filesystem;

@@ -2,9 +2,9 @@
 // Created by Mohammad on 8/22/2025.
 //
 
-#include "libgsp/graph/Graph.h"
+#include "libgsp/Graph.h"
+#include "libgsp/GraphSvg.h"
 #include "libgsp/plotting/FigureManager.h"
-#include "libgsp/plotting/GraphSvg.h"
 #include "libgsp/utils/Logging.h"
 
 int main() {

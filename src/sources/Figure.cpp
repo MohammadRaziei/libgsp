@@ -3,7 +3,7 @@
 //
 
 #include "libgsp/plotting/Figure.h"
-#include "libgsp/io/File.h"
+#include "../../include/libgsp/io/File.h"
 #include "libgsp/plotting/Axis.h"
 
 #include <filesystem>

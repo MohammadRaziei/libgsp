@@ -37,7 +37,6 @@ public:
     GraphSvg& setLibGspVersion(const std::string& version);
     GraphSvg& setNodeSpaceScale(double v);
     GraphSvg& setSignalScale(double v);
-    GraphSvg& setTemplate(const std::string& mustacheTemplate);
     GraphSvg& setStyleOverride(const std::string& css);
 
     // ---- Signal API ----
@@ -45,7 +44,8 @@ public:
     GraphSvg& addSignal(uint32_t idx, double value);
 
     // ---- Render ----
-    std::string renderSvg() const;
+    const std::string& render() const;
+    void save(const std::string& filename) const;
 
 private:
     struct Impl;

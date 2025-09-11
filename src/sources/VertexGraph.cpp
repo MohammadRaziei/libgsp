@@ -2,7 +2,7 @@
 // Created by mohammad on 8/12/25.
 //
 
-#include "libgsp/graph/VertexGraph.h"
+#include "../../include/libgsp/VertexGraph.h"
 
 gsp::VertexGraph::VertexGraph(uint32_t num_nodes) : num_nodes(num_nodes), _state_vertex(0) {}
 
@@ -44,24 +44,23 @@ std::optional<gsp::Node> gsp::VertexGraph::nodeNext() {
     return std::optional<gsp::Node>({std::move(node)});
 }
 
-std::vector<gsp::Node> gsp::VertexGraph::nodes() {
-    nodeIter();
+std::vector<gsp::Node> gsp::VertexGraph::nodes() const {
     std::vector<gsp::Node> vec;
     vec.reserve(num_nodes);
-    while (auto node = nodeNext()) {
-        vec.push_back(*node);
+    for (uint32_t i = 0; i < num_nodes; ++i) {
+        vec.emplace_back(_state_vertex, getCoord(_state_vertex), getName(_state_vertex));
     }
     return vec;
  }
 
 
- std::string gsp::VertexGraph::getName(uint32_t idx) {
+ std::string gsp::VertexGraph::getName(uint32_t idx) const{
      return (!names.empty()) ? names[idx] : "v"+std::to_string(idx);
  }
 
- gsp::Coord gsp::VertexGraph::getCoord(uint32_t idx) {
+ gsp::Coord gsp::VertexGraph::getCoord(uint32_t idx) const{
      gsp::Coord coord = (_coords.rows() > 0)
-                            ? *reinterpret_cast<gsp::Coord*>(_coords.row(idx).data())
+                            ? *reinterpret_cast<const gsp::Coord*>(_coords.row(idx).data())
                             : gsp::Coord(NAN, NAN, NAN);
      return coord;
  }
