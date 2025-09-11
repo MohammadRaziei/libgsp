@@ -11,7 +11,7 @@
 #include <memory>
 #include <cstdint>
 
-#include "libgsp/utils/logging.h"
+#include "libgsp/utils/Logging.h"
 
 namespace gsp {
 

@@ -2,10 +2,10 @@
 // Created by Mohammad on 8/24/2025.
 //
 
-#include "libgsp/plotting/axis.h"
+#include "libgsp/plotting/Axis.h"
 
-#include <mustache.hpp>
 #include <fmt/fmt.h>
+#include <mustache.hpp>
 #include <string>
 
 namespace gsp {

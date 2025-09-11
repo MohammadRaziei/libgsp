@@ -2,24 +2,24 @@
 // Created by Mohammad on 8/22/2025.
 //
 
-#include "libgsp/plotting/figuremanager.h"
+#include "libgsp/plotting/FigureManager.h"
 
+#include <cassert>
+#include <filesystem>
+#include <fstream>
+#include <functional>
 #include <iostream>
 #include <map>
 #include <memory>
-#include <filesystem>
-#include <fstream>
-#include <cassert>
 #include <mutex>
-#include <functional>
 
 #include "mustache.hpp"           // for Mustache templating
 #include "fmt/fmt.h"              // for string formatting
 
-#include "libgsp/utils/string.h"  // for trim()
+#include "libgsp/utils/String.h"  // for trim()
 
-#include "templates/index_mustache_html.h"
 #include "templates/assets/libgsp_logo_svg.h"
+#include "templates/index_mustache_html.h"
 
 namespace fs = std::filesystem;
 using namespace kainjow;

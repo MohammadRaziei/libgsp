@@ -10,8 +10,8 @@
 #include <mutex>
 #include <string>
 
-#include "libgsp/plotting/figure.h"
-#include "libgsp/utils/logging.h"
+#include "libgsp/plotting/Figure.h"
+#include "libgsp/utils/Logging.h"
 
 namespace gsp {
     class FigureManager {

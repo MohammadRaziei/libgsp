@@ -2,8 +2,8 @@
 // Created by Mohammad on 8/22/2025.
 //
 
-#include "libgsp/plotting/figuremanager.h"
-#include "libgsp/utils/logging.h"
+#include "libgsp/plotting/FigureManager.h"
+#include "libgsp/utils/Logging.h"
 
 int main() {
 

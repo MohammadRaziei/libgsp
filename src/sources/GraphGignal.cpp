@@ -2,7 +2,7 @@
 // Created by Mohammad on 7/22/2025.
 //
 
-#include "libgsp/graph/graphsignal.h"
+#include "libgsp/graph/GraphGignal.h"
 
 template <class Matrix, class Signal>
 gsp::GraphSignal<Matrix, Signal>::GraphSignal(gsp::Graph<Matrix>& graph,

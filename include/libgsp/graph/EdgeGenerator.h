@@ -12,7 +12,7 @@
 #include <vector>
 #include <optional>
 
-#include "libgsp/utils/types.h"   // defines densematrix, sparsematrix, and includes Eigen
+#include "libgsp/utils/Types.h"  // defines densematrix, sparsematrix, and includes Eigen
 
 namespace gsp {
 

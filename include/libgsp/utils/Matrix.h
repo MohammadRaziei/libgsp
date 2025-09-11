@@ -10,7 +10,7 @@
 #include <Eigen/Dense>
 #include <Eigen/SparseCore>
 
-#include "libgsp/utils/types.h"
+#include "libgsp/utils/Types.h"
 
 namespace gsp::matrix {
 // ======== Declarations ========

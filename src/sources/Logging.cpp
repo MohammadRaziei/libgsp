@@ -2,7 +2,7 @@
 // Created by mohammad on 9/9/25.
 //
 
-#include "libgsp/utils/logging.h"
+#include "libgsp/utils/Logging.h"
 
 #include <filesystem>
 

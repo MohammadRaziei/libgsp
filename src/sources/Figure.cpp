@@ -2,14 +2,14 @@
 // Created by Mohammad on 8/23/2025.
 //
 
-#include "libgsp/plotting/figure.h"
-#include "libgsp/io/file.h"
-#include "libgsp/plotting/axis.h"
+#include "libgsp/plotting/Figure.h"
+#include "libgsp/io/File.h"
+#include "libgsp/plotting/Axis.h"
 
+#include <filesystem>
 #include <fstream>
 #include <sstream>
 #include <stdexcept>
-#include <filesystem>
 
 #include <mustache.hpp>
 

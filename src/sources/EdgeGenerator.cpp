@@ -2,13 +2,12 @@
 // Created by mohammad on 8/12/25.
 //
 
-#include "libgsp/graph/edgegenerator.h"
-#include "libgsp/graph/graph.h"
+#include "libgsp/graph/EdgeGenerator.h"
+#include "libgsp/graph/Graph.h"
 
-
-#include <cmath>
 #include <Eigen/Dense>
 #include <Eigen/SparseCore>
+#include <cmath>
 
 namespace gsp {
 

@@ -9,7 +9,7 @@
 
 #include <optional>
 
-#include "libgsp/graph/vertexgraph.h"
+#include "libgsp/graph/VertexGraph.h"
 
 #define GSP_IS_DIRECTED_DEFAULT false
 

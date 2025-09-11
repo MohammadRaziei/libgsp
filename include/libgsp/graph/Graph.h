@@ -9,11 +9,8 @@
 #include <vector>
 #include <cstdint>
 
-#include "libgsp/utils/types.h"
-#include "libgsp/graph/basegraph.h"
-
-
-
+#include "libgsp/graph/BaseGraph.h"
+#include "libgsp/utils/Types.h"
 
 namespace gsp {
     enum class ShiftType;

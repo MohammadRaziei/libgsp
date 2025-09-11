@@ -3,14 +3,11 @@
 //
 #include  <Eigen/Eigen>
 
-#include "libgsp/graph/graph.h"
-#include "libgsp/utils/matrix.h"
-#include "libgsp/graph/edgegenerator.h"
+#include "libgsp/graph/EdgeGenerator.h"
+#include "libgsp/graph/Graph.h"
+#include "libgsp/utils/Matrix.h"
 
-
-
-
-template<class Matrix>
+template <class Matrix>
 class gsp::MatrixBox {
    public:
     MatrixBox() = default;

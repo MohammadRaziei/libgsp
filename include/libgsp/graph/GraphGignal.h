@@ -7,8 +7,8 @@
 #pragma once
 
 
-#include "libgsp/graph/graph.h"
-#include "libgsp/utils/logging.h"
+#include "libgsp/graph/Graph.h"
+#include "libgsp/utils/Logging.h"
 
 // #include "libgsp/utils/types.h"
 

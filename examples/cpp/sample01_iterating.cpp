@@ -2,7 +2,7 @@
 // Created by Mohammad on 8/22/2025.
 //
 
-#include "libgsp/graph/graph.h"
+#include "libgsp/graph/Graph.h"
 
 uint32_t countNumNodes(gsp::BaseGraph& graph) {
     uint32_t count_nodes = 0;
