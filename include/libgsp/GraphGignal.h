@@ -7,7 +7,7 @@
 #pragma once
 
 
-#include "libgsp/graph/Graph.h"
+#include "Graph.h"
 #include "libgsp/utils/Logging.h"
 
 // #include "libgsp/utils/types.h"

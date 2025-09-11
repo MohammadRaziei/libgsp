@@ -9,7 +9,7 @@
 #include <vector>
 #include <cstdint>
 
-#include "libgsp/graph/BaseGraph.h"
+#include "BaseGraph.h"
 #include "libgsp/utils/Types.h"
 
 namespace gsp {

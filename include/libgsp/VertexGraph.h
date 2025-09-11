@@ -46,12 +46,12 @@ public:
     virtual CoordMat coords();
     virtual void setCoords(const std::vector<gsp::Coord>&);
     virtual void setNames(const std::vector<std::string>&);
-    virtual gsp::Coord getCoord(uint32_t idx);
-    virtual std::string getName(uint32_t idx);
+    virtual gsp::Coord getCoord(uint32_t idx) const;
+    virtual std::string getName(uint32_t idx) const;
 
     virtual void nodeIter();
     virtual std::optional<gsp::Node> nodeNext();
-    virtual std::vector<gsp::Node> nodes();
+    virtual std::vector<gsp::Node> nodes() const;
 
 public:
     const uint32_t num_nodes;
