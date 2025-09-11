@@ -48,7 +48,7 @@ std::vector<gsp::Node> gsp::VertexGraph::nodes() const {
     std::vector<gsp::Node> vec;
     vec.reserve(num_nodes);
     for (uint32_t i = 0; i < num_nodes; ++i) {
-        vec.emplace_back(_state_vertex, getCoord(_state_vertex), getName(_state_vertex));
+        vec.emplace_back(i, getCoord(i), getName(i));
     }
     return vec;
  }

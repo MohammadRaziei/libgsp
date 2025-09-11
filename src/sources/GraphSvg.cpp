@@ -157,6 +157,7 @@ GraphSvg::Impl::Impl(const gsp::BaseGraph& graph,
     }
 
     // defaults
+    _config.emplace("svg.background", "gray");
     _config.emplace("node.fill",  "#00BCE3");
     _config.emplace("node.stroke","black");
     _config.emplace("node.radius","8");
@@ -311,6 +312,8 @@ std::string GraphSvg::Impl::_build_metadata() const {
 std::string GraphSvg::Impl::_build_style() const {
     if (!_style_override.empty()) return _style_override;
 
+    const auto svg_bg        = _cfg_str(_config, "svg.background", "");
+
     const auto node_fill      = _cfg_str(_config, "node.fill", "#00BCE3");
     const auto node_stroke    = _cfg_str(_config, "node.stroke", "black");
     const auto node_opacity   = _cfg_str(_config, "node.opacity", "0.8");
@@ -331,6 +334,9 @@ std::string GraphSvg::Impl::_build_style() const {
     (void)node_radius; // applied inline in body
 
     fmt::memory_buffer css;
+    fmt::format_to(std::back_inserter(css),
+               "  svg{{ {} }}\n",
+               fmt::format("background:{}", svg_bg) if (!svg_bg.empty() else ""));
     fmt::format_to(std::back_inserter(css),
                    "  .node{{ fill:{}; stroke:{}; stroke-width:.7; opacity:{} }}\n",
                    node_fill, node_stroke, node_opacity);
