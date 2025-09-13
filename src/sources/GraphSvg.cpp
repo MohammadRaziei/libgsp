@@ -49,10 +49,10 @@ struct GraphSvg::Impl {
                                       const std::string& body) const;
 
     // --- utility ---
-    static double _cfg_double(const std::unordered_map<std::string, std::string>& cfg,
-                              const char* key, double defval);
-    static std::string _cfg_str(const std::unordered_map<std::string, std::string>& cfg,
-                                const char* key, const char* defval);
+    double _cfg_double(const char* key) const;
+    double _cfg_double(const char* key, double defval) const;
+    std::string _cfg_str(const char* key) const;
+    std::string _cfg_str(const char* key, const char* defval) const;
 
     // snapshot of graph data
     std::vector<gsp::Node> _nodes;
@@ -253,17 +253,23 @@ const std::string& GraphSvg::Impl::make_svg() {
 }
 
 // --- internal helpers ---------------------------------------------------------
-double GraphSvg::Impl::_cfg_double(const std::unordered_map<std::string, std::string>& cfg,
-                                  const char* key, double defval) {
-    if (auto it = cfg.find(key); it != cfg.end()) {
-        try { return std::stod(it->second); } catch (...) {}
-    }
+double GraphSvg::Impl::_cfg_double(const char* key, double defval) const {
+    try { return std::stod(_cfg_str(key)); } catch (...) {}
     return defval;
 }
-std::string GraphSvg::Impl::_cfg_str(const std::unordered_map<std::string, std::string>& cfg,
-                                    const char* key, const char* defval) {
-    if (auto it = cfg.find(key); it != cfg.end()) return it->second;
+double GraphSvg::Impl::_cfg_double(const char* key) const {
+    try { return std::stod(_cfg_str(key)); } catch (...) {
+        throw std::runtime_error(fmt::format("Key {} not found", key));
+    }
+}
+std::string GraphSvg::Impl::_cfg_str(const char* key, const char* defval) const {
+    if (auto it = _config.find(key); it != _config.end()) return it->second;
     return defval;
+}
+
+std::string GraphSvg::Impl::_cfg_str(const char* key) const {
+    if (auto it = _config.find(key); it != _config.end()) return it->second;
+    throw std::runtime_error(fmt::format("Key {} not found", key));
 }
 
 void GraphSvg::Impl::_compute_bounds() const {
@@ -312,31 +318,31 @@ std::string GraphSvg::Impl::_build_metadata() const {
 std::string GraphSvg::Impl::_build_style() const {
     if (!_style_override.empty()) return _style_override;
 
-    const auto svg_bg        = _cfg_str(_config, "svg.background", "");
+    const auto svg_bg        = _cfg_str("svg.background");
 
-    const auto node_fill      = _cfg_str(_config, "node.fill", "#00BCE3");
-    const auto node_stroke    = _cfg_str(_config, "node.stroke", "black");
-    const auto node_opacity   = _cfg_str(_config, "node.opacity", "0.8");
-    const auto node_radius    = _cfg_double(_config, "node.radius", 8.0);
+    const auto node_fill      = _cfg_str("node.fill");
+    const auto node_stroke    = _cfg_str("node.stroke");
+    const auto node_opacity   = _cfg_str("node.opacity");
+    const auto node_radius    = _cfg_double("node.radius");
 
-    const auto edge_stroke    = _cfg_str(_config, "edge.stroke", "black");
-    const auto edge_width     = _cfg_double(_config, "edge.width", 1.5);
+    const auto edge_stroke    = _cfg_str("edge.stroke");
+    const auto edge_width     = _cfg_double("edge.width");
 
-    const auto label_fill     = _cfg_str(_config, "label.fill", "#000000");
-    const auto label_font_px  = _cfg_double(_config, "label.font_px", 12.0);
+    const auto label_fill     = _cfg_str("label.fill");
+    const auto label_font_px  = _cfg_double("label.font_px");
 
-    const auto signal_color   = _cfg_str(_config, "signal.color", "red");
-    const auto signal_width   = _cfg_double(_config, "signal.width", 2.0);
-    const auto signal_tip_r   = _cfg_double(_config, "signal.tip_radius", 1.0);
-    const auto sig_lbl_fill   = _cfg_str(_config, "signal.label.fill", "red");
-    const auto sig_lbl_font   = _cfg_double(_config, "signal.label.font_px", 6.0);
+    const auto signal_color   = _cfg_str("signal.color");
+    const auto signal_width   = _cfg_double("signal.width");
+    const auto signal_tip_r   = _cfg_double("signal.tip_radius");
+    const auto sig_lbl_fill   = _cfg_str("signal.label.fill");
+    const auto sig_lbl_font   = _cfg_double("signal.label.font_px");
 
     (void)node_radius; // applied inline in body
 
     fmt::memory_buffer css;
     fmt::format_to(std::back_inserter(css),
                "  svg{{ {} }}\n",
-               fmt::format("background:{}", svg_bg) if (!svg_bg.empty() else ""));
+               svg_bg.empty() ? "" : fmt::format("background:{}", svg_bg));
     fmt::format_to(std::back_inserter(css),
                    "  .node{{ fill:{}; stroke:{}; stroke-width:.7; opacity:{} }}\n",
                    node_fill, node_stroke, node_opacity);
@@ -360,8 +366,8 @@ std::string GraphSvg::Impl::_build_style() const {
 }
 
 std::string GraphSvg::Impl::_build_body() const {
-    const double node_radius  = _cfg_double(_config, "node.radius", 8.0);
-    const double sig_lbl_font = _cfg_double(_config, "signal.label.font_px", 6.0);
+    const double node_radius  = _cfg_double("node.radius");
+    const double sig_lbl_font = _cfg_double("signal.label.font_px");
 
     fmt::memory_buffer body;
 
@@ -445,7 +451,7 @@ std::string GraphSvg::Impl::_render_with_template(double width,
     kainjow::mustache::mustache tpl(tpl_str);
     if (!tpl.is_valid()) {
         _logger->error("Mustache template error: {}", tpl.error_message());
-        return std::string("<!-- template error: ") + tpl.error_message() + " -->";
+        return fmt::format("<!-- template error: {} -->", tpl.error_message());
     }
     return tpl.render(ctx);
 }
