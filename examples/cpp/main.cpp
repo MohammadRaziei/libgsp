@@ -11,7 +11,7 @@
 
 #include "../../include/libgsp/EdgeGenerator.h"
 #include "../../include/libgsp/Graph.h"
-#include "../../include/libgsp/GraphGignal.h"
+#include "../../include/libgsp/GraphSignal.h"
 #include "libgsp/utils/Logging.h"
 
 #include "../../include/libgsp/io/File.h"

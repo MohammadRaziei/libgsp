@@ -132,6 +132,9 @@ GraphSvg& GraphSvg::addSignal(uint32_t idx, double value) {
 const std::string& GraphSvg::render() const {
     return pimpl->make_svg();
 }
+const std::string& GraphSvg::str() const {
+    return render();
+}
 void GraphSvg::save(const std::string& filepath) const {
     const auto svg = pimpl->make_svg();
     gsp::io::writeFile(filepath, svg);

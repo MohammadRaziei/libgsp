@@ -45,6 +45,7 @@ public:
 
     // ---- Render ----
     const std::string& render() const;
+    const std::string& str() const;
     void save(const std::string& filename) const;
 
 private:
