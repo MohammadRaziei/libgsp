@@ -6,10 +6,27 @@
 #define LIBGSP_LOGGING_H
 #pragma once
 
+
 #include <spdlog/spdlog.h>
 #include <fmt/ostr.h>
 #include <memory>
 #include <string>
+
+#if !defined(__PRETTY_FUNCTION__) && defined(__FUNCSIG__)
+#define __PRETTY_FUNCTION__ __FUNCSIG__
+#endif
+
+inline std::string _methodName(const std::string& prettyFunction)
+{
+    size_t colons = prettyFunction.find("::");
+    size_t begin = prettyFunction.substr(0,colons).rfind(" ") + 1;
+    size_t end = prettyFunction.rfind("(") - begin;
+
+    return prettyFunction.substr(begin,end) + "()";
+}
+
+#define __METHOD_NAME__ _methodName(__PRETTY_FUNCTION__)
+
 
 namespace gsp::logging {
 using level = spdlog::level::level_enum;
