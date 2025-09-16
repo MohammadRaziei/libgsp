@@ -14,7 +14,8 @@
 #include <Eigen/Sparse>
 #include <Eigen/Dense>
 
-
+#include <functional>
+#include <optional>
 
 
 namespace gsp {
@@ -29,13 +30,13 @@ public:
     using SparseComplementMask = Eigen::SparseVector<uint8_t>; // 1 where mask == false
     using DenseMask            = Eigen::VectorX<uint8_t>;       // each entry: 0 or 1
 
-    explicit SignalMask(int size = 0);
+    explicit SignalMask(uint32_t size = 0);
 
-    void resize(int size);
+    void resize(uint32_t size);
 
     // Element access (bool API)
-    void set(int idx, bool value);   // value=true  -> remove from complement; value=false -> store 1 in complement
-    bool get(int idx) const;         // returns true if NOT present in complement
+    void set(uint32_t idx, bool value);   // value=true  -> remove from complement; value=false -> store 1 in complement
+    bool get(uint32_t idx) const;         // returns true if NOT present in complement
 
     // Set entire mask from a dense 0/1 vector (1=true, 0=false)
     void setMask(const DenseMask& mask);
@@ -43,12 +44,15 @@ public:
     // Set directly from sparse complement (1 where mask=false)
     void setComplementMask(const SparseComplementMask& complement);
 
+
+
+
     // Getters
-    const SparseComplementMask& complement() const { return _sparse_complement; }
-    int size() const { return _size; }
+    [[nodiscard]] const SparseComplementMask& complement() const { return _sparse_complement; }
+    [[nodiscard]] uint32_t size() const { return _size; }
 
 private:
-    int _size{0};
+    uint32_t _size{0};
     SparseComplementMask _sparse_complement;
 };
 
@@ -59,6 +63,7 @@ template <typename T>
 class Signal {
 public:
     using VectorT = Eigen::Matrix<T, Eigen::Dynamic, 1>;
+    static std::function<double(const T&)> aggregate;
 
     // --- Constructors ---
     explicit Signal(int size = 0)
@@ -126,13 +131,14 @@ public:
         return _mask.get(idx) ? std::optional<T>(_signal(idx)) : std::nullopt;
     }
 
-    // flush masked-out elements (set them to zero)
-    void flush() {
+    // applyMask masked-out elements (set them to zero)
+    Signal<T>& applyMask() {
         for (int i = 0; i < size(); ++i) {
             if (!_mask.get(i)) {
                 _signal(i) = T{};
             }
         }
+        return *this;
     }
 
     // pretty-print

@@ -9,18 +9,18 @@
 using namespace gsp;
 
 
-SignalMask::SignalMask(int size) {
+SignalMask::SignalMask(uint32_t size) {
     resize(size);
 }
 
-void SignalMask::resize(int size) {
+void SignalMask::resize(uint32_t size) {
     _size = size;
     _sparse_complement.resize(size);
     _sparse_complement.setZero();
     // Note: no need to prune now; vector is empty
 }
 
-void SignalMask::set(int idx, bool value) {
+void SignalMask::set(uint32_t idx, bool value) {
     if (idx < 0 || idx >= _size) {
         throw std::out_of_range("SignalMask::set index out of range");
     }
@@ -38,7 +38,7 @@ void SignalMask::set(int idx, bool value) {
     }
 }
 
-bool SignalMask::get(int idx) const {
+bool SignalMask::get(uint32_t idx) const {
     if (idx < 0 || idx >= _size) {
         throw std::out_of_range("SignalMask::get index out of range");
     }
