@@ -9,12 +9,11 @@
 #include <mustache.hpp>
 #include <lunasvg.h>
 
-#include "../../include/libgsp/EdgeGenerator.h"
-#include "../../include/libgsp/Graph.h"
-#include "../../include/libgsp/GraphSignal.h"
+#include "libgsp/EdgeGenerator.h"
+#include "libgsp/Graph.h"
+#include "libgsp/GraphSignal.h"
 #include "libgsp/utils/Logging.h"
 
-#include "../../include/libgsp/io/File.h"
 #include "common.h"
 #include "libgsp/utils/Utils.h"
 

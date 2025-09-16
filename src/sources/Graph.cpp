@@ -3,8 +3,8 @@
 //
 #include  <Eigen/Eigen>
 
-#include "../../include/libgsp/EdgeGenerator.h"
-#include "../../include/libgsp/Graph.h"
+#include "libgsp/EdgeGenerator.h"
+#include "libgsp/Graph.h"
 #include "libgsp/utils/Matrix.h"
 
 template <class Matrix>

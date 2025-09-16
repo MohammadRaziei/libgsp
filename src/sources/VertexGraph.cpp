@@ -2,7 +2,7 @@
 // Created by mohammad on 8/12/25.
 //
 
-#include "../../include/libgsp/VertexGraph.h"
+#include "libgsp/VertexGraph.h"
 
 gsp::VertexGraph::VertexGraph(uint32_t num_nodes) : num_nodes(num_nodes), _state_vertex(0) {}
 

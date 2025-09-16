@@ -2,8 +2,8 @@
 // Created by mohammad on 8/12/25.
 //
 
-#include "../../include/libgsp/EdgeGenerator.h"
-#include "../../include/libgsp/Graph.h"
+#include "libgsp/EdgeGenerator.h"
+#include "libgsp/Graph.h"
 
 #include <Eigen/Dense>
 #include <Eigen/SparseCore>

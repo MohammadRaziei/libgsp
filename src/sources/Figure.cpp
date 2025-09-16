@@ -3,12 +3,10 @@
 //
 
 #include "libgsp/plotting/Figure.h"
-#include "../../include/libgsp/io/File.h"
+#include "libgsp/io/File.h"
 #include "libgsp/plotting/Axis.h"
 
 #include <filesystem>
-#include <fstream>
-#include <sstream>
 #include <stdexcept>
 
 #include <mustache.hpp>
