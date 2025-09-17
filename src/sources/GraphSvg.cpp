@@ -19,7 +19,7 @@ namespace gsp {
 // -----------------------------------------------------------------------------
 struct GraphSvg::Impl {
     // --- ctor/dtor ---
-    Impl(const gsp::BaseGraph& graph, std::optional<Eigen::VectorXd> signal_opt);
+    Impl(const gsp::BaseGraph& graph, std::optional<gsp::Signal<double>> signal_opt);
     ~Impl() = default;
 
     // --- configuration API used by the outer class ---
@@ -86,7 +86,7 @@ struct GraphSvg::Impl {
 // PlotSvg public API
 // -----------------------------------------------------------------------------
 GraphSvg::GraphSvg(const gsp::BaseGraph& graph,
-                 std::optional<Eigen::VectorXd> signal)
+                 std::optional<Signal<double>> signal)
     : pimpl(std::make_unique<Impl>(graph, std::move(signal))) {}
 
 GraphSvg::~GraphSvg() = default;
@@ -145,7 +145,7 @@ void GraphSvg::save(const std::string& filepath) const {
 // PlotSvg::Impl definitions
 // -----------------------------------------------------------------------------
 GraphSvg::Impl::Impl(const gsp::BaseGraph& graph,
-                    std::optional<Eigen::VectorXd> signal_opt)
+                    std::optional<gsp::Signal<double>> signal_opt)
     : _logger(gsp::logging::getLogger("GraphSvg")) {
 
     // snapshot nodes/edges once (no further graph calls)
@@ -155,8 +155,15 @@ GraphSvg::Impl::Impl(const gsp::BaseGraph& graph,
     // init signal
     const auto n = _nodes.size();
     _signal.assign(n, std::optional<double>{});
-    if (signal_opt && signal_opt->size() == static_cast<Eigen::Index>(n)) {
-        for (size_t i = 0; i < n; ++i) _signal[i] = (*signal_opt)(static_cast<Eigen::Index>(i));
+    if (signal_opt) {
+        if (signal_opt->size() == n) {
+            _signal = signal_opt->vector();
+        } else {
+            std::string msg = fmt::format("Signal size mismatch: got {}, expected {}",
+                                          signal_opt->size(), n);
+            _logger->error(msg);
+            throw std::invalid_argument(msg);
+        }
     }
 
     // defaults

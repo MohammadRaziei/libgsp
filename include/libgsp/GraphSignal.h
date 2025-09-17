@@ -65,7 +65,6 @@ template <typename T>
 class Signal {
 public:
     using VectorT = Eigen::Matrix<T, Eigen::Dynamic, 1>;
-    static std::function<double(const T&)> aggregate;
 
     // --- Constructors ---
     explicit Signal(int size = 0)
@@ -148,23 +147,20 @@ public:
     std::vector<std::optional<T>> vector() const {
         std::vector<std::optional<T>> out(size());
         for (int i = 0; i < size(); ++i) {
-            if (_mask.get(i)) {
-                out[i] = _signal(i);
-            } else {
-                out[i] = std::nullopt;
-            }
+            out[i] = _mask.get(i) ? std::optional<T>(_signal(i)) : std::nullopt;
         }
         return out;
     }
 
     // element API
-    void set(int idx, const std::optional<T>& value) {
+    Signal& set(int idx, const std::optional<T>& value) {
         if (value) {
             _signal(idx) = *value;
         } else {
             _mask.set(idx, false);
             _signal(idx) = T{};
         }
+        return *this;
     }
 
     std::optional<T> get(int idx) const {

@@ -10,10 +10,10 @@ uint32_t countNumNodes(gsp::BaseGraph& graph) {
     uint32_t count_nodes = 0;
     graph.nodeIter();
     while (auto node = graph.nodeNext()) {
-        logger->info("Node {}: {} @ ({:.5g},{:.5g},{:.5g})\n", node->id, node->name, node->coord.x, node->coord.y, node->coord.z);
+        logger->info("Node {}: {} @ ({:.5g},{:.5g},{:.5g})", node->id, node->name, node->coord.x, node->coord.y, node->coord.z);
         ++count_nodes;
     }
-    logger->info("There is {} nodes\n", count_nodes);
+    logger->info("There is {} nodes", count_nodes);
     return count_nodes;
 }
 
@@ -23,10 +23,10 @@ uint32_t countNumEdges(gsp::BaseGraph& graph) {
     uint32_t num_edges = 0;
     graph.edgeIter();
     while (auto edge = graph.edgeNext()) {
-        logger->info("Edge: from[{}] to[{}] weight[{:.5g}]\n", edge->source, edge->target, edge->weight);
+        logger->info("Edge: from[{}] to[{}] weight[{:.5g}]", edge->source, edge->target, edge->weight);
         ++num_edges;
     }
-    logger->info("There is {} edges\n", num_edges);
+    logger->info("There is {} edges", num_edges);
     return num_edges;
 }
 

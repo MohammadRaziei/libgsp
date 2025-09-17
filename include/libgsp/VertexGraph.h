@@ -20,6 +20,7 @@ namespace gsp {
 }  // namespace gsp
 
 struct gsp::Coord {
+    Coord() = default;
     Coord(double x, double y, double z = 0) : x(x), y(y), z(z) {}
     double x, y, z;
 };

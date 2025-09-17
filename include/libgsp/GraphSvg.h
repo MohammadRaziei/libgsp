@@ -15,13 +15,14 @@
 #include <Eigen/Core>
 
 #include "BaseGraph.h"
+#include "GraphSignal.h"
 
 namespace gsp {
 
 class GraphSvg {
 public:
     explicit GraphSvg(const gsp::BaseGraph& graph,
-                     std::optional<Eigen::VectorXd> signal = std::nullopt);
+                     std::optional<gsp::Signal<double>> signal = std::nullopt);
     ~GraphSvg();
 
     GraphSvg(const GraphSvg&) = delete;
