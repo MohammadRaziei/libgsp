@@ -38,7 +38,7 @@ int main() {
     graph.setCoords(coords_vec);
 
     gsp::GraphSvg pltsvg(graph);
-    std::string svg = pltsvg.renderSvg();
+    std::string svg = pltsvg.svg();
 
 
 

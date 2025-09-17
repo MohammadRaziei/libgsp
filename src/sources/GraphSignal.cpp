@@ -9,9 +9,28 @@
 using namespace gsp;
 
 
-SignalMask::SignalMask(uint32_t size) {
+SignalMask::SignalMask(uint32_t size) : _logger(gsp::logging::getLogger("SignalMask")) {
     resize(size);
 }
+
+SignalMask::SignalMask(const std::initializer_list<uint8_t>& vec)
+    : _logger(gsp::logging::getLogger("SignalMask")) {
+    setMask(Eigen::Map<const DenseMask>(vec.begin(), static_cast<uint32_t>(vec.size())));
+}
+
+SignalMask::SignalMask(uint32_t size, const std::initializer_list<std::pair<uint32_t, bool>>& mask)
+    : _logger(gsp::logging::getLogger("SignalMask")){
+    resize(size);
+    for (const auto& [idx, value] : mask) {
+        if (idx >= size) {
+            std::string msg = fmt::format("Invalid index {} in initializer list", idx);
+            _logger->error(msg);
+            throw std::out_of_range(msg);
+        }
+        if (!value) _sparse_complement.coeffRef(idx) = static_cast<uint8_t>(1);
+    }
+}
+
 
 void SignalMask::resize(uint32_t size) {
     _size = size;
@@ -21,8 +40,10 @@ void SignalMask::resize(uint32_t size) {
 }
 
 void SignalMask::set(uint32_t idx, bool value) {
-    if (idx < 0 || idx >= _size) {
-        throw std::out_of_range("SignalMask::set index out of range");
+    if (idx >= _size) {
+        std::string msg = fmt::format("Invalid index {}", idx);
+        _logger->error(msg);
+        throw std::out_of_range(msg);
     }
 
     if (value) {
@@ -60,36 +81,11 @@ void SignalMask::setMask(const DenseMask& mask) {
     // If you prefer the default, simply use: complement.sparseView();
 }
 
+
+
 void SignalMask::setComplementMask(const SparseComplementMask& complement) {
     resize(static_cast<int>(complement.size()));
     _sparse_complement = complement;  // shallow copy of sparse structure/content
 }
 
 
-
-
-
-template <class Matrix, class Signal>
-gsp::GraphSignal<Matrix, Signal>::GraphSignal(gsp::Graph<Matrix>& graph,
-                              const Signal& signal)
-    : _graph(&graph), _signal(signal), _logger(gsp::logging::getLogger("GraphSignal")) {
-    if (_graph->num_nodes != _signal.size()) {
-        const std::string msg = fmt::format("Signal size {} does not match graph size {}", _signal.size(), _graph->num_nodes);
-        _logger->error(msg);
-        throw std::length_error(msg);
-    }
-}
-
-
-
-
-// for DenseMatrix
-template class gsp::GraphSignal<gsp::densematrix,  Eigen::VectorXd>;
-template class gsp::GraphSignal<gsp::densematrix,  Eigen::VectorXcd>;
-template class gsp::GraphSignal<gsp::densematrix,  Eigen::Map<Eigen::VectorXd>>;
-template class gsp::GraphSignal<gsp::densematrix,  Eigen::Map<Eigen::VectorXcd>>;
-// for SparseMatrix
-template class gsp::GraphSignal<gsp::sparsematrix, Eigen::VectorXd>;
-template class gsp::GraphSignal<gsp::sparsematrix, Eigen::VectorXcd>;
-template class gsp::GraphSignal<gsp::sparsematrix, Eigen::Map<Eigen::VectorXd>>;
-template class gsp::GraphSignal<gsp::sparsematrix, Eigen::Map<Eigen::VectorXcd>>;

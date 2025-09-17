@@ -31,6 +31,8 @@ public:
     using DenseMask            = Eigen::VectorX<uint8_t>;       // each entry: 0 or 1
 
     explicit SignalMask(uint32_t size = 0);
+    SignalMask(const std::initializer_list<uint8_t>& vec);
+    SignalMask(uint32_t size, const std::initializer_list<std::pair<uint32_t, bool>>& mask);
 
     void resize(uint32_t size);
 
@@ -41,10 +43,9 @@ public:
     // Set entire mask from a dense 0/1 vector (1=true, 0=false)
     void setMask(const DenseMask& mask);
 
+
     // Set directly from sparse complement (1 where mask=false)
     void setComplementMask(const SparseComplementMask& complement);
-
-
 
 
     // Getters
@@ -54,6 +55,7 @@ public:
 private:
     uint32_t _size{0};
     SparseComplementMask _sparse_complement;
+    gsp::logging::Logger _logger;
 };
 
 
@@ -71,10 +73,35 @@ public:
         _signal.setZero();
     }
 
-    explicit Signal(const VectorT& vec)
-        : _signal(vec), _mask(vec.size()) {}
+    Signal(const VectorT& vec)
+        : _logger(gsp::logging::getLogger("Signal")),
+        _signal(vec), _mask(vec.size()) {}
 
-    explicit Signal(const std::vector<std::optional<T>>& vec_opt) {
+    Signal(const std::initializer_list<T>& vec)
+        : _logger(gsp::logging::getLogger("Signal")),
+         _signal(Eigen::Map<const VectorT>(vec.begin(), static_cast<uint32_t>(vec.size()))),
+        _mask(vec.size()) {}
+
+    Signal(const std::initializer_list<T>& vec, const std::initializer_list<std::pair<uint32_t, bool>>& mask)
+       : _logger(gsp::logging::getLogger("Signal")),
+        _signal(Eigen::Map<const VectorT>(vec.begin(), static_cast<uint32_t>(vec.size()))),
+        _mask(static_cast<uint32_t>(vec.size()), mask) {}
+
+    Signal(const std::initializer_list<T>& vec, const std::initializer_list<uint8_t>& mask)
+        : _logger(gsp::logging::getLogger("Signal")),
+        _signal(Eigen::Map<const VectorT>(vec.begin(), static_cast<uint32_t>(vec.size()))),
+        _mask(mask) {
+        if (mask.size() != _mask.size()) {
+            const std::string msg = fmt::format("Signal size mismatch: {} != {}", vec.size(), mask.size());
+            _logger->error(msg);
+            throw std::invalid_argument(msg);
+        }
+    }
+
+    Signal(const std::vector<T>& vec)
+        : _signal(Eigen::Map<const VectorT>(vec.data(), vec.size())), _mask(vec.size()) {}
+
+    Signal(const std::vector<std::optional<T>>& vec_opt) {
         resize(static_cast<int>(vec_opt.size()));
         for (int i = 0; i < size(); ++i) {
             if (vec_opt[i].has_value()) {
@@ -103,6 +130,15 @@ public:
         }
         _mask = std::move(m);
     }
+
+    void setMask(uint32_t idx, bool value) {
+        _mask.set(idx, value);
+    }
+
+    void setComplementMask(const SignalMask::SparseComplementMask& m) {
+        _mask.setComplementMask(m);
+    }
+
     const SignalMask& mask() const { return _mask; }
 
     // vector API
@@ -122,9 +158,13 @@ public:
     }
 
     // element API
-    void set(int idx, const T& value) {
-        _signal(idx) = value;
-        _mask.set(idx, true);
+    void set(int idx, const std::optional<T>& value) {
+        if (value) {
+            _signal(idx) = *value;
+        } else {
+            _mask.set(idx, false);
+            _signal(idx) = T{};
+        }
     }
 
     std::optional<T> get(int idx) const {
@@ -160,19 +200,30 @@ public:
 private:
     VectorT _signal;
     SignalMask _mask;
+    gsp::logging::Logger _logger;
 };
 
 
 
-template <class Matrix, class Signal>
+template <class Matrix, class T>
 class GraphSignal {
    public:
-    GraphSignal(gsp::Graph<Matrix>& graph,
-                const Signal& signal);
+    GraphSignal(gsp::Graph<Matrix>& graph, const gsp::Signal<T>& signal)
+        : _graph(&graph), _signal(signal), _logger(gsp::logging::getLogger("GraphSignal")) {
+        if (_graph->num_nodes != _signal.size()) {
+            const std::string msg = fmt::format("Signal size {} does not match graph size {}", _signal.size(), _graph->num_nodes);
+            _logger->error(msg);
+            throw std::length_error(msg);
+        }
+    }
 
-   public:
+    gsp::Graph<Matrix>& graph() const { return *_graph; }
+    gsp::Signal<T>& signal() { return _signal; }
+
+
+   private:
     gsp::Graph<Matrix>* _graph;
-    Signal _signal;
+    gsp::Signal<T> _signal;
     gsp::logging::Logger _logger;
 };
 } // namespace gsp

@@ -26,7 +26,7 @@ int main(int argc, char** argv) {
 
     std::vector<gsp::Edge>  edges      = {{0, 0},{0,1, 3},{0,2},{1,2},{2,3}};
     std::vector<gsp::Coord> coords_vec = {{0,0}, {2,0}, {1,-1}, {3,-1}};
-    std::vector<double>     signal_vec = {-0.04, 0.31, 0.06, 0.39};
+    gsp::Signal<double>     signal     = {-0.04, 0.31, 0.06, 0.39};
 
     const uint32_t num_nodes = 4;
 
@@ -93,8 +93,7 @@ int main(int argc, char** argv) {
     logger->info("Laplacian matrix L:\n{}", fmt::streamed(L));
 
     // Signal (view over std::vector without copy)
-    Eigen::Map<const Eigen::VectorXd> signal(signal_vec.data(), num_nodes);
-    gsp::GraphSignal graph_signal(&graph, (Eigen::VectorXd)signal);
+    gsp::GraphSignal graph_signal(graph, signal);
 
 
     // Render SVG (unchanged)

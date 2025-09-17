@@ -132,7 +132,7 @@ GraphSvg& GraphSvg::addSignal(uint32_t idx, double value) {
 const std::string& GraphSvg::render() const {
     return pimpl->make_svg();
 }
-const std::string& GraphSvg::str() const {
+const std::string& GraphSvg::svg() const {
     return render();
 }
 void GraphSvg::save(const std::string& filepath) const {
