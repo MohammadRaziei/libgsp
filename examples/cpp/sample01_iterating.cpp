@@ -3,34 +3,42 @@
 //
 
 #include "libgsp/Graph.h"
+#include "libgsp/utils/Logging.h"
 
 uint32_t countNumNodes(gsp::BaseGraph& graph) {
+    auto logger = gsp::logging::getLogger("countNumNodes");
     uint32_t count_nodes = 0;
     graph.nodeIter();
     while (auto node = graph.nodeNext()) {
-        printf("Node %i: %s @ (%.5g,%.5g,%.5g)\n", node->id, node->name.c_str(), node->coord.x, node->coord.y, node->coord.z);
+        logger->info("Node {}: {} @ ({:.5g},{:.5g},{:.5g})\n", node->id, node->name, node->coord.x, node->coord.y, node->coord.z);
         ++count_nodes;
     }
-    printf("There is %i nodes\n", count_nodes);
+    logger->info("There is {} nodes\n", count_nodes);
     return count_nodes;
 }
 
 uint32_t countNumEdges(gsp::BaseGraph& graph) {
+    auto logger = gsp::logging::getLogger("countNumEdges");
+
     uint32_t num_edges = 0;
     graph.edgeIter();
     while (auto edge = graph.edgeNext()) {
-        printf("Edge: from[%i] to[%i] weight[%.5g]\n", edge->source, edge->target, edge->weight);
+        logger->info("Edge: from[{}] to[{}] weight[{:.5g}]\n", edge->source, edge->target, edge->weight);
         ++num_edges;
     }
-    printf("There is %i edges\n", num_edges);
+    logger->info("There is {} edges\n", num_edges);
     return num_edges;
 }
 
 
 int main() {
+    gsp::logging::setDefaultConfigs(gsp::logging::level::debug);
+    auto logger = gsp::logging::getLoggerByPath(__FILE__);
+
+    logger->info("Sample 01: Iterating over nodes and edges");
+
     std::vector<gsp::Edge>  edges      = {{0, 0},{0,1, 3},{0,2},{1,2},{2,3}};
     std::vector<gsp::Coord> coords_vec = {{0,0}, {2,0}, {1,-1}, {3,-1}};
-    std::vector<double>     signal_vec = {-0.04, 0.31, 0.06, 0.39};
 
     const uint32_t num_nodes = 4;
 
