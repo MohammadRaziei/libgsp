@@ -42,5 +42,5 @@ my-codes
 
 # Ignore .ipynb files
 .ipynb*
-
+.cache
 
