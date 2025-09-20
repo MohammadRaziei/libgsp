@@ -31,7 +31,7 @@ int main() {
 
     std::vector<gsp::Edge>  edges      = {{0, 0},{0,1, 3},{0,2},{1,2},{2,3}};
     std::vector<gsp::Coord> coords_vec = {{0,0}, {2,0}, {1,-1}, {3,-1}};
-    std::vector<double>     signal_vec = {-0.04, 0.31, 0.06, 0.39};
+    gsp::Signal<double>     signal_vec = {-0.04, 0.31, 0.06, 0.39};
 
     gsp::DenseGraph graph(4);
     graph.setEdges(edges);

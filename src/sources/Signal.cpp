@@ -2,8 +2,7 @@
 // Created by Mohammad on 7/22/2025.
 //
 
-#include "libgsp/GraphSignal.h"
-
+#include "libgsp/Signal.h"
 #include "libgsp/utils/Logging.h"
 
 using namespace gsp;
@@ -59,9 +58,11 @@ void SignalMask::set(uint32_t idx, bool value) {
     }
 }
 
-bool SignalMask::get(uint32_t idx) const {
-    if (idx < 0 || idx >= _size) {
-        throw std::out_of_range("SignalMask::get index out of range");
+bool SignalMask::at(uint32_t idx) const {
+    if (idx >= _size) {
+        std::string msg = fmt::format("Invalid index {}", idx);
+        _logger->error(msg);
+        throw std::out_of_range(msg);
     }
     // true iff not present (or zero) in complement
     return _sparse_complement.coeff(idx) == static_cast<uint8_t>(0);
@@ -88,4 +89,7 @@ void SignalMask::setComplementMask(const SparseComplementMask& complement) {
     _sparse_complement = complement;  // shallow copy of sparse structure/content
 }
 
+uint32_t SignalMask::nnz() const {
+    return _size - static_cast<uint32_t>(_sparse_complement.nonZeros());
+}
 
