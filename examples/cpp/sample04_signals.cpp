@@ -4,6 +4,7 @@
 
 #include "libgsp/GraphSignal.h"
 #include "libgsp/utils/Logging.h"
+#include <cmath>
 
 
 int main() {
@@ -33,5 +34,13 @@ int main() {
     for (const auto coord : sigcoords.vector()) {
         logger->info("coord {}: {}, {}, {}", i++, coord->x, coord->y, coord->z);
     }
+
+    const auto sigcoords_d = sigcoords.apply([](const gsp::Coord& coord)->double
+     { return std::sqrt(coord.x * coord.x + coord.y * coord.y + coord.z * coord.z); });
+    logger->info("sigcoords_d: {}", sigcoords_d.str());
+
+    const auto sigi2d = sigi2.apply(gsp::function::todouble<int>);
+    logger->info("sigi2d: {}", fmt::streamed(sigi2d));
+
     return 0;
 }

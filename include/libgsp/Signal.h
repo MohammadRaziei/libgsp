@@ -4,11 +4,11 @@
 
 #include <functional>
 #include <optional>
+#include <type_traits>
 
 #include <Eigen/Sparse>
 #include <Eigen/Dense>
 
-#include "libgsp/Signal.h"
 #include "libgsp/utils/Logging.h"
 
 
@@ -72,12 +72,11 @@ private:
 };
 
 
-
-
 template <typename T>
 class Signal {
 public:
     using VectorT = Eigen::Matrix<T, Eigen::Dynamic, 1>;
+    using type = T;
 
     // --- Constructors ---
     explicit Signal(int size = 0)
@@ -88,6 +87,16 @@ public:
     Signal(const VectorT& vec)
         : _logger(gsp::logging::getLogger("Signal")),
         _signal(vec), _mask(vec.size()) {}
+
+    Signal(const VectorT& vec, const SignalMask& mask)
+        : _logger(gsp::logging::getLogger("Signal")),
+        _signal(vec), _mask(mask) {
+            if (mask.size() != vec.size()) {
+                const std::string msg = fmt::format("Signal size mismatch: {} != {}", vec.size(), mask.size());
+                _logger->error(msg);
+                throw std::invalid_argument(msg);
+            }
+        }
 
     Signal(const std::initializer_list<T>& vec)
         : _logger(gsp::logging::getLogger("Signal")),
@@ -138,7 +147,7 @@ public:
     // mask API
     void setMask(SignalMask m) {
         if (m.size() != size()) {
-            const std::string msg = fmt::format("Signal::setMask: size mismatch {} != {}", m.size(), size());
+            const std::string msg = fmt::format("setMask: size mismatch {} != {}", m.size(), size());
             _logger->error(msg);
             throw std::invalid_argument(msg);
         }
@@ -182,6 +191,79 @@ public:
         return _mask.at(idx) ? std::optional<T>(_signal(idx)) : std::nullopt;
     }
 
+    Signal<T> mul(Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic>& matrix) const {
+        return Signal<T>(matrix * _signal, _mask);
+    }
+
+    Signal<T> mul(Eigen::SparseMatrix<T>& matrix) const {
+        return Signal<T>(matrix * _signal, _mask);
+    }
+
+    Signal<T>& imul(Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic>& matrix) {
+        _signal = matrix * _signal;
+        return *this;
+    }
+
+    Signal<T>& imul(Eigen::SparseMatrix<T>& matrix) {
+        _signal = matrix * _signal;
+        return *this;
+    }
+
+
+    Signal<T> operator*(const Signal<T>& other) const {
+        return Signal<T>(_signal * other._signal, _mask + other._mask);
+    }
+
+    Signal<T> operator+(const Signal<T>& other) const {
+        return Signal<T>(_signal + other._signal, _mask + other._mask);
+    }
+
+    Signal<T> operator-(const Signal<T>& other) const {
+        return Signal<T>(_signal - other._signal, _mask + other._mask);
+    }
+
+    Signal<T> operator/(const Signal<T>& other) const {
+        return Signal<T>(_signal / other._signal, _mask + other._mask);
+    }
+
+    Signal<T>& operator*=(const Signal<T>& other) {
+        _signal *= other._signal;
+        _mask += other._mask;
+        return *this;
+    }
+
+    Signal<T>& operator+=(const Signal<T>& other) {
+        _signal += other._signal;
+        _mask += other._mask;
+        return *this;
+    }
+
+    Signal<T>& operator-=(const Signal<T>& other) {
+        _signal -= other._signal;
+        _mask += other._mask;
+        return *this;
+    }
+
+    Signal<T>& operator/=(const Signal<T>& other) {
+        _signal /= other._signal;
+        _mask += other._mask;
+        return *this;
+    }
+
+    // Apply a unary function element-wise, preserving the mask.
+    // Accepts any callable (e.g. lambda, functor, std::function).
+    template <typename Func>
+    auto apply(const Func& func) const -> Signal<typename std::invoke_result_t<Func, const T&>> {
+        using outT = typename std::invoke_result_t<Func, const T&>;
+        Eigen::Matrix<outT, Eigen::Dynamic, 1> sig_out(size());
+        for (int i = 0; i < size(); ++i) {
+            if (_mask.at(i)) {
+                sig_out[i] = func(_signal[i]);
+            }
+        }
+        return Signal<outT>(sig_out, _mask);
+    }
+
     // applyMask masked-out elements (set them to zero)
     Signal<T>& applyMask() {
         for (int i = 0; i < size(); ++i) {
@@ -215,12 +297,37 @@ public:
     }
 
 private:
+    // template <typename outT>
+    // friend gsp::Signal<outT> gsp::Signal<T>::apply(std::function<outT(T)>);
     VectorT _signal;
     SignalMask _mask;
     gsp::logging::Logger _logger;
 };
 
+
+namespace function {
+template <typename T>
+double todouble(T value) {
+    return static_cast<double>(value);
+}
+}
+
 } // namespace gsp
+
+template <typename T>
+gsp::Signal<T> operator*(const Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic>& matrix, const gsp::Signal<T>& signal) {
+    return signal.mul(matrix);
+}
+template <typename T>
+gsp::Signal<T> operator*(const Eigen::SparseMatrix<T>& matrix, const gsp::Signal<T>& signal) {
+    return signal.mul(matrix);
+}
+
+template <typename T>
+std::ostream& operator<<(std::ostream& os, const gsp::Signal<T>& signal) {
+    os << signal.str();
+    return os;
+}
 
 
 #endif  // LIBGSP_SIGNAL_H
