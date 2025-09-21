@@ -301,10 +301,21 @@ public:
         Eigen::Matrix<outT, Eigen::Dynamic, 1> sig_out(size());
         for (int i = 0; i < size(); ++i) {
             if (_mask.at(i)) {
-                sig_out[i] = func(_signal[i]);
+                sig_out(i) = func(_signal(i));
             }
         }
         return Signal<outT>(sig_out, _mask);
+    }
+
+    template <typename Func>
+    Signal<T>& applyInplace(const Func& func) {
+        static_assert(std::is_same_v<T, typename std::invoke_result_t<Func, const T&>>);
+        for (int i = 0; i < size(); ++i) {
+            if (_mask.at(i)) {
+                _signal(i) = func(_signal(i));
+            }
+        }
+        return *this;
     }
 
     // applyMask masked-out elements (set them to zero)
@@ -335,13 +346,11 @@ public:
             fmt::format_to(std::back_inserter(buf), _mask.at(i) ? fmt::format("{}", _signal(i)) : "n");
             if (i + 1 < size()) fmt::format_to(std::back_inserter(buf), ", ");
         }
-        fmt::format_to(std::back_inserter(buf), "]");
+        fmt::format_to(std::back_inserter(buf), "]'");
         return fmt::to_string(buf);
     }
 
 private:
-    // template <typename outT>
-    // friend gsp::Signal<outT> gsp::Signal<T>::apply(std::function<outT(T)>);
     VectorT _signal;
     SignalMask _mask;
     gsp::logging::Logger _logger;

@@ -77,7 +77,9 @@ int main() {
 
     sigfull2 = mat2 * sigfull;
     logger->info("sigfull2 = mat2 * sigfull: {} with size of {}!", sigfull2.str(), sigfull2.size());
-
+    
+    sigfull2.applyInplace([](const double x)->double { return x * 2; });
+    logger->info("sigfull2 = mat2 * sigfull: {} with size of {}!", sigfull2.str(), sigfull2.size());
 
     return 0;
 }
