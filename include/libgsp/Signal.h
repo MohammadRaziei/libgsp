@@ -192,11 +192,18 @@ public:
         _mask.setComplementMask(m);
     }
 
-    const SignalMask& mask() const { return _mask; }
+    [[nodiscard]] const SignalMask& mask() const { return _mask; }
+
+    [[nodiscard]] bool mask(uint32_t idx) const { return _mask.at(idx); }
+
 
     // vector API
     const VectorT& signal() const { return _signal; }
     VectorT& signal() { return _signal; }
+
+    T signal(uint32_t idx) const { return _signal(idx); }
+    T& signal(uint32_t idx) { return _signal(idx); }
+
 
     std::vector<std::optional<T>> vector() const {
         std::vector<std::optional<T>> out(size());

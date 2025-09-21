@@ -3,7 +3,7 @@ enable_testing()
 
 # Add GoogleTest if not already included
 if(NOT TARGET gtest)
-    add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../src/third_party/googletest)
+    add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/third_party/googletest)
 endif()
 
 # C++ tests
