@@ -185,5 +185,8 @@ if (BUILD_EXAMPLES)
     endforeach()
 endif()
 
-
+if(BUILD_TESTING)
+    message(STATUS "Building tests")
+    add_subdirectory(tests) 
+endif()
 
