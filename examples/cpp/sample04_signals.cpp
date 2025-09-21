@@ -3,6 +3,7 @@
 //
 
 #include "libgsp/GraphSignal.h"
+#include "libgsp/Signal.h"
 #include "libgsp/utils/Logging.h"
 #include <cmath>
 
@@ -68,6 +69,8 @@ int main() {
     sigfull2 = mat * sigfull;
     logger->info("sigfull2 = mat * sigfull: {}", sigfull2.str());
 
+    gsp::arrayfun(sigfull2, [](double x)->double { return x * 2; });
+    logger->info("sigfull2 = {} after arrayfun", sigfull2.str());
 
     Eigen::MatrixXd mat2({
         {1, 2, 0, 0},
@@ -75,11 +78,14 @@ int main() {
         {5, 0, 7, 0}
     });
 
+    logger->info("mat2:\n{}", fmt::streamed(mat2));
+
     sigfull2 = mat2 * sigfull;
     logger->info("sigfull2 = mat2 * sigfull: {} with size of {}!", sigfull2.str(), sigfull2.size());
     
     sigfull2.applyInplace([](const double x)->double { return x * 2; });
-    logger->info("sigfull2 = mat2 * sigfull: {} with size of {}!", sigfull2.str(), sigfull2.size());
+    logger->info("sigfull2 = {} after applyInplace", sigfull2.str());
+
 
     return 0;
 }
