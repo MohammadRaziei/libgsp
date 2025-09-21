@@ -114,3 +114,16 @@ SignalMask& SignalMask::operator+=(const SignalMask& other) {
     return *this;
 }
 
+
+std::string SignalMask::str() const {
+    fmt::memory_buffer buf;
+    fmt::format_to(std::back_inserter(buf), "[");
+    for (uint32_t i = 0; i < _size; ++i) {
+        fmt::format_to(std::back_inserter(buf), at(i) ? "1" : "n");
+        if (i + 1 < _size) {
+            fmt::format_to(std::back_inserter(buf), ", ");
+        }
+    }
+    fmt::format_to(std::back_inserter(buf), "]");
+    return fmt::to_string(buf);
+}

@@ -42,9 +42,56 @@ public:
 
     SignalMask& operator+=(const SignalMask& other);
 
+    template <typename Scalar>
+    SignalMask& imul(const Eigen::SparseMatrix<Scalar>& A) {
+        if (_size != static_cast<uint32_t>(A.cols())) {
+            throw std::invalid_argument("SignalMask::imul_structure(sparse): size mismatch with A.cols()");
+        }
+
+        SparseComplementMask new_comp(A.rows());
+
+        // Iterate only invalid inputs (1 in complement means false column)
+        for (SparseComplementMask::InnerIterator it(_sparse_complement); it; ++it) {
+            const int col = it.index();
+            for (typename Eigen::SparseMatrix<Scalar>::InnerIterator jt(A, col); jt; ++jt) {
+                if (jt.value() != Scalar(0)) {
+                    // directly insert row as false in complement
+                    new_comp.insertBack(jt.row()) = uint8_t(1);
+                }
+            }
+        }
+
+        new_comp.finalize();
+        _size = static_cast<uint32_t>(A.rows());
+        _sparse_complement = std::move(new_comp);
+        return *this;
+    }
+
+    template <typename Scalar>
+    SignalMask& imul(const Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic>& A) {
+        const Eigen::SparseMatrix<Scalar> A_sparse = A.sparseView(1e-12);
+        return imul(A_sparse);
+    }
+
+    template <typename Scalar>
+    SignalMask mul(const Eigen::SparseMatrix<Scalar>& A) const {
+        SignalMask out = *this;
+        out.imul(A);
+        return out;
+    }
+
+    template <typename Scalar>
+    SignalMask mul(const Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic>& A) const {
+        SignalMask out = *this;
+        out.imul(A);
+        return out;
+    }
+
+    std::string str() const;
+
     // Getters
     [[nodiscard]] const SparseComplementMask& complement() const { return _sparse_complement; }
-    [[nodiscard]] uint32_t size() const { return _size; }
+    [[nodiscard]] uint32_t size() const {  return _size; }
 
     [[nodiscard]] uint32_t nnz() const;
 
@@ -174,63 +221,72 @@ public:
         return _mask.at(idx) ? std::optional<T>(_signal(idx)) : std::nullopt;
     }
 
-    Signal<T> mul(Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic>& matrix) const {
-        return Signal<T>(matrix * _signal, _mask);
+    Signal<T> mul(const Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic>& M) const {
+        auto y = M * _signal;                 // numeric result
+        auto newMask = _mask.mul(M); // structural mask: cols -> rows
+        return Signal<T>(y, newMask).applyMask();
     }
 
-    Signal<T> mul(Eigen::SparseMatrix<T>& matrix) const {
-        return Signal<T>(matrix * _signal, _mask);
+    // Out-of-place multiply (sparse)
+    Signal<T> mul(const Eigen::SparseMatrix<T>& M) const {
+        auto y = M * _signal;
+        auto newMask = _mask.mul(M);
+        return Signal<T>(y, newMask).applyMask();
     }
 
-    Signal<T>& imul(Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic>& matrix) {
-        _signal = matrix * _signal;
-        return *this;
+    // In-place multiply (dense)
+    Signal<T>& imul(const Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic>& M) {
+        _signal = M * _signal;
+        _mask.imul(M);
+        return applyMask();
     }
 
-    Signal<T>& imul(Eigen::SparseMatrix<T>& matrix) {
-        _signal = matrix * _signal;
-        return *this;
+    // In-place multiply (sparse)
+    Signal<T>& imul(const Eigen::SparseMatrix<T>& M) {
+        _signal = M * _signal;
+        _mask.imul(M);
+        return applyMask();
     }
 
 
     Signal<T> operator*(const Signal<T>& other) const {
-        return Signal<T>(_signal * other._signal, _mask + other._mask);
+        return Signal<T>(_signal * other._signal, _mask + other._mask).applyMask();
     }
 
     Signal<T> operator+(const Signal<T>& other) const {
-        return Signal<T>(_signal + other._signal, _mask + other._mask);
+        return Signal<T>(_signal + other._signal, _mask + other._mask).applyMask();
     }
 
     Signal<T> operator-(const Signal<T>& other) const {
-        return Signal<T>(_signal - other._signal, _mask + other._mask);
+        return Signal<T>(_signal - other._signal, _mask + other._mask).applyMask();
     }
 
     Signal<T> operator/(const Signal<T>& other) const {
-        return Signal<T>(_signal / other._signal, _mask + other._mask);
+        return Signal<T>(_signal / other._signal, _mask + other._mask).applyMask();
     }
 
     Signal<T>& operator*=(const Signal<T>& other) {
         _signal *= other._signal;
         _mask += other._mask;
-        return *this;
+        return applyMask();
     }
 
     Signal<T>& operator+=(const Signal<T>& other) {
         _signal += other._signal;
         _mask += other._mask;
-        return *this;
+        return applyMask();
     }
 
     Signal<T>& operator-=(const Signal<T>& other) {
         _signal -= other._signal;
         _mask += other._mask;
-        return *this;
+        return applyMask();
     }
 
     Signal<T>& operator/=(const Signal<T>& other) {
         _signal /= other._signal;
         _mask += other._mask;
-        return *this;
+        return applyMask();
     }
 
     operator std::string() const {

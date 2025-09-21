@@ -46,6 +46,38 @@ int main() {
     logger->info("sigi2d: {}", sigi2d.str());
 
 
-    Eigen::MatrixXd mat({{1,2,3,4}, {3,4,5,6}});
+    Eigen::MatrixXd mat{
+            {1, 2, 0, 4},   // row0 depends on col0,col1,col3 → all valid
+            {0, 1, 0, 1},   // row1 depends on col1,col3      → all valid
+            {5, 0, 7, 0},   // row2 touches col2              → invalid
+            {0, 0, 9, 10}   // row3 touches col2              → invalid
+    };
+
+    logger->info("mat:\n{}", fmt::streamed(mat));
+    auto sigd2 = mat * sigd1;
+    logger->info("sigd2.mask = {}", sigd1.mask().str());
+
+    logger->info("sigd2 = mat * sigd1: {}", sigd2.str());
+
+    gsp::Signal<double> sigfull = {1, 2, 3, 4};
+    logger->info("sigfull: {}", sigfull.str());
+    auto sigfull2 = mat * sigfull;
+    logger->info("sigfull2 = mat * sigfull: {}", sigfull2.str());
+    sigfull.setMask(2, false); // make one element invalid
+    logger->info("sigfull: {}", sigfull.str());
+    sigfull2 = mat * sigfull;
+    logger->info("sigfull2 = mat * sigfull: {}", sigfull2.str());
+
+
+    Eigen::MatrixXd mat2({
+        {1, 2, 0, 0},
+        {0, 1, 0, 1},
+        {5, 0, 7, 0}
+    });
+
+    sigfull2 = mat2 * sigfull;
+    logger->info("sigfull2 = mat2 * sigfull: {} with size of {}!", sigfull2.str(), sigfull2.size());
+
+
     return 0;
 }
