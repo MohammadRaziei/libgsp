@@ -11,7 +11,6 @@
 
 #include "libgsp/utils/Logging.h"
 
-
 namespace gsp {
 
 // SignalMask: one-dimensional boolean mask stored as sparse complement.
@@ -39,25 +38,9 @@ public:
     // Set directly from sparse complement (1 where mask=false)
     void setComplementMask(const SparseComplementMask& complement);
 
-    SignalMask operator+(const SignalMask& other) const {
-        SignalMask out(other.size());
-        return out += other;
-    }
+    SignalMask operator+(const SignalMask& other) const;
 
-    SignalMask& operator+=(const SignalMask& other) {
-        if (other.size() != size()) {
-            const std::string msg = fmt::format("size mismatched");
-            _logger->error(msg);
-            throw std::invalid_argument(msg);
-        }
-
-        for (SparseComplementMask::InnerIterator it2(other._sparse_complement);
-             it2; ++it2) {
-            _sparse_complement.insert(it2.index()) = 1;
-        }
-        return *this;
-    }
-
+    SignalMask& operator+=(const SignalMask& other);
 
     // Getters
     [[nodiscard]] const SparseComplementMask& complement() const { return _sparse_complement; }
@@ -250,6 +233,10 @@ public:
         return *this;
     }
 
+    operator std::string() const {
+        return str();
+    }
+
     // Apply a unary function element-wise, preserving the mask.
     // Accepts any callable (e.g. lambda, functor, std::function).
     template <typename Func>
@@ -304,6 +291,12 @@ private:
     gsp::logging::Logger _logger;
 };
 
+template <typename T, typename Func>
+auto arrayfun(const gsp::Signal<T>& signal, Func&& func)
+    -> gsp::Signal<std::invoke_result_t<std::decay_t<Func>, const T&>> {
+    return signal.apply(std::forward<Func>(func));
+}
+
 
 namespace function {
 template <typename T>
@@ -328,6 +321,8 @@ std::ostream& operator<<(std::ostream& os, const gsp::Signal<T>& signal) {
     os << signal.str();
     return os;
 }
+
+
 
 
 #endif  // LIBGSP_SIGNAL_H

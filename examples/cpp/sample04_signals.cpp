@@ -8,7 +8,6 @@
 
 
 int main() {
-
     gsp::logging::setDefaultConfigs(spdlog::level::debug);
     auto logger = gsp::logging::getLogger();
 
@@ -39,8 +38,14 @@ int main() {
      { return std::sqrt(coord.x * coord.x + coord.y * coord.y + coord.z * coord.z); });
     logger->info("sigcoords_d: {}", sigcoords_d.str());
 
-    const auto sigi2d = sigi2.apply(gsp::function::todouble<int>);
-    logger->info("sigi2d: {}", fmt::streamed(sigi2d));
+    gsp::Signal<double> sigi2d;
+    sigi2d = sigi2.apply(gsp::function::todouble<int>);
+    logger->info("sigi2d: {}", sigi2d.str());
 
+    sigi2d = gsp::arrayfun(sigi2, gsp::function::todouble<int>);
+    logger->info("sigi2d: {}", sigi2d.str());
+
+
+    Eigen::MatrixXd mat({{1,2,3,4}, {3,4,5,6}});
     return 0;
 }

@@ -93,3 +93,24 @@ uint32_t SignalMask::nnz() const {
     return _size - static_cast<uint32_t>(_sparse_complement.nonZeros());
 }
 
+
+
+SignalMask SignalMask::operator+(const SignalMask& other) const {
+    SignalMask out(other.size());
+    return out += other;
+}
+
+SignalMask& SignalMask::operator+=(const SignalMask& other) {
+    if (other.size() != size()) {
+        const std::string msg = fmt::format("size mismatched");
+        _logger->error(msg);
+        throw std::invalid_argument(msg);
+    }
+
+    for (SparseComplementMask::InnerIterator it2(other._sparse_complement);
+         it2; ++it2) {
+        _sparse_complement.insert(it2.index()) = 1;
+         }
+    return *this;
+}
+
