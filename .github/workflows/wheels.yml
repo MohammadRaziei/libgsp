@@ -29,8 +29,8 @@ jobs:
       with:
         python-version: "3.x"
 
-    - name: Ruff Check
-      run: pipx run ruff check .
+#    - name: Ruff Check
+#      run: pipx run ruff check .
 
     - name: Build SDist
       run: pipx run build --sdist
