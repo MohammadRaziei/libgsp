@@ -4,7 +4,7 @@
 
 #include <stdint.h>
 #include <string>
-#include "libgsp/graph.h"
+#include "libgsp/Graph.h"
 
 namespace nb = nanobind;
 using namespace nb::literals;
