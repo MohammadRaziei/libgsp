@@ -49,8 +49,6 @@ void SignalMask::set(uint32_t idx, bool value) {
         // logical true -> default -> ensure complement at idx is 0
         if (_sparse_complement.coeff(idx)) {
             _sparse_complement.coeffRef(idx) = static_cast<uint8_t>(0);
-            // Optional: prune zeros lazily; not strictly required.
-            // _sparse_complement.prune(0);
         }
     } else {
         // logical false -> store 1 in complement
@@ -90,13 +88,13 @@ void SignalMask::setComplementMask(const SparseComplementMask& complement) {
 }
 
 uint32_t SignalMask::nnz() const {
-    return _size - static_cast<uint32_t>(_sparse_complement.nonZeros());
+    return _size - static_cast<uint32_t>(_sparse_complement.sum());
 }
 
 
 
 SignalMask SignalMask::operator+(const SignalMask& other) const {
-    SignalMask out(other.size());
+    SignalMask out(*this);
     return out += other;
 }
 
@@ -109,7 +107,7 @@ SignalMask& SignalMask::operator+=(const SignalMask& other) {
 
     for (SparseComplementMask::InnerIterator it2(other._sparse_complement);
          it2; ++it2) {
-        _sparse_complement.insert(it2.index()) = 1;
+            _sparse_complement.coeffRef(it2.index()) = static_cast<uint8_t>(1);
          }
     return *this;
 }

@@ -53,7 +53,6 @@ TEST(SignalMaskBasic, UnionOperator) {
     b.set(2, false);
 
     auto c = a + b;  // union of falses
-    printf("c: %s\n", c.str().c_str());
     EXPECT_FALSE(c.at(1));
     EXPECT_FALSE(c.at(2));
     EXPECT_FALSE(c.at(4));
