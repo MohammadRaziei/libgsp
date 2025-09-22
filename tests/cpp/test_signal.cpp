@@ -3,387 +3,259 @@
 #include <optional>
 
 #include "libgsp/Signal.h"
+// tests/test_signal.cpp
+#include <gtest/gtest.h>
+#include <Eigen/Dense>
+#include <Eigen/Sparse>
+#include <vector>
+#include <optional>
 
-using namespace gsp;
+#include "libgsp/Signal.h"  // مسیر صحیح هدر خودت
 
-// Fixture for common test setup
-class SignalTest : public ::testing::Test {
-protected:
-    void SetUp() override {
-        // Setup common test data
-        vec3_ = Eigen::VectorXd(3);
-        vec3_ << 1.0, 2.0, 3.0;
-        
-        vec5_ = Eigen::VectorXd(5);
-        vec5_ << 1.0, 2.0, 3.0, 4.0, 5.0;
+using gsp::Signal;
+using gsp::SignalMask;
+
+// ---------- Helpers ----------
+
+// Non-square 3x4 matrix: rows 0/1 do NOT touch col2; row 2 DOES touch col2.
+template <typename Scalar>
+static Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> MakeRectDense() {
+    Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> M(3, 4);
+    // row0: uses col0,col1 → both valid in our test
+    // row1: uses col1,col3 → both valid
+    // row2: uses col0,col2 → touches false column (2)
+    M << Scalar(1), Scalar(2), Scalar(0), Scalar(0),
+         Scalar(0), Scalar(1), Scalar(0), Scalar(1),
+         Scalar(5), Scalar(0), Scalar(7), Scalar(0);
+    return M;
+}
+
+template <typename Scalar>
+static Eigen::SparseMatrix<Scalar> MakeRectSparse() {
+    auto D = MakeRectDense<Scalar>();
+    Eigen::SparseMatrix<Scalar> S = D.sparseView();
+    return S;
+}
+
+template <typename Scalar>
+static Signal<Scalar> MakeSignal_4_with_mask_1101() {
+    // values: [10, 20, 30, 40], mask: [1,1,0,1]
+    Eigen::Matrix<Scalar, Eigen::Dynamic, 1> x(4);
+    x << Scalar(10), Scalar(20), Scalar(30), Scalar(40);
+    SignalMask mask(4, { {0,true}, {1,true}, {2,false}, {3,true} });
+    return Signal<Scalar>(x, mask);
+}
+
+// Count of true entries in a mask
+static uint32_t CountTrue(const SignalMask& m) {
+    uint32_t c = 0;
+    for (uint32_t i = 0; i < m.size(); ++i) if (m.at(i)) ++c;
+    return c;
+}
+
+// ---------- Typed fixture ----------
+template <typename Scalar>
+class SignalTypedTest : public ::testing::Test {};
+using ScalarTypes = ::testing::Types<float, double>;
+TYPED_TEST_SUITE(SignalTypedTest, ScalarTypes);
+
+// ---------- Tests ----------
+
+// Construction and basic access with initializer lists
+TYPED_TEST(SignalTypedTest, ConstructFromVectorAndMask) {
+    using S = TypeParam;
+    Signal<S> sig({S(1), S(2), S(3), S(4)}, { {0,true}, {1,false}, {2,true}, {3,true} });
+
+    ASSERT_EQ(sig.size(), 4);
+    EXPECT_TRUE(sig.mask(0));
+    EXPECT_FALSE(sig.mask(1));
+    EXPECT_TRUE(sig.mask(2));
+    EXPECT_TRUE(sig.mask(3));
+
+    // get() respects mask
+    EXPECT_TRUE(sig.get(0).has_value());
+    EXPECT_FALSE(sig.get(1).has_value());
+    EXPECT_TRUE(sig.get(2).has_value());
+    EXPECT_TRUE(sig.get(3).has_value());
+}
+
+// Matrix multiply (dense): mask propagation cols->rows + applyMask zeros invalid outputs
+TYPED_TEST(SignalTypedTest, DenseMul_PropagatesMask_AndZerosMaskedOutputs) {
+    using S = TypeParam;
+    auto sig = MakeSignal_4_with_mask_1101<S>();
+    auto M = MakeRectDense<S>(); // 3x4
+
+    auto out = sig.mul(M);
+
+    ASSERT_EQ(out.size(), 3);
+    // Expected mask: [true, true, false] because row2 touches col2 (false)
+    EXPECT_TRUE(out.mask(0));
+    EXPECT_TRUE(out.mask(1));
+    EXPECT_FALSE(out.mask(2));
+
+    // Numeric result for valid rows:
+    // row0: 1*10 + 2*20 = 50
+    // row1: 1*20 + 1*40 = 60
+    // row2: touches false → masked and zeroed by applyMask()
+    EXPECT_DOUBLE_EQ(static_cast<double>(out.signal(0)), 50.0);
+    EXPECT_DOUBLE_EQ(static_cast<double>(out.signal(1)), 60.0);
+    EXPECT_DOUBLE_EQ(static_cast<double>(out.signal(2)), 0.0); // masked
+}
+
+// Matrix multiply (sparse) same expectations
+TYPED_TEST(SignalTypedTest, SparseMul_PropagatesMask_AndZerosMaskedOutputs) {
+    using S = TypeParam;
+    auto sig = MakeSignal_4_with_mask_1101<S>();
+    auto Ms = MakeRectSparse<S>(); // 3x4
+
+    auto out = sig.mul(Ms);
+
+    ASSERT_EQ(out.size(), 3);
+    EXPECT_TRUE(out.mask(0));
+    EXPECT_TRUE(out.mask(1));
+    EXPECT_FALSE(out.mask(2));
+
+    EXPECT_DOUBLE_EQ(static_cast<double>(out.signal(0)), 50.0);
+    EXPECT_DOUBLE_EQ(static_cast<double>(out.signal(1)), 60.0);
+    EXPECT_DOUBLE_EQ(static_cast<double>(out.signal(2)), 0.0);
+}
+
+// imul (dense) in-place: should match mul
+TYPED_TEST(SignalTypedTest, DenseImul_InPlaceMatchesMul) {
+    using S = TypeParam;
+    auto sig1 = MakeSignal_4_with_mask_1101<S>();
+    auto sig2 = sig1;
+
+    auto M = MakeRectDense<S>(); // 3x4
+    auto out = sig1.mul(M);
+
+    sig2.imul(M);
+
+    ASSERT_EQ(sig2.size(), out.size());
+    for (int i = 0; i < out.size(); ++i) {
+        EXPECT_EQ(sig2.mask(i), out.mask(i));
+        EXPECT_DOUBLE_EQ(static_cast<double>(sig2.signal(i)),
+                         static_cast<double>(out.signal(i)));
     }
-
-    Eigen::VectorXd vec3_;
-    Eigen::VectorXd vec5_;
-};
-
-// ---------- Constructor Tests ----------
-TEST_F(SignalTest, DefaultConstructorCreatesEmptySignal) {
-    Signal<double> s;
-    EXPECT_EQ(s.size(), 0);
-    EXPECT_TRUE(s.signal().isZero(0));
 }
 
-TEST_F(SignalTest, SizeConstructorCreatesZeroedSignalWithValidMask) {
-    const int size = 5;
-    Signal<double> s(size);
-    
-    EXPECT_EQ(s.size(), size);
-    EXPECT_TRUE(s.signal().isZero());
-    for (int i = 0; i < size; ++i) {
-        EXPECT_TRUE(s.mask(i));
-    }
-}
+// apply: only valid entries are transformed; invalid entries remain zero in numeric & keep mask
+TYPED_TEST(SignalTypedTest, Apply_OnlyOnValidIndices) {
+    using S = TypeParam;
+    auto sig = MakeSignal_4_with_mask_1101<S>(); // [10,20,30,40], mask [1,1,0,1]
 
-TEST_F(SignalTest, VectorConstructorPreservesValuesAndCreatesValidMask) {
-    Signal<double> s(vec3_);
+    auto out = sig.apply([](const S& v){ return v*v; });
 
-    EXPECT_EQ(s.size(), 3);
-    for (int i = 0; i < 3; ++i) {
-        EXPECT_DOUBLE_EQ(s.signal(i), vec3_(i));
-        EXPECT_TRUE(s.mask(i));
-    }
-}
-
-TEST_F(SignalTest, InitializerListConstructorWorksCorrectly) {
-    Signal<double> s{1.5, 2.5, 3.5};
-
-    EXPECT_EQ(s.size(), 3);
-    EXPECT_DOUBLE_EQ(s.signal(0), 1.5);
-    EXPECT_DOUBLE_EQ(s.signal(1), 2.5);
-    EXPECT_DOUBLE_EQ(s.signal(2), 3.5);
-
-    for (int i = 0; i < 3; ++i) {
-        EXPECT_TRUE(s.mask(i));
-    }
-}
-
-// ---------- Mask Integration Tests ----------
-TEST_F(SignalTest, ConstructorWithCustomMaskPreservesMaskState) {
-    SignalMask mask(3);
-    mask.set(1, false); // Mask out middle element
-
-    Signal<double> s(vec3_, mask);
-
-    EXPECT_TRUE(s.mask(0));
-    EXPECT_FALSE(s.mask(1));
-    EXPECT_TRUE(s.mask(2));
-
-    // Values should still be preserved
-    for (int i = 0; i < 3; ++i) {
-        EXPECT_DOUBLE_EQ(s.signal(i), vec3_(i));
-    }
-}
-
-TEST_F(SignalTest, OptionalVectorConstructorHandlesNulloptCorrectly) {
-    std::vector<std::optional<double>> opts = {
-        1.0, std::nullopt, 3.0, std::nullopt, 5.0
-    };
-
-    Signal<double> s(opts);
-
-    EXPECT_EQ(s.size(), 5);
-
-    // Check values
-    EXPECT_DOUBLE_EQ(s.signal(0), 1.0);
-    EXPECT_DOUBLE_EQ(s.signal(1), 0.0); // nullopt becomes 0.0
-    EXPECT_DOUBLE_EQ(s.signal(2), 3.0);
-    EXPECT_DOUBLE_EQ(s.signal(3), 0.0); // nullopt becomes 0.0
-    EXPECT_DOUBLE_EQ(s.signal(4), 5.0);
-
-    // Check mask
-    EXPECT_TRUE(s.mask(0));
-    EXPECT_FALSE(s.mask(1)); // nullopt becomes masked
-    EXPECT_TRUE(s.mask(2));
-    EXPECT_FALSE(s.mask(3)); // nullopt becomes masked
-    EXPECT_TRUE(s.mask(4));
-}
-
-// ---------- Mask Manipulation Tests ----------
-TEST_F(SignalTest, SetMaskReplacesExistingMask) {
-    Signal<double> s(vec3_);
-
-    SignalMask new_mask(3);
-    new_mask.set(0, false);
-    new_mask.set(2, false);
-
-    s.setMask(new_mask);
-
-    EXPECT_FALSE(s.mask(0));
-    EXPECT_TRUE(s.mask(1));
-    EXPECT_FALSE(s.mask(2));
-
-    // Signal values should remain unchanged
-    for (int i = 0; i < 3; ++i) {
-        EXPECT_DOUBLE_EQ(s.signal(i), vec3_(i));
-    }
-}
-
-TEST_F(SignalTest, SetIndividualMaskElementWorks) {
-    Signal<double> s(vec3_);
-
-    s.setMask(1, false);
-
-    EXPECT_TRUE(s.mask(0));
-    EXPECT_FALSE(s.mask(1));
-    EXPECT_TRUE(s.mask(2));
-}
-
-TEST_F(SignalTest, SetComplementMaskWorksWithSparseRepresentation) {
-    Signal<double> s(vec3_);
-
-    SignalMask::SparseComplementMask sparse_mask(3);
-    sparse_mask.insert(1) = 1; // Index 1 is false in complement
-
-    s.setComplementMask(sparse_mask);
-
-    EXPECT_TRUE(s.mask(0));
-    EXPECT_FALSE(s.mask(1)); // This should be false due to complement
-    EXPECT_TRUE(s.mask(2));
-}
-
-// ---------- Element Access Tests ----------
-TEST_F(SignalTest, GetReturnsOptionalWithCorrectValueForValidElements) {
-    Signal<double> s(vec3_);
-    s.setMask(1, false); // Mask out middle element
-
-    auto opt0 = s.get(0);
-    auto opt1 = s.get(1);
-    auto opt2 = s.get(2);
-
-    EXPECT_TRUE(opt0.has_value());
-    EXPECT_DOUBLE_EQ(*opt0, 1.0);
-
-    EXPECT_FALSE(opt1.has_value()); // Masked element
-
-    EXPECT_TRUE(opt2.has_value());
-    EXPECT_DOUBLE_EQ(*opt2, 3.0);
-}
-
-TEST_F(SignalTest, SetWithValueUpdatesValueAndUnmasks) {
-    Signal<double> s(3);
-    s.setMask(1, false); // Start with masked element
-
-    s.set(1, 99.0);
-
-    EXPECT_DOUBLE_EQ(s.signal(1), 99.0);
-    EXPECT_TRUE(s.mask(1)); // Should be unmasked now
-}
-
-TEST_F(SignalTest, SetWithNulloptMasksElementAndSetsToZero) {
-    Signal<double> s(vec3_);
-
-    s.set(1, std::nullopt);
-
-    EXPECT_DOUBLE_EQ(s.signal(1), 0.0);
-    EXPECT_FALSE(s.mask(1));
-}
-
-// ---------- Arithmetic Operation Tests ----------
-TEST_F(SignalTest, AdditionCombinesMasksCorrectly) {
-    // s1: [1.0, n, 3.0] (masked at index 1)
-    Signal<double> s1({1.0, 2.0, 3.0}, {{1, false}});
-
-    // s2: [4.0, 5.0, n] (masked at index 2)
-    Signal<double> s2({4.0, 5.0, 6.0}, {{2, false}});
-
-    Signal<double> result = s1 + s2;
-
-    // Values should be added
-    EXPECT_DOUBLE_EQ(result.signal(0), 5.0); // 1.0 + 4.0
-    EXPECT_DOUBLE_EQ(result.signal(1), 7.0); // 2.0 + 5.0
-    EXPECT_DOUBLE_EQ(result.signal(2), 9.0); // 3.0 + 6.0
-
-    // Mask should be intersection: only index 0 should be valid
-    // because index 1 is masked in s1 and index 2 is masked in s2
-    EXPECT_TRUE(result.mask(0));
-    EXPECT_FALSE(result.mask(1));
-    EXPECT_FALSE(result.mask(2));
-}
-
-TEST_F(SignalTest, MultiplicationCombinesMasksCorrectly) {
-    Signal<double> s1({1.0, 2.0, 3.0}, {{1, false}}); // [1.0, n, 3.0]
-    Signal<double> s2({4.0, 5.0, 6.0}, {{2, false}}); // [4.0, 5.0, n]
-
-    Signal<double> result = s1 * s2;
-
-    EXPECT_DOUBLE_EQ(result.signal(0), 4.0);  // 1.0 * 4.0
-    EXPECT_DOUBLE_EQ(result.signal(1), 10.0); // 2.0 * 5.0
-    EXPECT_DOUBLE_EQ(result.signal(2), 18.0); // 3.0 * 6.0
-
-    // Mask intersection: only index 0 should be valid
-    EXPECT_TRUE(result.mask(0));
-    EXPECT_FALSE(result.mask(1));
-    EXPECT_FALSE(result.mask(2));
-}
-
-TEST_F(SignalTest, InPlaceOperationsUpdateBothSignalAndMask) {
-    Signal<double> s1({1.0, 2.0, 3.0}, {{1, false}}); // [1.0, n, 3.0]
-    Signal<double> s2({4.0, 5.0, 6.0}, {{2, false}}); // [4.0, 5.0, n]
-
-    s1 += s2;
-
-    EXPECT_DOUBLE_EQ(s1.signal(0), 5.0);  // 1.0 + 4.0
-    EXPECT_DOUBLE_EQ(s1.signal(1), 7.0);  // 2.0 + 5.0
-    EXPECT_DOUBLE_EQ(s1.signal(2), 9.0);  // 3.0 + 6.0
-
-    // Mask should be updated to intersection
-    EXPECT_TRUE(s1.mask(0));
-    EXPECT_FALSE(s1.mask(1));
-    EXPECT_FALSE(s1.mask(2));
-}
-
-// ---------- Matrix Multiplication Tests ----------
-TEST_F(SignalTest, DenseMatrixMultiplicationPreservesMaskLogic) {
-    Signal<double> s({1.0, 2.0, 3.0});
-
-    Eigen::MatrixXd M(2, 3);
-    M << 1.0, 0.0, 1.0,
-         0.0, 1.0, 0.0;
-
-    Signal<double> result = s.mul(M);
-
-    EXPECT_EQ(result.size(), 2);
-    EXPECT_DOUBLE_EQ(result.signal(0), 4.0); // 1*1 + 0*2 + 1*3
-    EXPECT_DOUBLE_EQ(result.signal(1), 2.0); // 0*1 + 1*2 + 0*3
-
-    // All inputs were valid, so outputs should be valid
-    EXPECT_TRUE(result.mask(0));
-    EXPECT_TRUE(result.mask(1));
-}
-
-TEST_F(SignalTest, MatrixMultiplicationWithPartialMask) {
-    // s: [1.0, n, 3.0] (masked at index 1)
-    Signal<double> s({1.0, 2.0, 3.0}, {{1, false}});
-
-    Eigen::MatrixXd M(2, 3);
-    M << 1.0, 1.0, 1.0,
-         1.0, 1.0, 1.0;
-
-    Signal<double> result = s.mul(M);
-
-    // Result: M * [1, n, 3] = [1*1 + 1*n + 1*3, 1*1 + 1*n + 1*3] = [4, 4]
-    EXPECT_DOUBLE_EQ(result.signal(0), 4.0);
-    EXPECT_DOUBLE_EQ(result.signal(1), 4.0);
-
-    // Both outputs depend on the masked column, so both should be masked out
-    EXPECT_FALSE(result.mask(0));
-    EXPECT_FALSE(result.mask(1));
-}
-
-TEST_F(SignalTest, SparseMatrixMultiplicationWorks) {
-    Signal<double> s({1.0, 2.0, 3.0});
-
-    Eigen::SparseMatrix<double> M(2, 3);
-    M.insert(0, 0) = 1.0;
-    M.insert(0, 2) = 1.0;
-    M.insert(1, 1) = 1.0;
-
-    Signal<double> result = s.mul(M);
-
-    EXPECT_EQ(result.size(), 2);
-    EXPECT_DOUBLE_EQ(result.signal(0), 4.0); // 1*1 + 1*3
-    EXPECT_DOUBLE_EQ(result.signal(1), 2.0); // 1*2
-
-    EXPECT_TRUE(result.mask(0));
-    EXPECT_TRUE(result.mask(1));
-}
-
-// ---------- Function Application Tests ----------
-TEST_F(SignalTest, ApplyFunctionPreservesMask) {
-    Signal<double> s({1.0, 2.0, 3.0}, {{1, false}}); // [1.0, n, 3.0]
-
-    auto squared = s.apply([](const double& x) { return x * x; });
-
-    EXPECT_EQ(squared.size(), 3);
-    EXPECT_DOUBLE_EQ(squared.signal(0), 1.0);
-    EXPECT_DOUBLE_EQ(squared.signal(1), 4.0); // But masked out
-    EXPECT_DOUBLE_EQ(squared.signal(2), 9.0);
-
-    // Mask should be preserved exactly
-    EXPECT_TRUE(squared.mask(0));
-    EXPECT_FALSE(squared.mask(1));
-    EXPECT_TRUE(squared.mask(2));
-}
-
-TEST_F(SignalTest, ApplyInplaceFunctionUpdatesOnlyValidElements) {
-    Signal<double> s({1.0, 2.0, 3.0}, {{1, false}}); // [1.0, n, 3.0]
-
-    s.applyInplace([](const double& x) { return x + 10.0; });
-
-    EXPECT_DOUBLE_EQ(s.signal(0), 11.0); // 1.0 + 10.0
-    EXPECT_DOUBLE_EQ(s.signal(1), 2.0);  // Unchanged (masked out)
-    EXPECT_DOUBLE_EQ(s.signal(2), 13.0); // 3.0 + 10.0
-
+    ASSERT_EQ(out.size(), 4);
     // Mask unchanged
-    EXPECT_TRUE(s.mask(0));
-    EXPECT_FALSE(s.mask(1));
-    EXPECT_TRUE(s.mask(2));
+    EXPECT_TRUE(out.mask(0));
+    EXPECT_TRUE(out.mask(1));
+    EXPECT_FALSE(out.mask(2));
+    EXPECT_TRUE(out.mask(3));
+
+    // Values squared on valid indices; invalid index left default-initialized (0)
+    EXPECT_DOUBLE_EQ(static_cast<double>(out.signal(0)), 100.0);
+    EXPECT_DOUBLE_EQ(static_cast<double>(out.signal(1)), 400.0);
+    EXPECT_DOUBLE_EQ(static_cast<double>(out.signal(2)), 0.0);
+    EXPECT_DOUBLE_EQ(static_cast<double>(out.signal(3)), 1600.0);
 }
 
-// ---------- Edge Case Tests ----------
-TEST_F(SignalTest, EmptySignalOperations) {
-    Signal<double> empty;
-    Signal<double> non_empty({1.0, 2.0});
+// applyInplace: same semantics as apply, but in-place
+TYPED_TEST(SignalTypedTest, ApplyInplace_OnlyOnValidIndices) {
+    using S = TypeParam;
+    auto sig = MakeSignal_4_with_mask_1101<S>();
+    sig.applyInplace([](const S& v){ return v + S(1); });
 
-    // Should throw or handle gracefully - testing basic behavior
-    EXPECT_EQ(empty.size(), 0);
-    EXPECT_EQ(non_empty.size(), 2);
+    EXPECT_DOUBLE_EQ(static_cast<double>(sig.signal(0)), 11.0);
+    EXPECT_DOUBLE_EQ(static_cast<double>(sig.signal(1)), 21.0);
+    // masked index 2 must remain zero
+    EXPECT_DOUBLE_EQ(static_cast<double>(sig.signal(2)), 0.0);
+    EXPECT_DOUBLE_EQ(static_cast<double>(sig.signal(3)), 41.0);
 }
 
-TEST_F(SignalTest, ApplyMaskZerosOutMaskedElements) {
-    Signal<double> s({1.0, 2.0, 3.0}, {{1, false}}); // [1.0, n, 3.0]
+// Elementwise operators: mask union + applyMask
+TYPED_TEST(SignalTypedTest, ElementwiseOps_CombineMasksAndZeroMasked) {
+    using S = TypeParam;
 
-    s.applyMask();
+    // sigA: values [1,2,3,4], mask [1,0,1,1]
+    Eigen::Matrix<S, Eigen::Dynamic, 1> a(4);
+    a << S(1), S(2), S(3), S(4);
+    SignalMask maskA(4, { {0,true}, {1,false}, {2,true}, {3,true} });
+    Signal<S> sigA(a, maskA);
+    sigA.applyMask();
 
-    EXPECT_DOUBLE_EQ(s.signal(0), 1.0);
-    EXPECT_DOUBLE_EQ(s.signal(1), 0.0); // Masked element zeroed out
-    EXPECT_DOUBLE_EQ(s.signal(2), 3.0);
+    // sigB: values [10,20,30,40], mask [1,1,0,1]
+    auto sigB = MakeSignal_4_with_mask_1101<S>().applyMask();
 
-    // Mask unchanged
-    EXPECT_TRUE(s.mask(0));
-    EXPECT_FALSE(s.mask(1));
-    EXPECT_TRUE(s.mask(2));
+    // A + B
+    auto ssum = sigA + sigB;
+    // Combined mask = union of falses: indices 1 and 2 false
+    EXPECT_TRUE(ssum.mask(0));
+    EXPECT_FALSE(ssum.mask(1));
+    EXPECT_FALSE(ssum.mask(2));
+    EXPECT_TRUE(ssum.mask(3));
+    // Values where valid: idx0 → 1+10=11, idx3 → 4+40=44
+    EXPECT_DOUBLE_EQ(static_cast<double>(ssum.signal(0)), 11.0);
+    EXPECT_DOUBLE_EQ(static_cast<double>(ssum.signal(1)), 0.0);
+    EXPECT_DOUBLE_EQ(static_cast<double>(ssum.signal(2)), 0.0);
+    EXPECT_DOUBLE_EQ(static_cast<double>(ssum.signal(3)), 44.0);
+
+    // A * B
+    auto sprod = sigA * sigB;
+    EXPECT_TRUE(sprod.mask(0));
+    EXPECT_FALSE(sprod.mask(1));
+    EXPECT_FALSE(sprod.mask(2));
+    EXPECT_TRUE(sprod.mask(3));
+    EXPECT_DOUBLE_EQ(static_cast<double>(sprod.signal(0)), 10.0);
+    EXPECT_DOUBLE_EQ(static_cast<double>(sprod.signal(1)), 0.0);
+    EXPECT_DOUBLE_EQ(static_cast<double>(sprod.signal(2)), 0.0);
+    EXPECT_DOUBLE_EQ(static_cast<double>(sprod.signal(3)), 160.0);
 }
 
-TEST_F(SignalTest, CompressedReturnsOnlyValidElements) {
-    Signal<double> s({1.0, 2.0, 3.0, 4.0}, {{1, false}, {3, false}}); // [1.0, n, 3.0, n]
+// set(idx, optional): setting a value should make index valid; nullopt should invalidate
+TYPED_TEST(SignalTypedTest, SetOptional_TogglesMaskSemantics) {
+    using S = TypeParam;
+    Signal<S> sig(4); // all zeros, mask true by default
 
-    Signal<double> compressed = s.compressed();
+    // Invalidate idx 2
+    sig.setMask(2, false);
+    EXPECT_FALSE(sig.mask(2));
+    EXPECT_DOUBLE_EQ(static_cast<double>(sig.signal(2)), 0.0);
 
-    EXPECT_EQ(compressed.size(), 2); // Only 2 valid elements
-    EXPECT_DOUBLE_EQ(compressed.signal(0), 1.0);
-    EXPECT_DOUBLE_EQ(compressed.signal(1), 3.0);
+    // Set a value at idx 2 → EXPECTED: becomes valid (mask true)
+    sig.set(2, std::optional<S>(S(5)));
+    EXPECT_TRUE(sig.mask(2)) << "Setting a value should mark index as valid (mask true)";
+    EXPECT_DOUBLE_EQ(static_cast<double>(sig.signal(2)), 5.0);
 
-    // All elements in compressed should be valid
-    EXPECT_TRUE(compressed.mask(0));
-    EXPECT_TRUE(compressed.mask(1));
+    // Set nullopt → invalid and zero
+    sig.set(2, std::optional<S>());
+    EXPECT_FALSE(sig.mask(2));
+    EXPECT_DOUBLE_EQ(static_cast<double>(sig.signal(2)), 0.0);
 }
 
-// ---------- String Representation Test ----------
-TEST_F(SignalTest, StringRepresentationShowsMaskedElements) {
-    Signal<double> s({1.0, 2.0, 3.0}, {{1, false}}); // [1.0, n, 3.0]
+// compressed(): should keep only valid entries in order, size == count(valid)
+TYPED_TEST(SignalTypedTest, Compressed_ContainsOnlyValidInOrder) {
+    using S = TypeParam;
 
-    std::string str = s.str();
+    // values [1,2,3,4], mask [1,0,1,1] → valid indices {0,2,3}
+    Eigen::Matrix<S, Eigen::Dynamic, 1> a(4);
+    a << S(1), S(2), S(3), S(4);
+    SignalMask mask(4, { {0,true}, {1,false}, {2,true}, {3,true} });
+    Signal<S> sig(a, mask);
+    sig.applyMask();
 
-    // Should contain representation showing masked element
-    EXPECT_TRUE(str.find("n") != std::string::npos);
-    EXPECT_TRUE(str.find("1") != std::string::npos);
-    EXPECT_TRUE(str.find("3") != std::string::npos);
+    auto comp = sig.compressed();
+    const uint32_t expected_size = CountTrue(mask);
+    ASSERT_EQ(static_cast<uint32_t>(comp.size()), expected_size)
+        << "compressed() size must equal #valid entries";
+
+    // Expect values [1,3,4]
+    ASSERT_EQ(comp.size(), 3);
+    EXPECT_DOUBLE_EQ(static_cast<double>(comp.signal(0)), 1.0);
+    EXPECT_DOUBLE_EQ(static_cast<double>(comp.signal(1)), 3.0);
+    EXPECT_DOUBLE_EQ(static_cast<double>(comp.signal(2)), 4.0);
+    EXPECT_TRUE(comp.mask(0));
+    EXPECT_TRUE(comp.mask(1));
+    EXPECT_TRUE(comp.mask(2));
 }
 
-// // ---------- Type Conversion Tests ----------
-// TEST_F(SignalTest, DifferentSignalTypesWork) {
-//     Signal<int> int_signal({1, 2, 3});
-//     Signal<float> float_signal({1.5f, 2.5f, 3.5f});
-//
-//     EXPECT_EQ(int_signal.size(), 3);
-//     EXPECT_EQ(float_signal.size(), 3);
-//
-//     EXPECT_EQ(int_signal.signal(0), 1);
-//     EXPECT_FLOAT_EQ(float_signal.signal(0), 1.

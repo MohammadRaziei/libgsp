@@ -187,6 +187,5 @@ endif()
 
 if(BUILD_TESTING)
     message(STATUS "Building tests")
-    add_subdirectory(tests) 
+    include(${CMAKE_CURRENT_SOURCE_DIR}/tests/CMakeLists.txt)
 endif()
-
