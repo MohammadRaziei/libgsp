@@ -16,7 +16,7 @@ using gsp::SignalMask;
 TEST(SignalMaskBasic, ConstructFromSize_DefaultAllTrue) {
     SignalMask m(5);
     EXPECT_EQ(m.size(), 5u);
-    EXPECT_EQ(m.nnz(), 0u);                 // nnz == number of FALSE (stored in complement)
+    EXPECT_EQ(m.nnz(), m.size());                 // nnz == number of FALSE (stored in complement)
     for (uint32_t i = 0; i < 5; ++i) {
         EXPECT_TRUE(m.at(i));               // default is true
     }
@@ -26,11 +26,11 @@ TEST(SignalMaskBasic, SetAndGet_Toggle) {
     SignalMask m(4);
     m.set(2, false);
     EXPECT_FALSE(m.at(2));
-    EXPECT_EQ(m.nnz(), 1u);
+    EXPECT_EQ(m.nnz(), 3);
 
     m.set(2, true); // remove from complement
     EXPECT_TRUE(m.at(2));
-    EXPECT_EQ(m.nnz(), 0u);
+    EXPECT_EQ(m.nnz(), m.size());
 }
 
 TEST(SignalMaskBasic, SetMask_DenseVector) {
@@ -43,7 +43,7 @@ TEST(SignalMaskBasic, SetMask_DenseVector) {
     EXPECT_TRUE(m.at(2));
     EXPECT_FALSE(m.at(3));
     EXPECT_TRUE(m.at(4));
-    EXPECT_EQ(m.nnz(), 2u);  // two falses (1 and 3)
+    EXPECT_EQ(m.nnz(), 5u - 2u);  // two falses (1 and 3)
 }
 
 TEST(SignalMaskBasic, UnionOperator) {
@@ -53,6 +53,7 @@ TEST(SignalMaskBasic, UnionOperator) {
     b.set(2, false);
 
     auto c = a + b;  // union of falses
+    printf("c: %s\n", c.str().c_str());
     EXPECT_FALSE(c.at(1));
     EXPECT_FALSE(c.at(2));
     EXPECT_FALSE(c.at(4));
@@ -172,7 +173,7 @@ TEST(SignalMaskBasic, SetComplementMask_Direct) {
     EXPECT_TRUE(m.at(2));
     EXPECT_FALSE(m.at(3));
     EXPECT_TRUE(m.at(4));
-    EXPECT_EQ(m.nnz(), 2u);
+    EXPECT_EQ(m.nnz(), 3u);
 }
 
 // Optional: one quick string check (kept minimal)

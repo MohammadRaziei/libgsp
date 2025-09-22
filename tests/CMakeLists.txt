@@ -6,8 +6,13 @@ set(CURRENT_SOURCE_DIR ${PROJECT_SOURCE_DIR}/tests)
 if(NOT TARGET gtest AND NOT TARGET GTest::gtest)
     set(INSTALL_GTEST OFF CACHE BOOL "" FORCE)
     set(BUILD_GMOCK  OFF CACHE BOOL "" FORCE)
-#    set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+    set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
     add_subdirectory("${CURRENT_SOURCE_DIR}/third_party/googletest")
+    set_target_properties(gtest gtest_main PROPERTIES
+            RUNTIME_OUTPUT_DIRECTORY  "${CMAKE_BINARY_DIR}"
+            LIBRARY_OUTPUT_DIRECTORY  "${CMAKE_BINARY_DIR}"
+            ARCHIVE_OUTPUT_DIRECTORY  "${CMAKE_BINARY_DIR}"
+    )
 endif()
 
 # C++ tests
