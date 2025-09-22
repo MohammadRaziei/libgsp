@@ -29,6 +29,10 @@ project(${PyProject_NAME} LANGUAGES CXX VERSION ${PyProject_VERSION})
 message(STATUS "Project: ${PROJECT_NAME}@v${PROJECT_VERSION}")
 
 
+include(GSPOptimize)
+gsp_set_default_optimizations()
+
+
 # Try to import all Python components potentially needed by nanobind
 
 # find_package(Python3 REQUIRED COMPONENTS Interpreter)

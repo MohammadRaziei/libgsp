@@ -121,7 +121,7 @@ TYPED_TEST(SignalFixture, Apply_OnlyOnValidIndices) {
 
 TYPED_TEST(SignalFixture, ApplyInplace_OnlyOnValidIndices) {
   using S = TypeParam;
-  auto s = this->sig;
+  auto s = this->sig.applyMask();
   s.applyInplace([](const S& v){ return v + S(1); });
 
   EXPECT_DOUBLE_EQ(static_cast<double>(s.signal(0)), 11.0);
