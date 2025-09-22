@@ -88,7 +88,7 @@ void SignalMask::setComplementMask(const SparseComplementMask& complement) {
 }
 
 uint32_t SignalMask::nnz() const {
-    return _size - static_cast<uint32_t>(_sparse_complement.sum());
+    return _size - _sparse_complement.cast<uint32_t>().sum();
 }
 
 
