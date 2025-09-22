@@ -187,5 +187,5 @@ endif()
 
 if(BUILD_TESTING)
     message(STATUS "Building tests")
-    include(${CMAKE_CURRENT_SOURCE_DIR}/tests/CMakeLists.txt)
+    include(GSPTests)
 endif()

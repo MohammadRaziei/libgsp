@@ -1,13 +1,13 @@
 # Tests CMakeLists.txt
 enable_testing()
-set(CURRENT_SOURCE_DIR ${PROJECT_SOURCE_DIR}/tests)
+set(GSP_TESTS_DIR ${PROJECT_SOURCE_DIR}/tests)
 
 # Add GoogleTest if not already included
 if(NOT TARGET gtest AND NOT TARGET GTest::gtest)
     set(INSTALL_GTEST OFF CACHE BOOL "" FORCE)
     set(BUILD_GMOCK  OFF CACHE BOOL "" FORCE)
     set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
-    add_subdirectory("${CURRENT_SOURCE_DIR}/third_party/googletest")
+    add_subdirectory("${GSP_TESTS_DIR}/third_party/googletest")
     set_target_properties(gtest gtest_main PROPERTIES
             RUNTIME_OUTPUT_DIRECTORY  "${CMAKE_BINARY_DIR}"
             LIBRARY_OUTPUT_DIRECTORY  "${CMAKE_BINARY_DIR}"
@@ -16,12 +16,12 @@ if(NOT TARGET gtest AND NOT TARGET GTest::gtest)
 endif()
 
 # C++ tests
-file(GLOB TEST_SOURCES ${CURRENT_SOURCE_DIR}/cpp/test_*.cpp)
+file(GLOB TEST_SOURCES ${GSP_TESTS_DIR}/cpp/test_*.cpp)
 
 if (TEST_SOURCES)
     add_executable(gsp_tests ${TEST_SOURCES})
     target_link_libraries(gsp_tests PRIVATE gsp gtest gtest_main pthread)
-    target_include_directories(gsp_tests PRIVATE "${CURRENT_SOURCE_DIR}/cpp")
+    target_include_directories(gsp_tests PRIVATE "${GSP_TESTS_DIR}/cpp")
 
     add_test(NAME gsp_tests COMMAND gsp_tests)
 
@@ -30,20 +30,20 @@ if (TEST_SOURCES)
 endif()
 
 # Python tests (if any)
-if(EXISTS ${CURRENT_SOURCE_DIR}/python AND BUILD_PYTHON)
+if(EXISTS ${GSP_TESTS_DIR}/python AND BUILD_PYTHON)
     add_test(NAME python_tests
-        COMMAND ${Python3_EXECUTABLE} -m pytest ${CURRENT_SOURCE_DIR}/python
+        COMMAND ${Python3_EXECUTABLE} -m pytest ${GSP_TESTS_DIR}/python
         WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
     )
 endif()
 
 # MATLAB tests (if any)
-if(EXISTS ${CURRENT_SOURCE_DIR}/matlab AND BUILD_MEX_BINDINGS)
-    find_package(Matlab)
+if(EXISTS ${GSP_TESTS_DIR}/matlab AND BUILD_MEX_BINDINGS)
+#    find_package(../tests/matlab)
     if(Matlab_FOUND)
         add_test(NAME matlab_tests
-            COMMAND ${Matlab_MAIN_PROGRAM} -sd ${PROJECT_SOURCE_DIR}
-            -batch "run('${CURRENT_SOURCE_DIR}/matlab/TestMex.m')"
+            COMMAND ${Matlab_MAIN_PROGRAM} -sd ..
+            -batch "run('${GSP_TESTS_DIR}/matlab/TestMex.m')"
         )
     endif()
 endif()
