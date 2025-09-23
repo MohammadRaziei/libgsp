@@ -6,11 +6,14 @@
 #include <utility>
 
 #include <mustache.hpp>
+#include <fmt/ranges.h>
 
 #include "libgsp/utils/Logging.h"          // gsp::logging::getLogger()
 #include "libgsp/io/File.h"
 
 #include "templates/graph_mustache_svg.h"  // templates::graph_mustache_svg
+
+#include "libgsp/utils/Logging.h"
 
 namespace gsp {
 
@@ -62,7 +65,7 @@ struct GraphSvg::Impl {
     std::vector<std::optional<double>> _signal;
 
     // logging
-    std::shared_ptr<spdlog::logger> _logger;
+    gsp::logging::Logger _logger;
 
     // user-config map (stringly-typed for maximal flexibility)
     std::unordered_map<std::string, std::string> _config;
@@ -141,6 +144,17 @@ void GraphSvg::save(const std::string& filepath) const {
     pimpl->_logger->info("Saved SVG to {}", filepath);
 }
 
+GraphSvg& GraphSvg::setSvgCss(const std::string& css) {
+    pimpl->_config.emplace("svg.css", css);
+    pimpl->_dirty_svg = true;
+    return *this;
+}
+
+GraphSvg& GraphSvg::setSvgBackground(const std::string& css) {
+    pimpl->_config.emplace("svg.background", css);
+    pimpl->_dirty_svg = true;
+    return *this;
+}
 // -----------------------------------------------------------------------------
 // PlotSvg::Impl definitions
 // -----------------------------------------------------------------------------
@@ -151,6 +165,13 @@ GraphSvg::Impl::Impl(const gsp::BaseGraph& graph,
     // snapshot nodes/edges once (no further graph calls)
     _nodes = graph.nodes();
     _edges = graph.edges();
+
+    _logger->trace("Creating GraphSvg with {} nodes and {} edges",
+        _nodes.size(), _edges.size());
+
+    if (signal_opt) {
+        _logger->trace("Signal provided with size {}", signal_opt->size());
+    }
 
     // init signal
     const auto n = _nodes.size();
@@ -166,8 +187,15 @@ GraphSvg::Impl::Impl(const gsp::BaseGraph& graph,
         }
     }
 
+    _logger->trace("Signal initialized with size {}", _signal.size());
+    if (signal_opt) {
+        _logger->trace("Signal values: {}", signal_opt->str());
+    }
+
+
     // defaults
     _config.emplace("svg.background", "gray");
+    _config.emplace("svg.css", "");
     _config.emplace("node.fill",  "#00BCE3");
     _config.emplace("node.stroke","black");
     _config.emplace("node.radius","8");
@@ -329,6 +357,7 @@ std::string GraphSvg::Impl::_build_style() const {
     if (!_style_override.empty()) return _style_override;
 
     const auto svg_bg        = _cfg_str("svg.background");
+    const auto svg_css        = _cfg_str("svg.css");
 
     const auto node_fill      = _cfg_str("node.fill");
     const auto node_stroke    = _cfg_str("node.stroke");
@@ -351,8 +380,9 @@ std::string GraphSvg::Impl::_build_style() const {
 
     fmt::memory_buffer css;
     fmt::format_to(std::back_inserter(css),
-               "  svg{{ {} }}\n",
-               svg_bg.empty() ? "" : fmt::format("background:{}", svg_bg));
+               "  svg{{ {1};{0} }}\n",
+               svg_bg.empty() ? "" : fmt::format(" background:{};", svg_bg),
+               svg_css);
     fmt::format_to(std::back_inserter(css),
                    "  .node{{ fill:{}; stroke:{}; stroke-width:.7; opacity:{} }}\n",
                    node_fill, node_stroke, node_opacity);
@@ -393,8 +423,7 @@ std::string GraphSvg::Impl::_build_body() const {
 
         fmt::format_to(std::back_inserter(body),
                        R"(  <line class="edge" x1="{}" y1="{}" x2="{}" y2="{}" v1="{}" v2="{}" weight="{}"/>)"
-                       "\n",
-                       x1, y1, x2, y2, e.source, e.target, e.weight);
+                       "\n", x1, y1, x2, y2, e.source, e.target, e.weight);
     }
 
     // nodes + signals
@@ -409,13 +438,11 @@ std::string GraphSvg::Impl::_build_body() const {
 
         fmt::format_to(std::back_inserter(body),
                        R"(  <circle class="node" cx="{}" cy="{}" r="{}" vx="{}" vy="{}" vz="{}" v="{}" name="{}"/>)"
-                       "\n",
-                       X, Y, node_radius, node.coord.x, node.coord.y, Z, node.id, name);
+                       "\n", X, Y, node_radius, node.coord.x, node.coord.y, Z, node.id, name);
 
         fmt::format_to(std::back_inserter(body),
                        R"(  <text class="node-label" x="{}" y="{}">{}</text>)"
-                       "\n",
-                       X, Y, name);
+                       "\n", X, Y, name);
 
         if (_signal[i].has_value()) {
             const double s = *_signal[i];
@@ -424,19 +451,16 @@ std::string GraphSvg::Impl::_build_body() const {
 
             fmt::format_to(std::back_inserter(body),
                            R"(  <line class="signal" x1="{}" y1="{}" x2="{}" y2="{}"/>)"
-                           "\n",
-                           X, Y, x2, y2);
+                           "\n", X, Y, x2, y2);
 
             fmt::format_to(std::back_inserter(body),
                            R"(  <circle class="signal" cx="{}" cy="{}" r="1"/>)"
-                           "\n",
-                           x2, y2);
+                           "\n", x2, y2);
 
             const double ty = y2 + ((dy < 0.0) ? -sig_lbl_font : sig_lbl_font);
             fmt::format_to(std::back_inserter(body),
                            R"(  <text class="signal-text" text-anchor="middle" dominant-baseline="middle" font-size="{}px" x="{}" y="{}">{}</text>)"
-                           "\n",
-                           sig_lbl_font, X, ty, s);
+                           "\n", sig_lbl_font, X, ty, s);
         }
     }
 
@@ -448,6 +472,7 @@ std::string GraphSvg::Impl::_render_with_template(double width,
                                                  const std::string& metadata,
                                                  const std::string& style,
                                                  const std::string& body) const {
+    _logger->trace("rendering with config: {}", _config);
     kainjow::mustache::data ctx;
     ctx.set("width",  fmt::format("{}", width));
     ctx.set("height", fmt::format("{}", height));

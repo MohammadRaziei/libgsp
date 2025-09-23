@@ -39,6 +39,8 @@ public:
     GraphSvg& setNodeSpaceScale(double v);
     GraphSvg& setSignalScale(double v);
     GraphSvg& setStyleOverride(const std::string& css);
+    GraphSvg& setSvgCss(const std::string& css);
+    GraphSvg& setSvgBackground(const std::string& css);
 
     // ---- Signal API ----
     GraphSvg& setSignal(const Eigen::VectorXd& s);
