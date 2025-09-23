@@ -136,7 +136,7 @@ TYPED_TEST(SignalFixture, ElementwiseOps_CombineMasksAndZeroMasked) {
   // sigA: [1,2,3,4], mask [1,0,1,1]
   Eigen::Matrix<S, Eigen::Dynamic, 1> a(4);
   a << S(1), S(2), S(3), S(4);
-  SignalMask maskA(4, { {0,true}, {1,false}, {2,true}, {3,true} });
+  SignalMask maskA(4, { {0,true}, {1,false}});
   Signal<S> sigA(a, maskA);
   sigA.applyMask();
 
@@ -175,7 +175,7 @@ TYPED_TEST(SignalFixture, SetOptional_TogglesMaskSemantics) {
   EXPECT_FALSE(s.mask(2));
   EXPECT_DOUBLE_EQ(static_cast<double>(s.signal(2)), 0.0);
 
-  s.set(2, std::optional<S>(S(5)));
+  s.set(2, S(5));
   EXPECT_TRUE(s.mask(2)) << "Setting a value should mark index as valid";
   EXPECT_DOUBLE_EQ(static_cast<double>(s.signal(2)), 5.0);
 

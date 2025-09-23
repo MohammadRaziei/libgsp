@@ -110,7 +110,8 @@ public:
 
     // --- Constructors ---
     explicit Signal(int size = 0)
-        : _signal(size), _mask(size) {
+        : _logger(gsp::logging::getLogger("Signal")),
+        _signal(size), _mask(size) {
         _signal.setZero();
     }
 
@@ -126,6 +127,7 @@ public:
                 _logger->error(msg);
                 throw std::invalid_argument(msg);
             }
+            applyMask();
         }
 
     Signal(const std::initializer_list<T>& vec)
@@ -136,7 +138,9 @@ public:
     Signal(const std::initializer_list<T>& vec, const std::initializer_list<std::pair<uint32_t, bool>>& mask)
        : _logger(gsp::logging::getLogger("Signal")),
         _signal(Eigen::Map<const VectorT>(vec.begin(), static_cast<uint32_t>(vec.size()))),
-        _mask(static_cast<uint32_t>(vec.size()), mask) {}
+        _mask(static_cast<uint32_t>(vec.size()), mask) {
+        applyMask();
+    }
 
     Signal(const std::initializer_list<T>& vec, const std::initializer_list<uint8_t>& mask)
         : _logger(gsp::logging::getLogger("Signal")),
@@ -147,6 +151,7 @@ public:
             _logger->error(msg);
             throw std::invalid_argument(msg);
         }
+        applyMask();
     }
 
     Signal(const std::vector<T>& vec)
@@ -217,6 +222,7 @@ public:
     Signal& set(int idx, const std::optional<T>& value) {
         if (value) {
             _signal(idx) = *value;
+            _mask.set(idx, true);
         } else {
             _mask.set(idx, false);
             _signal(idx) = T{};
@@ -229,16 +235,12 @@ public:
     }
 
     Signal<T> mul(const Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic>& M) const {
-        auto y = M * _signal;                 // numeric result
-        auto newMask = _mask.mul(M); // structural mask: cols -> rows
-        return Signal<T>(y, newMask).applyMask();
+        return Signal<T>(M * _signal, _mask.mul(M));
     }
 
     // Out-of-place multiply (sparse)
     Signal<T> mul(const Eigen::SparseMatrix<T>& M) const {
-        auto y = M * _signal;
-        auto newMask = _mask.mul(M);
-        return Signal<T>(y, newMask).applyMask();
+        return Signal<T>(M * _signal, _mask.mul(M));
     }
 
     // In-place multiply (dense)
@@ -257,19 +259,20 @@ public:
 
 
     Signal<T> operator*(const Signal<T>& other) const {
-        return Signal<T>(_signal * other._signal, _mask + other._mask).applyMask();
+        VectorT out(_signal.array() * other._signal.array());
+        return Signal<T>(out, _mask + other._mask);
     }
 
     Signal<T> operator+(const Signal<T>& other) const {
-        return Signal<T>(_signal + other._signal, _mask + other._mask).applyMask();
+        return Signal<T>(_signal + other._signal, _mask + other._mask);
     }
 
     Signal<T> operator-(const Signal<T>& other) const {
-        return Signal<T>(_signal - other._signal, _mask + other._mask).applyMask();
+        return Signal<T>(_signal - other._signal, _mask + other._mask);
     }
 
     Signal<T> operator/(const Signal<T>& other) const {
-        return Signal<T>(_signal / other._signal, _mask + other._mask).applyMask();
+        return Signal<T>(_signal / other._signal, _mask + other._mask);
     }
 
     Signal<T>& operator*=(const Signal<T>& other) {
