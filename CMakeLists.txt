@@ -29,7 +29,7 @@ project(${PyProject_NAME} LANGUAGES CXX VERSION ${PyProject_VERSION})
 message(STATUS "Project: ${PROJECT_NAME}@v${PROJECT_VERSION}")
 
 
-include(GSPOptimize)
+include(Optimize)
 gsp_set_default_optimizations()
 
 
