@@ -41,6 +41,11 @@
 	path = src/third_party/cpp-httplib
 	url = https://github.com/yhirose/cpp-httplib.git
 
+[submodule "src/third_party/tomlplusplus"]
+	path = src/third_party/tomlplusplus
+	url = https://github.com/marzer/tomlplusplus
+	shallow = true
+
 [submodule "tests/third_party/googletest"]
 	path = tests/third_party/googletest
 	url = https://github.com/google/googletest.git
