@@ -5,6 +5,7 @@
 #include <limits>
 #include <utility>
 #include <fstream>
+#include <memory>
 
 #include <mustache.hpp>
 #include <fmt/ranges.h>
@@ -30,8 +31,8 @@ struct GraphSvg::Impl {
     // logging
     gsp::logging::Logger logger;
 
-    // configuration registry (all defaults are registered here)
-    toml::table config;
+    // configuration registry (defaults are registered here)
+    std::shared_ptr<toml::table> config;
 
     // scalar mirrors (kept in sync with `config`)
     double node_space_scale{100.0};
@@ -74,7 +75,7 @@ struct GraphSvg::Impl {
         if (signal_opt) logger->trace("Signal values: {}", signal_opt->str());
 
         // Register defaults in config registry
-        config = toml::table{
+        config = std::make_shared<toml::table>(toml::table{
             {"svg", toml::table{
                 {"background", "gray"},
                 {"css", ""}
@@ -106,7 +107,7 @@ struct GraphSvg::Impl {
                 {"node_space", node_space_scale},
                 {"signal",     signal_scale}
             }}
-        };
+        });
     }
 
     // Deep merge src into dst (tables only). Scalars/arrays overwrite.
@@ -127,7 +128,6 @@ struct GraphSvg::Impl {
             }
         }
     }
-
 
     void compute_bounds() const {
         double mnx =  std::numeric_limits<double>::infinity();
@@ -180,11 +180,11 @@ struct GraphSvg::Impl {
             return style_override;
 
         // All keys are expected to exist in the registry (defaults or loaded).
-        const auto& svg_tbl    = *config["svg"].as_table();
-        const auto& node_tbl   = *config["node"].as_table();
-        const auto& edge_tbl   = *config["edge"].as_table();
-        const auto& label_tbl  = *config["label"].as_table();
-        const auto& signal_tbl = *config["signal"].as_table();
+        const auto& svg_tbl    = *(*config)["svg"].as_table();
+        const auto& node_tbl   = *(*config)["node"].as_table();
+        const auto& edge_tbl   = *(*config)["edge"].as_table();
+        const auto& label_tbl  = *(*config)["label"].as_table();
+        const auto& signal_tbl = *(*config)["signal"].as_table();
 
         const std::string svg_bg  = svg_tbl["background"].value<std::string>().value();
         const std::string svg_css = svg_tbl["css"].value<std::string>().value();
@@ -238,8 +238,8 @@ struct GraphSvg::Impl {
 
     std::string build_body() const {
         // All keys must exist in registry
-        const double node_radius  = config["node"]["radius"].value<double>().value();
-        const double sig_lbl_font = config["signal"]["label"]["font_px"].value<double>().value();
+        const double node_radius  = (*config)["node"]["radius"].value<double>().value();
+        const double sig_lbl_font = (*config)["signal"]["label"]["font_px"].value<double>().value();
 
         fmt::memory_buffer body;
 
@@ -337,19 +337,17 @@ GraphSvg& GraphSvg::operator=(GraphSvg&&) noexcept = default;
 // ------------------ Config I/O: load / loads / dump / dumps -------------------
 
 GraphSvg& GraphSvg::loadConfig(const std::string& file_path) {
-    // Parse TOML file then deep-merge into registry
     auto parsed = toml::parse_file(file_path);
     auto tbl = parsed.as_table();
     if (!tbl) {
-        pimpl->logger->error("load_config: file '{}' did not parse to a table", file_path);
+        pimpl->logger->error("loadConfig: file '{}' did not parse to a table", file_path);
         throw std::runtime_error("TOML root is not a table");
     }
-    Impl::deep_merge(pimpl->config, *tbl);
+    Impl::deep_merge(*pimpl->config, *tbl);
 
-    // Sync mirrors if present in the loaded config
-    if (auto v = pimpl->config["scale"]["node_space"].value<double>())
+    if (auto v = (*pimpl->config)["scale"]["node_space"].value<double>())
         pimpl->node_space_scale = *v;
-    if (auto v = pimpl->config["scale"]["signal"].value<double>())
+    if (auto v = (*pimpl->config)["scale"]["signal"].value<double>())
         pimpl->signal_scale = *v;
 
     pimpl->dirty_svg = true;
@@ -360,14 +358,14 @@ GraphSvg& GraphSvg::loadsConfig(const std::string& toml_text) {
     auto parsed = toml::parse(toml_text);
     auto tbl = parsed.as_table();
     if (!tbl) {
-        pimpl->logger->error("loads_config: input did not parse to a table");
+        pimpl->logger->error("loadsConfig: input did not parse to a table");
         throw std::runtime_error("TOML root is not a table");
     }
-    Impl::deep_merge(pimpl->config, *tbl);
+    Impl::deep_merge(*pimpl->config, *tbl);
 
-    if (auto v = pimpl->config["scale"]["node_space"].value<double>())
+    if (auto v = (*pimpl->config)["scale"]["node_space"].value<double>())
         pimpl->node_space_scale = *v;
-    if (auto v = pimpl->config["scale"]["signal"].value<double>())
+    if (auto v = (*pimpl->config)["scale"]["signal"].value<double>())
         pimpl->signal_scale = *v;
 
     pimpl->dirty_svg = true;
@@ -380,16 +378,14 @@ GraphSvg& GraphSvg::dumpConfig(const std::string& file_path) const {
         pimpl->logger->error("dumpConfig: cannot open '{}' for writing", file_path);
         throw std::runtime_error("dumpConfig: open failed");
     }
-
-    ofs << pimpl->config; // << works for toml::table
+    ofs << *pimpl->config; // stream the table
     pimpl->logger->info("Saved TOML config to {}", file_path);
     return const_cast<GraphSvg&>(*this);
 }
 
 std::string GraphSvg::dumpsConfig() const {
-    return fmt::format("{}", fmt::streamed(pimpl->config));
+    return fmt::format("{}", fmt::streamed(*pimpl->config));
 }
-
 
 // ------------------------------ Other setters --------------------------------
 
@@ -408,7 +404,7 @@ GraphSvg& GraphSvg::setLibGspVersion(const std::string& version) {
 GraphSvg& GraphSvg::setNodeSpaceScale(double v) {
     pimpl->node_space_scale = v;
     // assumes "scale" table and "node_space" key already exist
-    pimpl->config.get("scale")->as_table()->insert_or_assign("node_space", v);
+    pimpl->config->get("scale")->as_table()->insert_or_assign("node_space", v);
     pimpl->dirty_svg = true;
     return *this;
 }
@@ -416,7 +412,7 @@ GraphSvg& GraphSvg::setNodeSpaceScale(double v) {
 GraphSvg& GraphSvg::setSignalScale(double v) {
     pimpl->signal_scale = v;
     // assumes "scale" table and "signal" key already exist
-    pimpl->config.get("scale")->as_table()->insert_or_assign("signal", v);
+    pimpl->config->get("scale")->as_table()->insert_or_assign("signal", v);
     pimpl->dirty_svg = true;
     return *this;
 }
@@ -480,14 +476,14 @@ void GraphSvg::save(const std::string& filepath) const {
 
 // Convenience for quick theming edits
 GraphSvg& GraphSvg::setSvgCss(const std::string& css) {
-    auto* svg_tbl = pimpl->config.get("svg")->as_table(); // must exist
+    auto* svg_tbl = pimpl->config->get("svg")->as_table(); // must exist
     svg_tbl->insert_or_assign("css", css);
     pimpl->dirty_svg = true;
     return *this;
 }
 
 GraphSvg& GraphSvg::setSvgBackground(const std::string& bg) {
-    auto* svg_tbl = pimpl->config.get("svg")->as_table(); // must exist
+    auto* svg_tbl = pimpl->config->get("svg")->as_table(); // must exist
     svg_tbl->insert_or_assign("background", bg);
     pimpl->dirty_svg = true;
     return *this;
