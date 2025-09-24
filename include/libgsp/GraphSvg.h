@@ -31,9 +31,6 @@ public:
     GraphSvg& operator=(GraphSvg&&) noexcept;
 
     // ---- Configuration ----
-    GraphSvg& setConfig(const std::unordered_map<std::string, std::string>& cfg);
-    GraphSvg& setOption(const std::string& key, const std::string& value);
-
     GraphSvg& setTitle(const std::string& title);
     GraphSvg& setLibGspVersion(const std::string& version);
     GraphSvg& setNodeSpaceScale(double v);
@@ -45,6 +42,12 @@ public:
     // ---- Signal API ----
     GraphSvg& setSignal(const Eigen::VectorXd& s);
     GraphSvg& addSignal(uint32_t idx, double value);
+
+    GraphSvg& loadConfig(const std::string& file_path);
+    GraphSvg& loadsConfig(const std::string& toml_text);
+    GraphSvg& dumpConfig(const std::string& file_path) const;
+    std::string dumpsConfig() const;
+
 
     // ---- Render ----
     const std::string& render() const;
