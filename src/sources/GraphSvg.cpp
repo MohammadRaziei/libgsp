@@ -6,10 +6,12 @@
 #include <utility>
 #include <fstream>
 #include <memory>
+#include <sstream>
 
 #include <mustache.hpp>
 #include <fmt/ranges.h>
-#include <toml++/toml.h>
+
+#include <pugixml.hpp>
 
 #include "libgsp/utils/Logging.h"          // gsp::logging::getLogger()
 #include "libgsp/io/File.h"
@@ -31,8 +33,9 @@ struct GraphSvg::Impl {
     // logging
     gsp::logging::Logger logger;
 
-    // configuration registry (defaults are registered here)
-    std::shared_ptr<toml::table> config;
+    // configuration registry (XML, shared)
+    // root element: <config> ... </config>
+    std::shared_ptr<pugi::xml_document> config;
 
     // scalar mirrors (kept in sync with `config`)
     double node_space_scale{100.0};
@@ -74,58 +77,55 @@ struct GraphSvg::Impl {
         logger->trace("Signal initialized with size {}", signal.size());
         if (signal_opt) logger->trace("Signal values: {}", signal_opt->str());
 
-        // Register defaults in config registry
-        config = std::make_shared<toml::table>(toml::table{
-            {"svg", toml::table{
-                {"background", "gray"},
-                {"css", ""}
-            }},
-            {"node", toml::table{
-                {"fill",  "#00BCE3"},
-                {"stroke","black"},
-                {"radius", 8.0},
-                {"opacity","0.8"}
-            }},
-            {"edge", toml::table{
-                {"stroke","black"},
-                {"width", 1.5}
-            }},
-            {"label", toml::table{
-                {"fill","#000000"},
-                {"font_px",12.0}
-            }},
-            {"signal", toml::table{
-                {"color","red"},
-                {"width",2.0},
-                {"tip_radius",1.0},
-                {"label", toml::table{
-                    {"fill","red"},
-                    {"font_px",6.0}
-                }}
-            }},
-            {"scale", toml::table{
-                {"node_space", node_space_scale},
-                {"signal",     signal_scale}
-            }}
-        });
+        // Build default XML config registry
+        config = std::make_shared<pugi::xml_document>();
+        auto cfg = config->append_child("config");
+
+        auto svg = cfg.append_child("svg");
+        svg.append_attribute("background") = "gray";
+        svg.append_attribute("css") = "";
+
+        auto node = cfg.append_child("node");
+        node.append_attribute("fill")   = "#00BCE3";
+        node.append_attribute("stroke") = "black";
+        node.append_attribute("radius") = 8.0;
+        node.append_attribute("opacity")= "0.8";
+
+        auto edge = cfg.append_child("edge");
+        edge.append_attribute("stroke") = "black";
+        edge.append_attribute("width")  = 1.5;
+
+        auto label = cfg.append_child("label");
+        label.append_attribute("fill")    = "#000000";
+        label.append_attribute("font_px") = 12.0;
+
+        auto signal_n = cfg.append_child("signal");
+        signal_n.append_attribute("color")      = "red";
+        signal_n.append_attribute("width")      = 2.0;
+        signal_n.append_attribute("tip_radius") = 1.0;
+        auto siglbl = signal_n.append_child("label");
+        siglbl.append_attribute("fill")    = "red";
+        siglbl.append_attribute("font_px") = 6.0;
+
+        auto scale = cfg.append_child("scale");
+        scale.append_attribute("node_space") = node_space_scale;
+        scale.append_attribute("signal")     = signal_scale;
     }
 
-    // Deep merge src into dst (tables only). Scalars/arrays overwrite.
-    static void deep_merge(toml::table& dst, const toml::table& src) {
-        for (auto&& [k, v] : src) {
-            if (auto vtab = v.as_table()) {
-                // ensure dst[k] exists and is a table
-                auto it = dst.find(k);                // k is toml::key
-                if (it == dst.end() || !it->second.is_table()) {
-                    dst.insert_or_assign(k, toml::table{}); // create/overwrite as table
-                    it = dst.find(k);
-                }
-                auto* dst_tab = it->second.as_table();      // guaranteed non-null
-                deep_merge(*dst_tab, *vtab);
-            } else {
-                // overwrite scalars/arrays directly
-                dst.insert_or_assign(k, v); // copies/converts node value as needed
-            }
+    // Merge src subtree into dst subtree by element name; attributes overwrite; missing children are created.
+    static void xml_deep_merge(pugi::xml_node dst, pugi::xml_node src) {
+        // overwrite/add attributes
+        for (auto a : src.attributes()) {
+            auto da = dst.attribute(a.name());
+            if (da) da.set_value(a.value());
+            else    dst.append_attribute(a.name()).set_value(a.value());
+        }
+        // recurse on child elements by tag-name
+        for (auto c : src.children()) {
+            if (c.type() != pugi::node_element) continue;
+            auto dn = dst.child(c.name());
+            if (!dn) dn = dst.append_child(c.name());
+            xml_deep_merge(dn, c);
         }
     }
 
@@ -142,7 +142,10 @@ struct GraphSvg::Impl {
             const auto& c = nodes[i].coord;
             const double X  = ns * c.x;
             const double Y  = ns * c.y;
-            const double sg = signal[i].value_or(0.0);
+
+            double sg = 0.0;
+            if (signal[i].has_value()) sg = *signal[i];
+
             const double Xs = X;
             const double Ys = Y + ss * sg;
 
@@ -162,57 +165,84 @@ struct GraphSvg::Impl {
         min_x = mnx; max_x = mxx; min_y = mny; max_y = mxy;
     }
 
+    // Embed full config inside <metadata><plotinfo>...</plotinfo></metadata>
     std::string build_metadata() const {
-        fmt::memory_buffer buf;
-        fmt::format_to(std::back_inserter(buf),
-                       R"(<generator name="libgsp" author="Mohammad Raziei" site="https://mohammadraziei.github.io/libgsp" />)");
-        fmt::format_to(std::back_inserter(buf),
-                       R"(<libgsp version="{}" language="cpp" os="linux"/>)", libgsp_version);
-        fmt::format_to(std::back_inserter(buf),
-                       R"(<content format="svg" tags="plot graph signal bar"/>)");
-        fmt::format_to(std::back_inserter(buf),
-                       R"(<plotinfo signalscale="{}" nodespacescale="{}"/>)", signal_scale, node_space_scale);
-        return {buf.data(), buf.size()};
+        pugi::xml_document tmp;
+        auto md = tmp.append_child("metadata");
+
+        // generator (optional)
+        auto gen = md.append_child("generator");
+        gen.append_attribute("name")   = "libgsp";
+        gen.append_attribute("author") = "Mohammad Raziei";
+        gen.append_attribute("site")   = "https://mohammadraziei.github.io/libgsp";
+
+        // libgsp info (optional)
+        auto lg = md.append_child("libgsp");
+        lg.append_attribute("version")  = libgsp_version.c_str();
+        lg.append_attribute("language") = "cpp";
+        lg.append_attribute("os")       = "linux";
+
+        // content (optional)
+        auto content = md.append_child("content");
+        content.append_attribute("format") = "svg";
+        content.append_attribute("tags")   = "plot graph signal bar";
+
+        // plotinfo + attributes + embedded <config>
+        auto pi = md.append_child("plotinfo");
+        pi.append_attribute("signalscale")    = signal_scale;
+        pi.append_attribute("nodespacescale") = node_space_scale;
+
+        // embed config subtree
+        auto cfg_src = config->child("config");
+        auto cfg_dst = pi.append_child("config");
+        for (auto child : cfg_src.children()) {
+            cfg_dst.append_copy(child);
+        }
+
+        std::ostringstream oss;
+        // tmp.save(oss, "  ", pugi::format_no_declaration);
+        md.print(oss, "  ");
+        return oss.str();
     }
 
     std::string build_style() const {
         if (!style_override.empty())
             return style_override;
 
-        // All keys are expected to exist in the registry (defaults or loaded).
-        const auto& svg_tbl    = *(*config)["svg"].as_table();
-        const auto& node_tbl   = *(*config)["node"].as_table();
-        const auto& edge_tbl   = *(*config)["edge"].as_table();
-        const auto& label_tbl  = *(*config)["label"].as_table();
-        const auto& signal_tbl = *(*config)["signal"].as_table();
+        auto cfg    = config->child("config");
+        auto svg    = cfg.child("svg");
+        auto node   = cfg.child("node");
+        auto edge   = cfg.child("edge");
+        auto label  = cfg.child("label");
+        auto signal = cfg.child("signal");
+        auto siglbl = signal.child("label");
 
-        const std::string svg_bg  = svg_tbl["background"].value<std::string>().value();
-        const std::string svg_css = svg_tbl["css"].value<std::string>().value();
+        const char* svg_bg  = svg.attribute("background").value();
+        const char* svg_css = svg.attribute("css").value();
 
-        const std::string node_fill    = node_tbl["fill"].value<std::string>().value();
-        const std::string node_stroke  = node_tbl["stroke"].value<std::string>().value();
-        const std::string node_opacity = node_tbl["opacity"].value<std::string>().value();
-        const double      node_radius  = node_tbl["radius"].value<double>().value(); // used inline in body
+        const char* node_fill    = node.attribute("fill").value();
+        const char* node_stroke  = node.attribute("stroke").value();
+        const char* node_opacity = node.attribute("opacity").value();
+        const double node_radius = node.attribute("radius").as_double(); // used inline in body
 
-        const std::string edge_stroke  = edge_tbl["stroke"].value<std::string>().value();
-        const double      edge_width   = edge_tbl["width"].value<double>().value();
+        const char* edge_stroke  = edge.attribute("stroke").value();
+        const double edge_width  = edge.attribute("width").as_double();
 
-        const std::string label_fill   = label_tbl["fill"].value<std::string>().value();
-        const double      label_font   = label_tbl["font_px"].value<double>().value();
+        const char* label_fill   = label.attribute("fill").value();
+        const double label_font  = label.attribute("font_px").as_double();
 
-        const std::string sig_color    = signal_tbl["color"].value<std::string>().value();
-        const double      sig_width    = signal_tbl["width"].value<double>().value();
-        const double      sig_tip_r    = signal_tbl["tip_radius"].value<double>().value();
-        const auto&       sig_lbl_tbl  = *signal_tbl["label"].as_table();
-        const std::string sig_lbl_fill = sig_lbl_tbl["fill"].value<std::string>().value();
-        const double      sig_lbl_font = sig_lbl_tbl["font_px"].value<double>().value();
+        const char* sig_color    = signal.attribute("color").value();
+        const double sig_width   = signal.attribute("width").as_double();
+        const double sig_tip_r   = signal.attribute("tip_radius").as_double();
+        const char* sig_lbl_fill = siglbl.attribute("fill").value();
+        const double sig_lbl_font= siglbl.attribute("font_px").as_double();
 
-        (void)node_radius;
+        (void)node_radius; // applied inline in body
 
         fmt::memory_buffer css;
         fmt::format_to(std::back_inserter(css),
             "  svg{{ {1};{0} }}\n",
-            svg_bg.empty() ? "" : fmt::format(" background:{};", svg_bg),
+            (*svg_bg ? fmt::format(" background:{};", svg_bg) : std::string{}),
             svg_css);
         fmt::format_to(std::back_inserter(css),
             "  .node{{ fill:{}; stroke:{}; stroke-width:.7; opacity:{} }}\n",
@@ -237,9 +267,9 @@ struct GraphSvg::Impl {
     }
 
     std::string build_body() const {
-        // All keys must exist in registry
-        const double node_radius  = (*config)["node"]["radius"].value<double>().value();
-        const double sig_lbl_font = (*config)["signal"]["label"]["font_px"].value<double>().value();
+        auto cfg = config->child("config");
+        const double node_radius  = cfg.child("node").attribute("radius").as_double();
+        const double sig_lbl_font = cfg.child("signal").child("label").attribute("font_px").as_double();
 
         fmt::memory_buffer body;
 
@@ -304,12 +334,12 @@ struct GraphSvg::Impl {
                                      const std::string& metadata,
                                      const std::string& style,
                                      const std::string& body) const {
-        logger->trace("rendering with config (toml)");
+        logger->trace("rendering with config (xml)");
         kainjow::mustache::data ctx;
         ctx.set("width",  fmt::format("{}", width));
         ctx.set("height", fmt::format("{}", height));
         ctx.set("title",  title);
-        ctx.set("metadata", metadata); // template should use {{{metadata}}}
+        ctx.set("metadata", metadata); // template must use {{{metadata}}}
         ctx.set("style",   style);     // {{{style}}}
         ctx.set("body",    body);      // {{{body}}}
 
@@ -334,57 +364,70 @@ GraphSvg::~GraphSvg() = default;
 GraphSvg::GraphSvg(GraphSvg&&) noexcept = default;
 GraphSvg& GraphSvg::operator=(GraphSvg&&) noexcept = default;
 
-// ------------------ Config I/O: load / loads / dump / dumps -------------------
+// ------------------ Config I/O: load / loads / dump / dumps (XML) --------------
 
 GraphSvg& GraphSvg::loadConfig(const std::string& file_path) {
-    auto parsed = toml::parse_file(file_path);
-    auto tbl = parsed.as_table();
-    if (!tbl) {
-        pimpl->logger->error("loadConfig: file '{}' did not parse to a table", file_path);
-        throw std::runtime_error("TOML root is not a table");
+    pugi::xml_document incoming;
+    auto res = incoming.load_file(file_path.c_str());
+    if (!res) {
+        pimpl->logger->error("loadConfig: parse failed: {}", res.description());
+        throw std::runtime_error("XML parse failed");
     }
-    Impl::deep_merge(*pimpl->config, *tbl);
+    auto src = incoming.child("config");
+    if (!src) {
+        pimpl->logger->error("loadConfig: <config> root not found in '{}'", file_path);
+        throw std::runtime_error("XML root <config> not found");
+    }
 
-    if (auto v = (*pimpl->config)["scale"]["node_space"].value<double>())
-        pimpl->node_space_scale = *v;
-    if (auto v = (*pimpl->config)["scale"]["signal"].value<double>())
-        pimpl->signal_scale = *v;
+    auto dst = pimpl->config->child("config");
+    Impl::xml_deep_merge(dst, src);
+
+    // sync mirrors
+    auto scale = dst.child("scale");
+    pimpl->node_space_scale = scale.attribute("node_space").as_double();
+    pimpl->signal_scale     = scale.attribute("signal").as_double();
 
     pimpl->dirty_svg = true;
     return *this;
 }
 
-GraphSvg& GraphSvg::loadsConfig(const std::string& toml_text) {
-    auto parsed = toml::parse(toml_text);
-    auto tbl = parsed.as_table();
-    if (!tbl) {
-        pimpl->logger->error("loadsConfig: input did not parse to a table");
-        throw std::runtime_error("TOML root is not a table");
+GraphSvg& GraphSvg::loadsConfig(const std::string& xml_text) {
+    pugi::xml_document incoming;
+    auto res = incoming.load_string(xml_text.c_str());
+    if (!res) {
+        pimpl->logger->error("loadsConfig: parse failed: {}", res.description());
+        throw std::runtime_error("XML parse failed");
     }
-    Impl::deep_merge(*pimpl->config, *tbl);
+    auto src = incoming.child("config");
+    if (!src) {
+        pimpl->logger->error("loadsConfig: <config> root not found in string");
+        throw std::runtime_error("XML root <config> not found");
+    }
 
-    if (auto v = (*pimpl->config)["scale"]["node_space"].value<double>())
-        pimpl->node_space_scale = *v;
-    if (auto v = (*pimpl->config)["scale"]["signal"].value<double>())
-        pimpl->signal_scale = *v;
+    auto dst = pimpl->config->child("config");
+    Impl::xml_deep_merge(dst, src);
+
+    auto scale = dst.child("scale");
+    pimpl->node_space_scale = scale.attribute("node_space").as_double();
+    pimpl->signal_scale     = scale.attribute("signal").as_double();
 
     pimpl->dirty_svg = true;
     return *this;
 }
 
 GraphSvg& GraphSvg::dumpConfig(const std::string& file_path) const {
-    std::ofstream ofs(file_path);
-    if (!ofs) {
-        pimpl->logger->error("dumpConfig: cannot open '{}' for writing", file_path);
-        throw std::runtime_error("dumpConfig: open failed");
+    if (!pimpl->config->save_file(file_path.c_str(), PUGIXML_TEXT("  "))) {
+        pimpl->logger->error("dumpConfig: save failed '{}'", file_path);
+        throw std::runtime_error("dumpConfig: save failed");
     }
-    ofs << *pimpl->config; // stream the table
-    pimpl->logger->info("Saved TOML config to {}", file_path);
+    pimpl->logger->info("Saved XML config to {}", file_path);
     return const_cast<GraphSvg&>(*this);
 }
 
 std::string GraphSvg::dumpsConfig() const {
-    return fmt::format("{}", fmt::streamed(*pimpl->config));
+    std::ostringstream oss;
+    pimpl->config->save(oss, PUGIXML_TEXT("  "));
+    return oss.str();
 }
 
 // ------------------------------ Other setters --------------------------------
@@ -403,16 +446,16 @@ GraphSvg& GraphSvg::setLibGspVersion(const std::string& version) {
 
 GraphSvg& GraphSvg::setNodeSpaceScale(double v) {
     pimpl->node_space_scale = v;
-    // assumes "scale" table and "node_space" key already exist
-    pimpl->config->get("scale")->as_table()->insert_or_assign("node_space", v);
+    // assumes path exists
+    pimpl->config->child("config").child("scale").attribute("node_space").set_value(v);
     pimpl->dirty_svg = true;
     return *this;
 }
 
 GraphSvg& GraphSvg::setSignalScale(double v) {
     pimpl->signal_scale = v;
-    // assumes "scale" table and "signal" key already exist
-    pimpl->config->get("scale")->as_table()->insert_or_assign("signal", v);
+    // assumes path exists
+    pimpl->config->child("config").child("scale").attribute("signal").set_value(v);
     pimpl->dirty_svg = true;
     return *this;
 }
@@ -455,7 +498,7 @@ const std::string& GraphSvg::render() const {
     const double width  = std::max(1.0, pimpl->max_x - pimpl->min_x);
     const double height = std::max(1.0, pimpl->max_y - pimpl->min_y);
 
-    const std::string metadata = pimpl->build_metadata();
+    const std::string metadata = pimpl->build_metadata(); // embeds <metadata><plotinfo><config>...</config>
     const std::string style    = pimpl->build_style();
     const std::string body     = pimpl->build_body();
 
@@ -476,15 +519,13 @@ void GraphSvg::save(const std::string& filepath) const {
 
 // Convenience for quick theming edits
 GraphSvg& GraphSvg::setSvgCss(const std::string& css) {
-    auto* svg_tbl = pimpl->config->get("svg")->as_table(); // must exist
-    svg_tbl->insert_or_assign("css", css);
+    pimpl->config->child("config").child("svg").attribute("css").set_value(css.c_str());
     pimpl->dirty_svg = true;
     return *this;
 }
 
 GraphSvg& GraphSvg::setSvgBackground(const std::string& bg) {
-    auto* svg_tbl = pimpl->config->get("svg")->as_table(); // must exist
-    svg_tbl->insert_or_assign("background", bg);
+    pimpl->config->child("config").child("svg").attribute("background").set_value(bg.c_str());
     pimpl->dirty_svg = true;
     return *this;
 }

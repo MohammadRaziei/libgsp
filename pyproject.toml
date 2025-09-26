@@ -38,7 +38,7 @@ test = [
 [project.urls]
 "Homepage" = "https://github.com/mohammadraziei/libgsp"
 "Bug Tracker" = "https://github.com/mohammadraziei/libgsp/issues"
-"Document" = "https://mohammadraziei.github.io/libgsp/latest"
+"Document" = "https://mohammadraziei.github.io/libgsp"
 
 
 [tool.cibuildwheel]

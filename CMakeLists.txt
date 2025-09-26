@@ -1,12 +1,22 @@
 cmake_minimum_required(VERSION 3.16)
 
+
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake")
+include(PyProject)
+
+project(${PyProject_NAME} LANGUAGES CXX VERSION ${PyProject_VERSION})
+message(STATUS "Project: ${PROJECT_NAME}@v${PROJECT_VERSION}")
+
+include(Startup)
+
+
 option(BUILD_PYTHON_BINDINGS "export python module" OFF)
 option(BUILD_MEX_BINDINGS "export matlab mex file" OFF)
 option(BUILD_SHARED_LIBS "Build shared libraries" ON)
-option(BUILD_TESTING "Build tests" OFF)
+option(BUILD_TESTING "Build tests" ${PROJECT_IS_TOP_LEVEL})
 option(BUILD_EXAMPLES "Build examples" ON)
 option(BUILD_BENCHMARKS "Build benchmarks" OFF)
-option(CMake_BUILD_TYPE "Set build type" "Release")
+option(CMAKE_BUILD_TYPE "Set build type" "Release")
 
 
 
@@ -14,19 +24,9 @@ set(CMAKE_CXX_STANDARD 17 CACHE STRING "C++ version selection")
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-
-list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake")
-include(PyProject)
-
-
-
-
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE}" CACHE STRING "" FORCE)
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG}" CACHE STRING "" FORCE)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}" CACHE STRING "" FORCE)
-
-project(${PyProject_NAME} LANGUAGES CXX VERSION ${PyProject_VERSION})
-message(STATUS "Project: ${PROJECT_NAME}@v${PROJECT_VERSION}")
 
 
 include(Optimize)
@@ -39,7 +39,7 @@ gsp_set_default_optimizations()
 
 
 add_subdirectory(src/third_party/lunasvg)
-#add_subdirectory(src/third_party/alglib)
+
 add_library(eigen INTERFACE)
 target_include_directories(eigen INTERFACE
         ${PROJECT_SOURCE_DIR}/src/third_party/eigen
@@ -63,7 +63,17 @@ target_include_directories(gsp PUBLIC src/third_party/spdlog/include/spdlog)
 target_include_directories(gsp PUBLIC src/third_party/mustache)
 target_include_directories(gsp PRIVATE src/third_party/tomlplusplus/include)
 target_include_directories(gsp PRIVATE src/third_party/cpp-httplib)
-target_link_libraries(gsp PUBLIC lunasvg::lunasvg)
+target_link_libraries(gsp PRIVATE lunasvg::lunasvg)
+target_compile_definitions(gsp PRIVATE PUGIXML_HEADER_ONLY)
+target_include_directories(gsp PRIVATE src/third_party/pugixml/src)
+target_compile_definitions(gsp PRIVATE
+        GSP_NAME=${PyProject_NAME}
+        GSP_VERSION=${PyProject_VERSION_COMPLETE}
+        GSP_AUTHOR_NAME=${PyProject_AUTHOR_NAME}
+        GSP_AUTHOR_EMAIL=${PyProject_AUTHOR_EMAIL}
+        GSP_REPO_URL=${PyProject_HOMEPAGE_URL}
+        GSP_SITE_URL=${PyProject_DOCUMENT_URL}
+)
 target_link_libraries(gsp PUBLIC eigen)
 
 

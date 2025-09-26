@@ -4,6 +4,7 @@
 
 #include "libgsp/Graph.h"
 #include "libgsp/GraphSvg.h"
+#include "libgsp/Signal.h"
 #include "libgsp/plotting/FigureManager.h"
 #include "libgsp/utils/Logging.h"
 

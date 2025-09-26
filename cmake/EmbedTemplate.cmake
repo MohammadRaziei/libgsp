@@ -30,8 +30,13 @@ function(make_namespace REL_DIR OUT_VAR)
     set(${OUT_VAR} "${_NS}" PARENT_SCOPE)
 endfunction()
 
-# ---- Core embedding ----
-function(embed_template INPUT OUTPUT REL_DIR)
+# ---- Unified embedding ----
+# Usage:
+#   embed_file(INPUT OUTPUT NAMESPACE)
+# Example:
+#   embed_file("${TPL}" "${OUT_HDR}" "${NAMESPACE}")              # templates
+#   embed_file("${PF}"  "${OUT_HDR}" "project")                   # project files
+function(embed_file INPUT OUTPUT NAMESPACE)
     set(TEMPLATES_HEADER_IN ${PROJECT_SOURCE_DIR}/cmake/templates.in.h)
 
     file(READ "${INPUT}" CONTENT)
@@ -39,7 +44,7 @@ function(embed_template INPUT OUTPUT REL_DIR)
 
     make_identifier_from_filename("${INPUT}" VAR)
     make_include_guard("${INPUT}" INCLUDE_GUARD)
-    make_namespace("${REL_DIR}" NAMESPACE)
+    # NAMESPACE is passed in by caller
 
     get_filename_component(_OUTDIR "${OUTPUT}" DIRECTORY)
     file(MAKE_DIRECTORY "${_OUTDIR}")
@@ -47,7 +52,7 @@ function(embed_template INPUT OUTPUT REL_DIR)
     configure_file("${TEMPLATES_HEADER_IN}" "${OUTPUT}" @ONLY)
 endfunction()
 
-# ---- Main ----
+# ---- Main (templates) ----
 set(TEMPLATES_DIR ${PROJECT_SOURCE_DIR}/src/templates)
 set(GENERATED_TEMPLATE_HEADERS_DIR "${CMAKE_CURRENT_BINARY_DIR}/generated")
 set(GENERATED_TEMPLATE_HEADERS)
@@ -61,6 +66,7 @@ foreach(TPL IN LISTS TEMPLATE_FILES)
     string(REPLACE "-" "_" REL_DIR "${REL_DIR}")
 
     make_identifier_from_filename("${TPL}" VAR_NAME)
+    make_namespace("${REL_DIR}" NAMESPACE)
 
     if(REL_DIR STREQUAL "")
         set(OUT_HDR "${GENERATED_TEMPLATE_HEADERS_DIR}/templates/${VAR_NAME}.h")
@@ -68,6 +74,36 @@ foreach(TPL IN LISTS TEMPLATE_FILES)
         set(OUT_HDR "${GENERATED_TEMPLATE_HEADERS_DIR}/templates/${REL_DIR}/${VAR_NAME}.h")
     endif()
 
-    embed_template("${TPL}" "${OUT_HDR}" "${REL_DIR}")
+    embed_file("${TPL}" "${OUT_HDR}" "${NAMESPACE}")
+    list(APPEND GENERATED_TEMPLATE_HEADERS "${OUT_HDR}")
+endforeach()
+
+# ---- Main (project files) ----
+set(GENERATED_PROJECT_DIR "${CMAKE_CURRENT_BINARY_DIR}/generated/project")
+
+# Track changes to project files to trigger reconfigure
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
+        "${PROJECT_SOURCE_DIR}/.gitmodules"
+        "${PROJECT_SOURCE_DIR}/.gitmodule"
+        "${PROJECT_SOURCE_DIR}/pyproject.toml"
+)
+
+# Collect project files if they exist
+set(PROJECT_FILES)
+if(EXISTS "${PROJECT_SOURCE_DIR}/.gitmodules")
+    list(APPEND PROJECT_FILES "${PROJECT_SOURCE_DIR}/.gitmodules")
+elseif(EXISTS "${PROJECT_SOURCE_DIR}/.gitmodule")
+    list(APPEND PROJECT_FILES "${PROJECT_SOURCE_DIR}/.gitmodule")
+endif()
+
+if(EXISTS "${PROJECT_SOURCE_DIR}/pyproject.toml")
+    list(APPEND PROJECT_FILES "${PROJECT_SOURCE_DIR}/pyproject.toml")
+endif()
+
+# Generate headers into generated/project
+foreach(PF IN LISTS PROJECT_FILES)
+    make_identifier_from_filename("${PF}" VAR_NAME)
+    set(OUT_HDR "${GENERATED_PROJECT_DIR}/${VAR_NAME}.h")
+    embed_file("${PF}" "${OUT_HDR}" "project")
     list(APPEND GENERATED_TEMPLATE_HEADERS "${OUT_HDR}")
 endforeach()
