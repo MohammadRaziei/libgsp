@@ -1,9 +1,9 @@
-// //
-// // Created by mohammad on 5/20/23.
-// //
-// #include <iostream>
-// #include <memory>
-// #include <filesystem>
+//
+// Created by mohammad on 5/20/23.
+//
+#include <iostream>
+#include <memory>
+#include <filesystem>
 //
 //
 // #include <mustache.hpp>
@@ -20,9 +20,9 @@
 // namespace fs = std::filesystem;
 //
 //
-// int main(int argc, char** argv) {
-//     gsp::logging::setDefaultConfigs(gsp::logging::level::debug);
-//     auto logger = gsp::logging::getLoggerByPath(__FILE__);
+int main(int argc, char** argv) {
+     // gsp::logging::setDefaultConfigs(gsp::logging::level::debug);
+     // auto logger = gsp::logging::getLoggerByPath(__FILE__);
 //
 //     std::vector<gsp::Edge>  edges      = {{0, 0},{0,1, 3},{0,2},{1,2},{2,3}};
 //     std::vector<gsp::Coord> coords_vec = {{0,0}, {2,0}, {1,-1}, {3,-1}};
@@ -111,4 +111,4 @@
 //     logger->info("\ngood bye :)\n");
 //
 // //    return svg2png(svg);
-// }
+}

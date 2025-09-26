@@ -8,7 +8,7 @@
 
 #include "libgsp/utils/GspInfo.h"
 
-using namespace gsp;
+using namespace gsp::info;
 
 namespace {
 
@@ -29,7 +29,7 @@ struct InfoSnapshot {
 class InfoTest : public ::testing::Test {
 protected:
     void SetUp() override {
-        auto& info = Info::instance();
+        auto& info = GspInfo::instance();
         snap.name = info.name();
         snap.author_name = info.authorName();
         snap.author_email = info.authorEmail();
@@ -40,7 +40,7 @@ protected:
     }
 
     void TearDown() override {
-        auto& info = Info::instance();
+        auto& info = GspInfo::instance();
         info.setName(snap.name)
             .setAuthorName(snap.author_name)
             .setAuthorEmail(snap.author_email)
@@ -54,13 +54,13 @@ protected:
 };
 
 TEST_F(InfoTest, SingletonIdentity) {
-    auto& a = Info::instance();
-    auto& b = Info::instance();
+    auto& a = GspInfo::instance();
+    auto& b = GspInfo::instance();
     EXPECT_EQ(&a, &b) << "Info::instance() must return the same object (singleton).";
 }
 
 TEST_F(InfoTest, DefaultsArePopulatedAndSane) {
-    auto& info = Info::instance();
+    auto& info = GspInfo::instance();
 
     // Version must be provided by build macro and not fall back.
     EXPECT_FALSE(info.version().empty()) << "Version must not be empty.";
@@ -79,7 +79,7 @@ TEST_F(InfoTest, DefaultsArePopulatedAndSane) {
 }
 
 TEST_F(InfoTest, SettersRoundTrip) {
-    auto& info = Info::instance();
+    auto& info = GspInfo::instance();
     const std::string new_author   = "Unit Test Author";
     const std::string new_email    = "unit@test.example";
     const std::string new_site     = "https://unit.test";
@@ -101,7 +101,7 @@ TEST_F(InfoTest, SettersRoundTrip) {
 }
 
 TEST_F(InfoTest, Chainability) {
-    auto& info = Info::instance();
+    auto& info = GspInfo::instance();
 
     // Chain a different set of values to ensure fluent API is preserved.
     info.setAuthorName("A")
@@ -118,6 +118,6 @@ TEST_F(InfoTest, Chainability) {
 }
 
 TEST_F(InfoTest, NameSetterWhenGetterIsAvailable) {
-     auto& info = Info::instance();
+     auto& info = GspInfo::instance();
      EXPECT_EQ(info.name(), "libgsp");
 }
