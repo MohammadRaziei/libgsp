@@ -35,6 +35,7 @@ class GspInfo {
 public:
     // Singleton accessor
     static GspInfo& instance();
+    static void summary();
 
     // ----- Getters -----
     const std::string& name()        const noexcept { return _name; }
@@ -52,12 +53,13 @@ public:
     GspInfo& setVersion(std::string v)     { _version = std::move(v); return *this; }
     GspInfo& setAuthorName(std::string v)  { _author_name = std::move(v); return *this; }
     GspInfo& setAuthorEmail(std::string v) { _author_email = std::move(v); return *this; }
-    GspInfo& setSiteUrl(std::string v)     { _site_url = std::move(v); return *this; }
     GspInfo& setLanguage(std::string v)    { _language = std::move(v); return *this; }
     GspInfo& setOs(std::string v)          { _os = std::move(v); return *this; }
 
     // Utility
     static std::string detectOs();
+    void print() const;
+
 
 private:
     GspInfo(); // private constructor

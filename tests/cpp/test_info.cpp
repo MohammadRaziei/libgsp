@@ -44,7 +44,6 @@ protected:
         info.setName(snap.name)
             .setAuthorName(snap.author_name)
             .setAuthorEmail(snap.author_email)
-            .setSiteUrl(snap.site_url)
             .setLanguage(snap.language)
             .setVersion(snap.version)
             .setOs(snap.os);
@@ -82,20 +81,17 @@ TEST_F(InfoTest, SettersRoundTrip) {
     auto& info = GspInfo::instance();
     const std::string new_author   = "Unit Test Author";
     const std::string new_email    = "unit@test.example";
-    const std::string new_site     = "https://unit.test";
     const std::string new_language = "rust";
     const std::string new_os       = "plan9";
 
     info.setAuthorName(new_author)
         .setAuthorEmail(new_email)
-        .setSiteUrl(new_site)
         .setLanguage(new_language)
         .setOs(new_os);
     // .setName("UnitTestLib");  // No getter available in current header to verify.
 
     EXPECT_EQ(info.authorName(),  new_author);
     EXPECT_EQ(info.authorEmail(), new_email);
-    EXPECT_EQ(info.siteUrl(),     new_site);
     EXPECT_EQ(info.language(),    new_language);
     EXPECT_EQ(info.os(),          new_os);
 }
@@ -106,13 +102,11 @@ TEST_F(InfoTest, Chainability) {
     // Chain a different set of values to ensure fluent API is preserved.
     info.setAuthorName("A")
         .setAuthorEmail("a@example.com")
-        .setSiteUrl("https://a.example")
         .setLanguage("zig")
         .setOs("amiga");
 
     EXPECT_EQ(info.authorName(),  "A");
     EXPECT_EQ(info.authorEmail(), "a@example.com");
-    EXPECT_EQ(info.siteUrl(),     "https://a.example");
     EXPECT_EQ(info.language(),    "zig");
     EXPECT_EQ(info.os(),          "amiga");
 }

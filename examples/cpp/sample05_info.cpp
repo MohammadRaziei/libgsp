@@ -40,5 +40,8 @@ int main() {
         }
     }
 
+    logger->info("summary:");
+    gsp::info::GspInfo::summary();
+
     return 0;
 }

@@ -8,11 +8,16 @@
 #include "project/pyproject_toml.h"
 #include "project/gitmodules.h"
 
+
 namespace gsp::info {
 
 GspInfo& GspInfo::instance() {
     static GspInfo inst;
     return inst;
+}
+
+void GspInfo::summary() {
+    instance().print();
 }
 
 GspInfo::GspInfo()
@@ -124,5 +129,56 @@ std::string GspInfo::detectOs() {
     return "unknown";
 #endif
 }
+
+
+void GspInfo::print() const {
+    auto trunc = [](std::string s, std::size_t maxlen) -> std::string {
+        if (s.size() <= maxlen) return s;
+        if (maxlen <= 3) return s.substr(0, maxlen);
+        return s.substr(0, maxlen - 3) + "...";
+    };
+
+    auto type_icon = [](SubmoduleType t) -> char {
+        switch (t) {
+            case SubmoduleType::Source:  return 'S';
+            case SubmoduleType::Test:    return 'T';
+            default:                     return '?';
+        }
+    };
+
+    constexpr int width = 92;
+    fmt::print("╔{0:═^{1}}╗\n", " G S P  —  Project Info ", width);
+    std::string _fmt = std::string("║ {0: <16}: {1: <") + std::to_string(width-20) +"} ║\n";
+    fmt::print(_fmt, "Name", trunc(_name, 57));
+    fmt::print(_fmt, "Version", trunc(_version, 57));
+    fmt::print(_fmt, "Language", trunc(_language, 57));
+    fmt::print(_fmt, "OS", trunc(_os, 57));
+    fmt::print(_fmt, "Author", fmt::format("{} <{}>", trunc(_author_name, 38),
+                                       trunc(_author_email, width - 38 - 5)));
+    fmt::print(_fmt, "Website", trunc(_site_url, 57));
+    fmt::print("╠{0:═^{1}}╣\n", " Dependencies ", width);
+
+    const int url_width = width-50;
+    _fmt = std::string("║ {0:<18} │ {1:<20} │ {2:<") + std::to_string(url_width) +"} │ {3} ║\n";
+    fmt::print(_fmt, "Name", "Path", "URL", "T");
+    fmt::print("╟{0:─^{1}}╢\n", "", width);
+
+
+    if (_deps.empty()) {
+        fmt::print("║ {0: ^{1}} ║\n", "— no dependencies —", width);
+    } else {
+        for (const auto& kv : _deps) {
+            const auto& sm = kv.second;
+            fmt::print(_fmt,
+                       trunc(sm.name, 18),
+                       trunc(sm.path, 20),
+                       trunc(sm.url, url_width),
+                       type_icon(sm.type));
+        }
+    }
+
+    fmt::print("╚{0:═^{1}}╝\n", "", width);
+}
+
 
 } // namespace gsp::info
