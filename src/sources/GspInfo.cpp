@@ -146,7 +146,7 @@ void GspInfo::print() const {
         }
     };
 
-    constexpr int width = 92;
+    constexpr int width = 100;
     fmt::print("╔{0:═^{1}}╗\n", " G S P  —  Project Info ", width);
     std::string _fmt = std::string("║ {0: <16}: {1: <") + std::to_string(width-20) +"} ║\n";
     fmt::print(_fmt, "Name", trunc(_name, 57));
@@ -156,20 +156,21 @@ void GspInfo::print() const {
     fmt::print(_fmt, "Author", fmt::format("{} <{}>", trunc(_author_name, 38),
                                        trunc(_author_email, width - 38 - 5)));
     fmt::print(_fmt, "Website", trunc(_site_url, 57));
-    fmt::print("╠{0:═^{1}}╣\n", " Dependencies ", width);
+    fmt::print("╠{0:═^{1}}╣\n", fmt::format(" Dependencies ({}) ", _deps.size()), width);
 
-    const int url_width = width-50;
-    _fmt = std::string("║ {0:<18} │ {1:<20} │ {2:<") + std::to_string(url_width) +"} │ {3} ║\n";
-    fmt::print(_fmt, "Name", "Path", "URL", "T");
+    const int url_width = width-56;
+    _fmt = std::string("║ {0:>3} │ {1:<18} │ {2:<20} │ {3:<") + std::to_string(url_width) +"} │ {4} ║\n";
+    fmt::print(_fmt, "Num", "Name", "Path", "URL", "X");
     fmt::print("╟{0:─^{1}}╢\n", "", width);
 
 
     if (_deps.empty()) {
         fmt::print("║ {0: ^{1}} ║\n", "— no dependencies —", width);
     } else {
+        int i = 0;
         for (const auto& kv : _deps) {
             const auto& sm = kv.second;
-            fmt::print(_fmt,
+            fmt::print(_fmt, ++i,
                        trunc(sm.name, 18),
                        trunc(sm.path, 20),
                        trunc(sm.url, url_width),
