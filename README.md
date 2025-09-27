@@ -48,14 +48,11 @@ With a modern **C++17 core**, bindings for **Python**, planned support for **Mat
 
 ## 📺 Demo
 
-<p align="center">
-  <a href="https://github.com/mohammadraziei/libgsp">
-    <img src="https://github.com/MohammadRaziei/libgsp/raw/master/docs/images/in-the-construction.png" width="400px" alt="Under Construction">
-  </a>
-</p>
 
-👉 Watch our **graph visualization demo** (2D & 3D):  
-[![Demo Video](https://img.shields.io/badge/Demo-Video-blue?logo=youtube)](https://github.com/mohammadraziei/libgsp)
+https://github.com/user-attachments/assets/81022c69-f564-4bbc-9af9-a8ca4ade7bb4
+
+
+👉 Watch our **graph visualization demo** (2D & 3D):  [![Demo Video](https://img.shields.io/badge/Demo-Video-blue?logo=youtube)](https://github.com/mohammadraziei/libgsp)
 
 ---
 
