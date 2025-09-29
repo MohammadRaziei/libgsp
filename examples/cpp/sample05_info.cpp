@@ -40,8 +40,10 @@ int main() {
         }
     }
 
-    logger->info("summary:");
+    logger->info("summary (verbose is `false` by default):");
     gsp::info::GspInfo::summary();
 
+    logger->info("summary (verbose is `true`):");
+    gsp::info::GspInfo::summary(true);
     return 0;
 }

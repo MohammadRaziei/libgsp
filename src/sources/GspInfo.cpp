@@ -16,8 +16,8 @@ GspInfo& GspInfo::instance() {
     return inst;
 }
 
-void GspInfo::summary() {
-    instance().print();
+void GspInfo::summary(bool verbose) {
+    fmt::print(instance().str(verbose));
 }
 
 GspInfo::GspInfo()
@@ -130,8 +130,7 @@ std::string GspInfo::detectOs() {
 #endif
 }
 
-
-void GspInfo::print() const {
+std::string GspInfo::str(bool verbose) const {
     auto trunc = [](std::string s, std::size_t maxlen) -> std::string {
         if (s.size() <= maxlen) return s;
         if (maxlen <= 3) return s.substr(0, maxlen);
@@ -147,39 +146,51 @@ void GspInfo::print() const {
     };
 
     constexpr int width = 100;
-    fmt::print("╔{0:═^{1}}╗\n", " G S P  —  Project Info ", width);
+    fmt::memory_buffer buf;
+
+    fmt::format_to(std::back_inserter(buf), "╔{0:═^{1}}╗\n", " G S P  —  Project Info ", width);
+
     std::string _fmt = std::string("║ {0: <16}: {1: <") + std::to_string(width-20) +"} ║\n";
-    fmt::print(_fmt, "Name", trunc(_name, 57));
-    fmt::print(_fmt, "Version", trunc(_version, 57));
-    fmt::print(_fmt, "Language", trunc(_language, 57));
-    fmt::print(_fmt, "OS", trunc(_os, 57));
-    fmt::print(_fmt, "Author", fmt::format("{} <{}>", trunc(_author_name, 38),
-                                       trunc(_author_email, width - 38 - 5)));
-    fmt::print(_fmt, "Website", trunc(_site_url, 57));
-    fmt::print("╠{0:═^{1}}╣\n", fmt::format(" Dependencies ({}) ", _deps.size()), width);
+    fmt::format_to(std::back_inserter(buf), _fmt, "Name", trunc(_name, 57));
+    fmt::format_to(std::back_inserter(buf), _fmt, "Version", trunc(_version, 57));
+    fmt::format_to(std::back_inserter(buf), _fmt, "Language", trunc(_language, 57));
+    fmt::format_to(std::back_inserter(buf), _fmt, "OS", trunc(_os, 57));
+    fmt::format_to(std::back_inserter(buf), _fmt, "Author",
+                   fmt::format("{} <{}>", trunc(_author_name, 38),
+                               trunc(_author_email, width - 38 - 5)));
+    fmt::format_to(std::back_inserter(buf), _fmt, "Website", trunc(_site_url, 57));
 
-    const int url_width = width-56;
-    _fmt = std::string("║ {0:>3} │ {1:<18} │ {2:<20} │ {3:<") + std::to_string(url_width) +"} │ {4} ║\n";
-    fmt::print(_fmt, "Num", "Name", "Path", "URL", "X");
-    fmt::print("╟{0:─^{1}}╢\n", "", width);
+    if (verbose) {
+        fmt::format_to(std::back_inserter(buf), "╠{0:═^{1}}╣\n",
+                       fmt::format(" Dependencies ({}) ", _deps.size()), width);
 
+        const int url_width = width - 56;
+        _fmt = std::string("║ {0:>3} │ {1:<18} │ {2:<20} │ {3:<") +
+               std::to_string(url_width) + "} │ {4} ║\n";
+        fmt::format_to(std::back_inserter(buf), _fmt, "Num", "Name", "Path", "URL", "X");
+        fmt::format_to(std::back_inserter(buf), "╟{0:─^{1}}╢\n", "", width);
 
-    if (_deps.empty()) {
-        fmt::print("║ {0: ^{1}} ║\n", "— no dependencies —", width);
-    } else {
-        int i = 0;
-        for (const auto& kv : _deps) {
-            const auto& sm = kv.second;
-            fmt::print(_fmt, ++i,
-                       trunc(sm.name, 18),
-                       trunc(sm.path, 20),
-                       trunc(sm.url, url_width),
-                       type_icon(sm.type));
+        if (_deps.empty()) {
+            fmt::format_to(std::back_inserter(buf), "║ {0: ^{1}} ║\n",
+                           "— no dependencies —", width);
+        } else {
+            int i = 0;
+            for (const auto& kv : _deps) {
+                const auto& sm = kv.second;
+                fmt::format_to(std::back_inserter(buf), _fmt, ++i,
+                               trunc(sm.name, 18),
+                               trunc(sm.path, 20),
+                               trunc(sm.url, url_width),
+                               type_icon(sm.type));
+            }
         }
     }
 
-    fmt::print("╚{0:═^{1}}╝\n", "", width);
+    fmt::format_to(std::back_inserter(buf), "╚{0:═^{1}}╝\n", "", width);
+
+    return fmt::to_string(buf);
 }
+
 
 
 } // namespace gsp::info

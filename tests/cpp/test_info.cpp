@@ -7,6 +7,7 @@
 #include <gtest/gtest.h>
 
 #include "libgsp/utils/GspInfo.h"
+#include <fmt/ostr.h>
 
 using namespace gsp::info;
 
@@ -112,6 +113,15 @@ TEST_F(InfoTest, Chainability) {
 }
 
 TEST_F(InfoTest, NameSetterWhenGetterIsAvailable) {
-     auto& info = GspInfo::instance();
-     EXPECT_EQ(info.name(), "libgsp");
+    auto& info = GspInfo::instance();
+    EXPECT_EQ(info.name(), "libgsp");
+}
+
+TEST_F(InfoTest, TestStrVerbose) {
+    auto& info = GspInfo::instance();
+    auto st = info.str(true);
+    auto sf = info.str(false);
+    EXPECT_FALSE(st.empty());
+    EXPECT_FALSE(sf.empty());
+    EXPECT_TRUE(st.size() > sf.size()) << "Verbose output must be larger than non-verbose.";
 }

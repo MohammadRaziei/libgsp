@@ -35,7 +35,7 @@ class GspInfo {
 public:
     // Singleton accessor
     static GspInfo& instance();
-    static void summary();
+    static void summary(bool verbose = false);
 
     // ----- Getters -----
     const std::string& name()        const noexcept { return _name; }
@@ -58,7 +58,7 @@ public:
 
     // Utility
     static std::string detectOs();
-    void print() const;
+    std::string str(bool verbose = false) const;
 
 
 private:
@@ -86,6 +86,7 @@ private:
 
     gsp::logging::Logger _logger;
 };
+
 
 } // namespace gsp::info
 
