@@ -17,9 +17,12 @@
 #include "fmt/fmt.h"              // for string formatting
 
 #include "libgsp/utils/String.h"  // for trim()
+#include "libgsp/utils/GspInfo.h"
 
 #include "templates/assets/libgsp_logo_svg.h"
 #include "templates/index_mustache_html.h"
+#include "templates/assets/libgsp_logo_ascii_txt.h"
+
 
 namespace fs = std::filesystem;
 using namespace kainjow;
@@ -41,6 +44,13 @@ std::string createHtmlIndex(const gsp::FigureManager& mgr) {
     ctx.set("figuremanager_name", name);
 
     ctx.set("logo_svg", templates::assets::libgsp_logo_svg);
+
+    const auto& info = gsp::info::GspInfo::instance();
+    const std::string initial_comments = fmt::format("{}\n\n\n{}",
+        templates::assets::libgsp_logo_ascii_txt,
+        info.str(false)
+    );
+    ctx.set("initial_comments", initial_comments);
 
     mustache::data figures = mustache::list();
     for (size_t i = 0; i < n; ++i) {

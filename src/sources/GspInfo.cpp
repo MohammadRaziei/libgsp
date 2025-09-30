@@ -145,7 +145,7 @@ std::string GspInfo::str(bool verbose) const {
         }
     };
 
-    constexpr int width = 100;
+    constexpr int width = 98;
     fmt::memory_buffer buf;
 
     fmt::format_to(std::back_inserter(buf), "╔{0:═^{1}}╗\n", " G S P  —  Project Info ", width);
