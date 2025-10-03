@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>libGSP - Graph Signal Processing Library</title>
+    <link rel="icon" type="image/x-icon" href="https://github.com/MohammadRaziei/libgsp/raw/master/docs/images/libgsp-logo-sq.svg">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/feather-icons"></script>
+    <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vanta@latest/dist/vanta.globe.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.11.1/build/styles/atom-one-dark.min.css">
+    <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.11.1/build/highlight.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.11.1/build/languages/python.min.js"></script>
+    <script>hljs.highlightAll();</script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            200: '#bae6fd',
+                            300: '#7dd3fc',
+                            400: '#38bdf8',
+                            500: '#0ea5e9',
+                            600: '#0284c7',
+                            700: '#0369a1',
+                            800: '#075985',
+                            900: '#0c4a6e',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .hero-gradient {
+            background: linear-gradient(135deg, rgba(6, 27, 65, 0.9) 0%, rgba(14, 165, 233, 0.7) 100%);
+        }
+        .feature-card {
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+        .feature-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 25px -5px rgba(14, 165, 233, 0.1), 0 10px 10px -5px rgba(14, 165, 233, 0.04);
+        }
+        .code-block {
+            font-family: 'SF Mono', 'Menlo', monospace;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-100 min-h-screen flex flex-col">
+<!-- Vanta.js Background -->
+<div id="vanta-bg" class="fixed inset-0 -z-10"></div>
+
+<!-- Navigation -->
+<nav class="bg-gray-900/80 backdrop-blur-md border-b border-gray-800 sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex items-center justify-between h-16">
+            <div class="flex items-center">
+                <div class="flex-shrink-0">
+                    <img class="h-8 w-8" src="https://github.com/MohammadRaziei/libgsp/raw/master/docs/images/libgsp-logo-sq.svg" alt="libGSP Logo">
+                </div>
+                <div class="hidden md:block">
+                    <div class="ml-10 flex items-baseline space-x-4">
+                        <a href="#" class="bg-primary-700 text-white px-3 py-2 rounded-md text-sm font-medium">Home</a>
+                        <a href="#" class="text-gray-300 hover:bg-gray-800 hover:text-white px-3 py-2 rounded-md text-sm font-medium">Features</a>
+                        <a href="#" class="text-gray-300 hover:bg-gray-800 hover:text-white px-3 py-2 rounded-md text-sm font-medium">Documentation</a>
+                        <a href="#" class="text-gray-300 hover:bg-gray-800 hover:text-white px-3 py-2 rounded-md text-sm font-medium">Examples</a>
+                        <a href="#" class="text-gray-300 hover:bg-gray-800 hover:text-white px-3 py-2 rounded-md text-sm font-medium">Community</a>
+                    </div>
+                </div>
+            </div>
+            <div class="hidden md:block">
+                <div class="ml-4 flex items-center md:ml-6">
+                    <a href="https://github.com/mohammadraziei/libgsp" class="bg-gray-800 p-1 rounded-full text-gray-400 hover:text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-white">
+                        <i data-feather="github"></i>
+                    </a>
+                    <button class="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-md text-sm font-medium ml-4">
+                        Download
+                    </button>
+                </div>
+            </div>
+            <div class="-mr-2 flex md:hidden">
+                <button type="button" class="bg-gray-800 inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-white hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-white" aria-controls="mobile-menu" aria-expanded="false">
+                    <i data-feather="menu"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<!-- Hero Section -->
+<section class="hero-gradient min-h-[80vh] flex items-center justify-center relative overflow-hidden">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 text-center">
+        <div class="flex justify-center mb-6">
+            <img src="https://github.com/MohammadRaziei/libgsp/raw/master/docs/images/libgsp-logo-sq.svg" alt="libGSP Logo" class="h-24 w-24">
+        </div>
+        <h1 class="text-4xl md:text-6xl font-extrabold text-white mb-6">
+            <span class="block">libGSP</span>
+        </h1>
+        <h2 class="text-xl md:text-2xl font-medium text-primary-300 mb-8">
+            A High-Performance Graph Signal Processing Library
+        </h2>
+        <h3 class="text-lg md:text-xl text-gray-300 mb-12">
+            Lightweight · Multi-language · Innovative Visualization
+        </h3>
+        <div class="flex flex-col sm:flex-row justify-center gap-4">
+            <a href="#" class="bg-primary-600 hover:bg-primary-700 text-white px-8 py-3 rounded-md text-lg font-medium transition duration-300 transform hover:scale-105">
+                Get Started
+            </a>
+            <a href="#" class="border border-primary-500 text-primary-400 hover:bg-gray-800/50 px-8 py-3 rounded-md text-lg font-medium transition duration-300 transform hover:scale-105">
+                View on GitHub
+            </a>
+        </div>
+    </div>
+</section>
+
+<!-- Features Section -->
+<section class="py-20 bg-gray-900/50 backdrop-blur-sm">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-16">
+            <h2 class="text-3xl font-extrabold text-primary-400 sm:text-4xl">
+                ✨ Key Features
+            </h2>
+            <p class="mt-4 max-w-2xl text-xl text-gray-400 mx-auto">
+                Powerful tools for modern graph signal processing
+            </p>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <!-- Feature 1 -->
+            <div class="feature-card bg-gray-800/50 p-8 rounded-xl border border-gray-700">
+                <div class="flex items-center justify-center h-12 w-12 rounded-md bg-primary-500 text-white mb-4">
+                    <i data-feather="zap"></i>
+                </div>
+                <h3 class="text-xl font-bold text-white mb-2">Eigen-based Core</h3>
+                <p class="text-gray-400">
+                    Extremely fast, lightweight, and memory-efficient processing powered by Eigen.
+                </p>
+            </div>
+            <!-- Feature 2 -->
+            <div class="feature-card bg-gray-800/50 p-8 rounded-xl border border-gray-700">
+                <div class="flex items-center justify-center h-12 w-12 rounded-md bg-primary-500 text-white mb-4">
+                    <i data-feather="cpu"></i>
+                </div>
+                <h3 class="text-xl font-bold text-white mb-2">Graph Fourier Transform</h3>
+                <p class="text-gray-400">
+                    Spectral analysis on graphs with optimized GFT implementation.
+                </p>
+            </div>
+            <!-- Feature 3 -->
+            <div class="feature-card bg-gray-800/50 p-8 rounded-xl border border-gray-700">
+                <div class="flex items-center justify-center h-12 w-12 rounded-md bg-primary-500 text-white mb-4">
+                    <i data-feather="code"></i>
+                </div>
+                <h3 class="text-xl font-bold text-white mb-2">Multi-language Support</h3>
+                <p class="text-gray-400">
+                    C++ core with Python bindings and planned Matlab/JavaScript support.
+                </p>
+            </div>
+            <!-- Feature 4 -->
+            <div class="feature-card bg-gray-800/50 p-8 rounded-xl border border-gray-700">
+                <div class="flex items-center justify-center h-12 w-12 rounded-md bg-primary-500 text-white mb-4">
+                    <i data-feather="eye"></i>
+                </div>
+                <h3 class="text-xl font-bold text-white mb-2">Advanced Visualization</h3>
+                <p class="text-gray-400">
+                    2D and 3D graph rendering powered by three.js and WebGL.
+                </p>
+            </div>
+            <!-- Feature 5 -->
+            <div class="feature-card bg-gray-800/50 p-8 rounded-xl border border-gray-700">
+                <div class="flex items-center justify-center h-12 w-12 rounded-md bg-primary-500 text-white mb-4">
+                    <i data-feather="database"></i>
+                </div>
+                <h3 class="text-xl font-bold text-white mb-2">Large-scale Ready</h3>
+                <p class="text-gray-400">
+                    Optimized for real-world big graphs with millions of nodes.
+                </p>
+            </div>
+            <!-- Feature 6 -->
+            <div class="feature-card bg-gray-800/50 p-8 rounded-xl border border-gray-700">
+                <div class="flex items-center justify-center h-12 w-12 rounded-md bg-primary-500 text-white mb-4">
+                    <i data-feather="download"></i>
+                </div>
+                <h3 class="text-xl font-bold text-white mb-2">Data Integration</h3>
+                <p class="text-gray-400">
+                    Import from Gephi and other formats with easy data interfaces.
+                </p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Demo Section -->
+<section class="py-20 bg-gray-800/50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="lg:grid lg:grid-cols-2 lg:gap-16 items-center">
+            <div class="mb-12 lg:mb-0">
+                <h2 class="text-3xl font-extrabold text-primary-400 sm:text-4xl mb-6">
+                    📺 Live Demo
+                </h2>
+                <p class="text-lg text-gray-400 mb-8">
+                    Experience libGSP's powerful visualization capabilities with our interactive demo. See how graph signals transform in both 2D and 3D spaces.
+                </p>
+                <div class="flex flex-wrap gap-4">
+                    <a href="#" class="bg-primary-600 hover:bg-primary-700 text-white px-6 py-2 rounded-md font-medium">
+                        Try Online Demo
+                    </a>
+                    <a href="#" class="border border-gray-600 text-gray-300 hover:bg-gray-700/50 px-6 py-2 rounded-md font-medium">
+                        View Source Code
+                    </a>
+                </div>
+            </div>
+            <div class="bg-gray-900 rounded-xl overflow-hidden border border-gray-700 aspect-video flex items-center justify-center">
+                <video class="w-full h-full object-cover" controls>
+                    <source src="https://github.com/user-attachments/assets/81022c69-f564-4bbc-9af9-a8ca4ade7bb4" type="video/mp4" />
+                    <img src="https://static.photos/technology/1024x576/1" alt="Graph Visualization Demo" class="w-full h-full object-cover">
+                </video>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Code Example Section -->
+<section class="py-20 bg-gray-900/80">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-16">
+            <h2 class="text-3xl font-extrabold text-primary-400 sm:text-4xl">
+                🛠️ Quick Start
+            </h2>
+            <p class="mt-4 max-w-2xl text-xl text-gray-400 mx-auto">
+                Get started with libGSP in just a few lines of code
+            </p>
+        </div>
+        <div class="bg-gray-800 rounded-xl overflow-hidden border border-gray-700">
+            <div class="bg-gray-900 px-6 py-3 border-b border-gray-700 flex items-center">
+                <div class="flex space-x-2">
+                    <div class="w-3 h-3 rounded-full bg-red-500"></div>
+                    <div class="w-3 h-3 rounded-full bg-yellow-500"></div>
+                    <div class="w-3 h-3 rounded-full bg-green-500"></div>
+                </div>
+                <div class="ml-4 text-sm text-gray-400">python_example.py</div>
+            </div>
+            <div class="overflow-x-auto">
+                    <pre class="font-mono text-sm"><code class="language-python">import libgsp as gsp
+
+# Create a random graph
+G = gsp.graphs.Ring(N=50)
+
+# Generate a smooth signal on the graph
+signal = gsp.filters.harmonic(G, k=5)
+
+# Compute Graph Fourier Transform
+GFT = gsp.filters.Gft(G)
+spectrum = GFT.filter(signal)
+
+# Visualize the result
+gsp.plotting.plot_signal(G, signal)</code></pre>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Footer -->
+<footer class="bg-gray-900/80 border-t border-gray-800 mt-auto">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+            <div>
+                <h3 class="text-lg font-semibold text-primary-400 mb-4">libGSP</h3>
+                <p class="text-gray-400 text-sm">
+                    A high-performance library for Graph Signal Processing with innovative visualization capabilities.
+                </p>
+            </div>
+            <div>
+                <h3 class="text-lg font-semibold text-primary-400 mb-4">Resources</h3>
+                <ul class="space-y-2">
+                    <li><a href="#" class="text-gray-400 hover:text-white text-sm">Documentation</a></li>
+                    <li><a href="#" class="text-gray-400 hover:text-white text-sm">Examples</a></li>
+                    <li><a href="#" class="text-gray-400 hover:text-white text-sm">API Reference</a></li>
+                    <li><a href="#" class="text-gray-400 hover:text-white text-sm">GitHub</a></li>
+                </ul>
+            </div>
+            <div>
+                <h3 class="text-lg font-semibold text-primary-400 mb-4">Community</h3>
+                <ul class="space-y-2">
+                    <li><a href="#" class="text-gray-400 hover:text-white text-sm">GitHub Discussions</a></li>
+                    <li><a href="#" class="text-gray-400 hover:text-white text-sm">Stack Overflow</a></li>
+                    <li><a href="#" class="text-gray-400 hover:text-white text-sm">Twitter</a></li>
+                </ul>
+            </div>
+            <div>
+                <h3 class="text-lg font-semibold text-primary-400 mb-4">Legal</h3>
+                <ul class="space-y-2">
+                    <li><a href="#" class="text-gray-400 hover:text-white text-sm">License (MIT)</a></li>
+                    <li><a href="#" class="text-gray-400 hover:text-white text-sm">Privacy Policy</a></li>
+                    <li><a href="#" class="text-gray-400 hover:text-white text-sm">Code of Conduct</a></li>
+                </ul>
+            </div>
+        </div>
+        <div class="mt-12 pt-8 border-t border-gray-800 flex flex-col md:flex-row justify-between items-center">
+            <p class="text-gray-500 text-sm">
+                &copy; 2023 libGSP Project. All rights reserved.
+            </p>
+            <div class="mt-4 md:mt-0 flex space-x-6">
+                <a href="#" class="text-gray-500 hover:text-primary-400">
+                    <i data-feather="github"></i>
+                </a>
+                <a href="#" class="text-gray-500 hover:text-primary-400">
+                    <i data-feather="twitter"></i>
+                </a>
+                <a href="#" class="text-gray-500 hover:text-primary-400">
+                    <i data-feather="linkedin"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+</footer>
+
+<script>
+    // Initialize Vanta.js globe background
+    VANTA.GLOBE({
+        el: "#vanta-bg",
+        mouseControls: true,
+        touchControls: true,
+        gyroControls: false,
+        minHeight: 200.00,
+        minWidth: 200.00,
+        scale: 1.00,
+        scaleMobile: 1.00,
+        color: 0x0ea5e9,
+        backgroundColor: 0x111827,
+        size: 0.8
+    });
+
+    // Initialize feather icons
+    feather.replace();
+</script>
+</body>
+</html>
