@@ -66,14 +66,6 @@ target_include_directories(gsp PRIVATE src/third_party/cpp-httplib)
 target_link_libraries(gsp PRIVATE lunasvg::lunasvg)
 target_compile_definitions(gsp PRIVATE PUGIXML_HEADER_ONLY)
 target_include_directories(gsp PRIVATE src/third_party/pugixml/src)
-target_compile_definitions(gsp PRIVATE
-        GSP_NAME=${PyProject_NAME}
-        GSP_VERSION=${PyProject_VERSION_COMPLETE}
-        GSP_AUTHOR_NAME=${PyProject_AUTHOR_NAME}
-        GSP_AUTHOR_EMAIL=${PyProject_AUTHOR_EMAIL}
-        GSP_REPO_URL=${PyProject_HOMEPAGE_URL}
-        GSP_SITE_URL=${PyProject_DOCUMENT_URL}
-)
 target_link_libraries(gsp PUBLIC eigen)
 
 

@@ -2,9 +2,16 @@
 #include <libgsp/utils/Base64.h>
 #include <string>
 #include <vector>
+#include <toml++/toml.h>
+#include <fstream>
+#include <vector>
+#include <string>
+#include <cstdint>
+#include <filesystem>
 
 using namespace gsp::utils;
 using namespace std;
+namespace fs = std::filesystem;
 
 class Base64Test : public ::testing::Test {
 protected:
@@ -108,7 +115,85 @@ TEST_F(Base64Test, EncodeDecodeAllBytes) {
     EXPECT_EQ(decoded, allBytes);
 }
 
-int main(int argc, char **argv) {
-    ::testing::InitGoogleTest(&argc, argv);
-    return RUN_ALL_TESTS();
+
+namespace gsp::utils {
+    // Forward declarations assumed to be implemented elsewhere
+    void base64_encode(std::string& out, const std::vector<uint8_t>& buf);
+    void base64_decode(std::vector<uint8_t>& out, const std::string& encoded_string);
+} // namespace gsp::utils
+
+struct Base64TestCase {
+    std::string description;
+    std::vector<uint8_t> input;
+    std::string expected_encoded;
+};
+
+class Base64TestP : public ::testing::TestWithParam<Base64TestCase> {};
+
+TEST_P(Base64TestP, EncodeMatchesExpected) {
+    const auto& test_case = GetParam();
+    std::string actual_encoded;
+    gsp::utils::base64_encode(actual_encoded, test_case.input);
+    EXPECT_EQ(actual_encoded, test_case.expected_encoded);
 }
+
+TEST_P(Base64TestP, DecodeRoundtrip) {
+    const auto& test_case = GetParam();
+    std::string encoded = test_case.expected_encoded;
+    std::vector<uint8_t> decoded;
+    gsp::utils::base64_decode(decoded, encoded);
+    EXPECT_EQ(decoded, test_case.input);
+}
+std::vector<Base64TestCase> LoadBase64TestCases() {
+    std::vector<Base64TestCase> cases;
+
+    // Load TOML file
+    auto config = toml::parse_file((fs::path(__FILE__).parent_path().parent_path() / "data/utils.toml").string());
+    auto base64_array = config["base64"].as_array();
+    if (!base64_array) {
+        throw std::runtime_error("Missing or invalid [base64] array in utils.toml");
+    }
+
+    for (const auto& entry_node : *base64_array) {
+        // Each entry must be a table
+        auto entry = entry_node.as_table();
+        if (!entry) {
+            throw std::runtime_error("Base64 test case is not a table");
+        }
+
+        std::string desc = entry->at("description").value_or("unnamed");
+        std::string hex = entry->at("input_hex").value_or("");
+        std::string expected = entry->at("expected_encoded").value_or("");
+
+        // Convert hex string to vector<uint8_t>
+        std::vector<uint8_t> input;
+        if (!hex.empty()) {
+            if (hex.length() % 2 != 0) {
+                throw std::runtime_error("Invalid hex string (odd length)");
+            }
+            for (size_t i = 0; i < hex.length(); i += 2) {
+                std::string byte_str = hex.substr(i, 2);
+                uint8_t byte = static_cast<uint8_t>(std::stoi(byte_str, nullptr, 16));
+                input.push_back(byte);
+            }
+        }
+
+        cases.push_back({desc, input, expected});
+    }
+
+    return cases;
+}
+INSTANTIATE_TEST_SUITE_P(
+    Base64Parameterized,
+    Base64TestP,
+    ::testing::ValuesIn(LoadBase64TestCases()),
+    [](const ::testing::TestParamInfo<Base64TestCase>& info) {
+        // Use description as test name (sanitize it)
+        std::string name = info.param.description;
+        // Replace non-alphanumeric chars with underscores
+        for (auto& c : name) {
+            if (!std::isalnum(c)) c = '_';
+        }
+        return name;
+    }
+);

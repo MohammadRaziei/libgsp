@@ -4,6 +4,7 @@
 
 #include <string>
 #include <vector>
+#include <cstdint>
 
 namespace gsp::utils {
     void base64_encode(std::string & out, const std::vector<uint8_t>& buf);

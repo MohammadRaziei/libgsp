@@ -22,6 +22,7 @@ if (TEST_SOURCES)
     add_executable(gsp_tests ${TEST_SOURCES})
     target_link_libraries(gsp_tests PRIVATE gsp gtest gtest_main pthread)
     target_include_directories(gsp_tests PRIVATE "${GSP_TESTS_DIR}/cpp")
+    target_include_directories(gsp_tests PRIVATE src/third_party/tomlplusplus/include)
 
     add_test(NAME gsp_tests COMMAND gsp_tests)
 
