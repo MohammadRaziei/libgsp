@@ -23,6 +23,8 @@
 #include "templates/index_mustache_html.h"
 #include "templates/assets/libgsp_logo_ascii_txt.h"
 
+#include "Templates.h"
+
 
 namespace fs = std::filesystem;
 using namespace kainjow;
@@ -45,12 +47,17 @@ std::string createHtmlIndex(const gsp::FigureManager& mgr) {
 
     ctx.set("logo_svg", templates::assets::libgsp_logo_svg);
 
+    ctx.set("initial_comments", templates::getInitialComments());
+
+    // Add GspInfo meta tags
     const auto& info = gsp::info::GspInfo::instance();
-    const std::string initial_comments = fmt::format("{}\n\n\n{}",
-        templates::assets::libgsp_logo_ascii_txt,
-        info.str(false)
-    );
-    ctx.set("initial_comments", initial_comments);
+    ctx.set("gsp_name", info.name());
+    ctx.set("gsp_version", info.version());
+    ctx.set("gsp_author_name", info.authorName());
+    ctx.set("gsp_author_email", info.authorEmail());
+    ctx.set("gsp_site_url", info.siteUrl());
+    ctx.set("gsp_language", info.language());
+    ctx.set("gsp_os", info.os());
 
     mustache::data figures = mustache::list();
     for (size_t i = 0; i < n; ++i) {

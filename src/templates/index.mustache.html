@@ -7,6 +7,22 @@
     <meta charset="utf-8" />
     <title>Figure Manager — {{figuremanager_name}}</title>
     <meta name="viewport" content="width=device-width,initial-scale=1" />
+    
+    <!-- Meta tags from GspInfo -->
+    <meta name="generator" content="{{gsp_name}} {{gsp_version}}" />
+    <meta name="author" content="{{gsp_author_name}}" />
+    <meta name="description" content="Figure Manager for {{gsp_name}} - A Graph Signal Processing library" />
+    <meta name="keywords" content="graph signal processing, visualization, plotting, {{gsp_name}}" />
+    {{#gsp_site_url}}
+    <meta property="og:url" content="{{gsp_site_url}}" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="{{gsp_name}} Figure Manager" />
+    <meta property="og:description" content="Interactive figure management interface for {{gsp_name}}" />
+    {{/gsp_site_url}}
+    <meta name="application-name" content="{{gsp_name}}" />
+    <meta name="language" content="{{gsp_language}}" />
+    <meta name="platform" content="{{gsp_os}}" />
+    
     <style>
         body {
             font-family: system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
