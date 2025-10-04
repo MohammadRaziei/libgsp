@@ -1,59 +1,59 @@
 [[base64]]
-description = "Input: ''"
+description = "testing empty input"
 input_hex = ""
 input_str = ""
 expected_encoded = ""
 
 [[base64]]
-description = "Input: 'f'"
+description = "testing f"
 input_hex = "66"
 input_str = "f"
 expected_encoded = "Zg=="
 
 [[base64]]
-description = "Input: 'fo'"
+description = "testing fo"
 input_hex = "666f"
 input_str = "fo"
 expected_encoded = "Zm8="
 
 [[base64]]
-description = "Input: 'foo'"
+description = "testing foo"
 input_hex = "666f6f"
 input_str = "foo"
 expected_encoded = "Zm9v"
 
 [[base64]]
-description = "Input: 'foob'"
+description = "testing foob"
 input_hex = "666f6f62"
 input_str = "foob"
 expected_encoded = "Zm9vYg=="
 
 [[base64]]
-description = "Input: 'fooba'"
+description = "testimg fooba"
 input_hex = "666f6f6261"
 input_str = "fooba"
 expected_encoded = "Zm9vYmE="
 
 [[base64]]
-description = "Input: 'foobar'"
+description = "testing foobar"
 input_hex = "666f6f626172"
 input_str = "foobar"
 expected_encoded = "Zm9vYmFy"
 
 [[base64]]
-description = "Input: 'Hello, World!'"
+description = "testing HelloWorld"
 input_hex = "48656c6c6f2c20576f726c6421"
 input_str = "Hello, World!"
 expected_encoded = "SGVsbG8sIFdvcmxkIQ=="
 
 [[base64]]
-description = "Input: bytes'"
+description = "testing non-printable characters"
 input_hex = "00010203fffefdfc"
 input_str = "00x01x02x03����"
 expected_encoded = "AAECA//+/fw="
 
 [[base64]]
-description = "Input: 'مرحبا بالعالم!'"
+description = "testing arabic text"
 input_hex = "d985d8b1d8add8a8d8a720d8a8d8a7d984d8b9d8a7d984d98521"
 input_str = "مرحبا بالعالم!"
 expected_encoded = "2YXYsdit2KjYpyDYqNin2YTYudin2YTZhSE="
