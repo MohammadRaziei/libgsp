@@ -5,6 +5,7 @@
 #include "libgsp/plotting/Figure.h"
 #include "libgsp/io/File.h"
 #include "libgsp/plotting/Axis.h"
+#include "libgsp/utils/GspInfo.h"
 
 #include <filesystem>
 #include <stdexcept>
@@ -12,21 +13,14 @@
 #include <mustache.hpp>
 
 #include "templates/figure_mustache_html.h"
+#include "Templates.h"
 
 namespace fs = std::filesystem;
 using namespace kainjow;
 
 namespace gsp {
 
-// --- Static: Get template or fallback message ---
-std::string render_with_template(const mustache::data& view) {
-    try {
-        mustache::mustache tpl(templates::figure_mustache_html);
-        return tpl.render(view);
-    } catch (const std::exception&) {
-        return "<h3>template error: invalid mustache</h3>";
-    }
-}
+
 
 // --- Constructor ---
 Figure::Figure(const std::string& title)
@@ -94,12 +88,23 @@ std::string Figure::render() const {
 
     mustache::data view;
     view["title"] = _title;
+    view["initial_comments"] = templates::getInitialComments();
     view["rows"] = static_cast<long long>(_layout.rows);
     view["cols"] = static_cast<long long>(_layout.cols);
     view["gap_px"] = _layout.gap_px;
     if (!_layout.css_class.empty()) {
         view["css_class"] = _layout.css_class;
     }
+
+    // Add GspInfo meta tags
+    const auto& info = gsp::info::GspInfo::instance();
+    view["gsp_name"] = info.name();
+    view["gsp_version"] = info.version();
+    view["gsp_author_name"] = info.authorName();
+    view["gsp_author_email"] = info.authorEmail();
+    view["gsp_site_url"] = info.siteUrl();
+    view["gsp_language"] = info.language();
+    view["gsp_os"] = info.os();
 
     mustache::data axes_list(mustache::data::type::list);
     for (const auto& ax_ptr : _axes) {
@@ -117,8 +122,12 @@ std::string Figure::render() const {
     }
 
     view.set("axes", axes_list);
-
-    _rendered = render_with_template(view);
+    try {
+        mustache::mustache tpl(templates::figure_mustache_html);
+        _rendered = tpl.render(view);
+    } catch (const std::exception&) {
+        return "<h3>template error: invalid mustache</h3>";
+    }
     _dirty = false;
 
     return _rendered;

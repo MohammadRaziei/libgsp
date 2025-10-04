@@ -37,7 +37,7 @@ endfunction()
 #   embed_file("${TPL}" "${OUT_HDR}" "${NAMESPACE}")              # templates
 #   embed_file("${PF}"  "${OUT_HDR}" "project")                   # project files
 function(embed_file INPUT OUTPUT NAMESPACE)
-    set(TEMPLATES_HEADER_IN ${PROJECT_SOURCE_DIR}/cmake/templates.in.h)
+    set(TEMPLATES_HEADER_IN ${PROJECT_SOURCE_DIR}/cmake/utils/templates.in.h)
 
     file(READ "${INPUT}" CONTENT)
     get_filename_component(INPUT_BASENAME "${INPUT}" NAME)
