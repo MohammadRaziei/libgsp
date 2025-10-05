@@ -58,9 +58,9 @@ struct GraphSvg::Impl {
         nodes = graph.nodes();
         edges = graph.edges();
 
-        logger->trace("Creating GraphSvg with {} nodes and {} edges", nodes.size(), edges.size());
-        if (signal_opt)
-            logger->trace("Signal provided with size {}", signal_opt->size());
+        // logger->trace("Creating GraphSvg with {} nodes and {} edges", nodes.size(), edges.size());
+        // if (signal_opt)
+        //     logger->trace("Signal provided with size {}", signal_opt->size());
 
         // Initialize signal
         const auto n = nodes.size();
@@ -74,8 +74,8 @@ struct GraphSvg::Impl {
                 throw std::invalid_argument(msg);
             }
         }
-        logger->trace("Signal initialized with size {}", signal.size());
-        if (signal_opt) logger->trace("Signal values: {}", signal_opt->str());
+        // logger->trace("Signal initialized with size {}", signal.size());
+        // if (signal_opt) logger->trace("Signal values: {}", signal_opt->str());
 
         // Build default XML config registry
         config = std::make_shared<pugi::xml_document>();
@@ -334,7 +334,7 @@ struct GraphSvg::Impl {
                                      const std::string& metadata,
                                      const std::string& style,
                                      const std::string& body) const {
-        logger->trace("rendering with config (xml)");
+        // logger->trace("rendering with config (xml)");
         kainjow::mustache::data ctx;
         ctx.set("width",  fmt::format("{}", width));
         ctx.set("height", fmt::format("{}", height));

@@ -14,7 +14,7 @@ namespace fs = std::filesystem;
 
 int main() {
 
-    gsp::logging::setDefaultConfigs(gsp::logging::level::trace);
+    gsp::logging::basicConfig(gsp::logging::level::trace);
     auto logger = gsp::logging::getLogger();
 
     logger->info("Sample 03 - Plotting graph with signals");

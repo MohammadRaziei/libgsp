@@ -15,7 +15,7 @@ namespace fs = std::filesystem;
 
 int main() {
 
-    gsp::logging::setDefaultConfigs(spdlog::level::debug);
+    gsp::logging::basicConfig(spdlog::level::debug);
     auto logger = gsp::logging::getLogger();
 
     logger->info("Sample 02: Graph SVG");

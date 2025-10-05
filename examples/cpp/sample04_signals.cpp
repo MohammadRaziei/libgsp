@@ -9,7 +9,7 @@
 
 
 int main() {
-    gsp::logging::setDefaultConfigs(spdlog::level::debug);
+    gsp::logging::basicConfig(spdlog::level::debug);
     auto logger = gsp::logging::getLogger();
 
     logger->info("Sample 04: Graph Signals");

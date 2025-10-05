@@ -9,6 +9,8 @@
 
 #include <filesystem>
 #include <stdexcept>
+#include <set>
+
 
 #include <mustache.hpp>
 
@@ -80,6 +82,60 @@ Axis& Figure::subplot(uint32_t r, uint32_t c) {
     return *_axes.at(idx(r, c));
 }
 
+Axis& Figure::subplot(const std::set<uint32_t>& indices) {
+    if (indices.empty()) {
+        throw std::invalid_argument("Subplot indices set is empty.");
+    }
+
+    const uint32_t total = subplotCount();
+    const uint32_t grid_cols = cols();
+
+    // Validate all indices are in range
+    for (uint32_t i : indices) {
+        if (i >= total) {
+            throw std::out_of_range("Subplot index " + std::to_string(i) + " out of range [0, " + std::to_string(total - 1) + "]");
+        }
+    }
+
+    // indices is already sorted and unique (property of std::set)
+
+    uint32_t min_r = UINT32_MAX, max_r = 0;
+    uint32_t min_c = UINT32_MAX, max_c = 0;
+    std::set<std::pair<uint32_t, uint32_t>> cell_set;
+
+    for (uint32_t idx : indices) {
+        uint32_t r = idx / grid_cols;
+        uint32_t c = idx % grid_cols;
+        min_r = std::min(min_r, r);
+        max_r = std::max(max_r, r);
+        min_c = std::min(min_c, c);
+        max_c = std::max(max_c, c);
+        cell_set.insert({r, c});
+    }
+
+    uint32_t expected = (max_r - min_r + 1) * (max_c - min_c + 1);
+    if (indices.size() != expected) {
+        throw std::invalid_argument("Indices do not form a contiguous rectangular block.");
+    }
+
+    // Final verification
+    for (uint32_t r = min_r; r <= max_r; ++r) {
+        for (uint32_t c = min_c; c <= max_c; ++c) {
+            if (cell_set.count({r, c}) == 0) {
+                throw std::invalid_argument("Indices do not form a contiguous rectangular block (missing cell).");
+            }
+        }
+    }
+
+    auto shared_axis = _axes[*indices.begin()];
+
+    // Point all indices in the block to this shared axis
+    for (uint32_t idx : indices) {
+        _axes[idx] = shared_axis;
+    }
+
+    return *shared_axis;
+}
 // --- Rendering ---
 std::string Figure::render() const {
     if (!_dirty && !_rendered.empty()) {
@@ -159,6 +215,10 @@ uint32_t Figure::idx(uint32_t r, uint32_t c) const {
         throw std::out_of_range("subplot index (row, col) out of range");
     }
     return r * _layout.cols + c;
+}
+
+uint32_t Figure::numSubplots() const {
+    return std::set(_axes.begin(), _axes.end()).size();
 }
 
 } // namespace gsp

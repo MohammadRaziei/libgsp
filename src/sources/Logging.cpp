@@ -11,7 +11,7 @@
 
 namespace fs = std::filesystem;
 
-void gsp::logging::setDefaultConfigs(spdlog::level::level_enum level,
+void gsp::logging::basicConfig(spdlog::level::level_enum level,
                        const std::string& pattern) {
     auto console = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
     auto file    = std::make_shared<spdlog::sinks::basic_file_sink_mt>("app.log", true);

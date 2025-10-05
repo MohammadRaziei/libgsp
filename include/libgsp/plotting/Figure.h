@@ -10,6 +10,7 @@
 #include <vector>
 #include <memory>
 #include <cstdint>
+#include <set>
 
 #include "libgsp/utils/Logging.h"
 
@@ -45,11 +46,14 @@ class Figure {
     uint32_t subplotCount() const;  // total number of subplots
 
     // --- Subplot access (by index or row/col) ---
-    Axis& subplot(uint32_t i);
+    Axis& subplot(uint32_t index);
     Axis& subplot(uint32_t r, uint32_t c);
+    Axis& subplot(const std::set<uint32_t>& indices);
 
     // --- Rendering ---
     std::string render() const;
+
+    uint32_t numSubplots() const;
 
    private:
     // Resize the grid to r x c (minimum 1x1)
@@ -62,6 +66,7 @@ class Figure {
     uint32_t idx(uint32_t r, uint32_t c) const;
 
    private:
+
     std::string _title;
     FigureLayout _layout;
 
@@ -72,7 +77,7 @@ class Figure {
     mutable bool _dirty = true;
     mutable std::string _rendered;
 
-    std::shared_ptr<spdlog::logger> _logger;
+    gsp::logging::Logger _logger;
 };
 
 } // namespace gsp

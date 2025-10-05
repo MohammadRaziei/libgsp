@@ -7,7 +7,7 @@
 #include "libgsp/utils/Logging.h"
 
 int main() {
-    gsp::logging::setDefaultConfigs(gsp::logging::level::trace);
+    gsp::logging::basicConfig(gsp::logging::level::trace);
     auto logger = gsp::logging::getLogger();
 
     auto& info = gsp::info::GspInfo::instance();
