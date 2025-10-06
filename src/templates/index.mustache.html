@@ -1,13 +1,13 @@
 <!doctype html>
-<html lang="en">
 <!--
 {{{initial_comments}}}
 -->
+<html lang="en">
 <head>
     <meta charset="utf-8" />
     <title>Figure Manager — {{figuremanager_name}}</title>
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    
+
     <!-- Meta tags from GspInfo -->
     <meta name="generator" content="{{gsp_name}} {{gsp_version}}" />
     <meta name="author" content="{{gsp_author_name}}" />
@@ -22,87 +22,616 @@
     <meta name="application-name" content="{{gsp_name}}" />
     <meta name="language" content="{{gsp_language}}" />
     <meta name="platform" content="{{gsp_os}}" />
-    
+
     <style>
+        :root {
+            --primary: #0066ff;
+            --primary-light: #4d94ff;
+            --primary-dark: #0052d6;
+            --background: #ffffff;
+            --surface: #f8f9fa;
+            --surface-light: #ffffff;
+            --text-primary: #1a1a1a;
+            --text-secondary: #666666;
+            --accent: #00ccff;
+            --accent-glow: 0 0 10px rgba(0, 204, 255, 0.5);
+            --border: #e0e0e0;
+            --border-light: #f0f0f0;
+            --success: #00b894;
+            --card-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            --card-shadow-hover: 0 6px 20px rgba(0, 102, 255, 0.15);
+            --transition: all 0.25s ease;
+            --neon-glow: 0 0 8px rgba(0, 102, 255, 0.4);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
         body {
-            font-family: system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
-            margin: 24px;
-            background: #ffffff;
-            color: #111418;
+            font-family: 'SF Pro Display', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--background);
+            color: var(--text-primary);
+            line-height: 1.5;
+            min-height: 100vh;
         }
-        a { color: #0b69ff; text-decoration: none }
-        a:hover { text-decoration: underline }
-        .grid {
-            display: grid; gap: 12px;
-            grid-template-columns: repeat(auto-fill,minmax(240px,1fr));
+
+        /* Header Styles */
+        .app-header {
+            padding: 1.5rem 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: var(--surface-light);
+            border-bottom: 1px solid var(--border);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
         }
-        .card {
-            padding: 14px 16px;
-            border: 1px solid #e5e7eb;
-            border-radius: 12px;
-            background: #ffffff;
-            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
         }
-        code {
-            background: #f4f4f5;
-            padding: 2px 6px;
-            border-radius: 6px;
+
+        .logo-container {
+            width: 48px;
+            height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
-        header {
-            display: flex; align-items: center; gap: 12px;
-            margin-bottom: 18px;
+
+        .logo-container svg {
+            width: 100%;
+            height: 100%;
         }
-        .logo {
-            width: 80px; height: 80px;
-            display: grid; place-items: center;
+
+        .brand-text h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            letter-spacing: -0.5px;
+        }
+
+        .brand-text .subtitle {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            margin-top: 0.25rem;
+        }
+
+        .view-controls {
+            display: flex;
+            gap: 0.5rem;
+            background: var(--surface);
+            padding: 0.25rem;
+            border: 1px solid var(--border);
+        }
+
+        .view-btn {
+            padding: 0.5rem 1rem;
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-weight: 500;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .view-btn.active {
+            background: var(--primary);
+            color: white;
+        }
+
+        .view-btn:hover:not(.active) {
+            background: var(--surface-light);
+            color: var(--text-primary);
+        }
+
+        /* Main Content */
+        .main-container {
+            padding: 2rem;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .stats-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            padding: 1rem 1.5rem;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            box-shadow: var(--card-shadow);
+        }
+
+        .figure-count {
+            font-size: 1rem;
+            color: var(--text-secondary);
+        }
+
+        .figure-count strong {
+            color: var(--primary);
+            font-size: 1.2rem;
+        }
+
+        .search-box {
+            display: flex;
+            align-items: center;
+            background: var(--surface-light);
+            padding: 0.5rem 1rem;
+            border: 1px solid var(--border);
+            transition: var(--transition);
+        }
+
+        .search-box:focus-within {
+            border-color: var(--primary);
+            box-shadow: var(--neon-glow);
+        }
+
+        .search-box input {
+            background: transparent;
+            border: none;
+            color: var(--text-primary);
+            padding: 0.5rem;
+            width: 200px;
+            outline: none;
+        }
+
+        .search-box svg {
+            width: 18px;
+            height: 18px;
+            color: var(--text-secondary);
+        }
+
+        /* Grid View */
+        .grid-view {
+            display: none;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .figure-card {
+            background: var(--surface-light);
             overflow: hidden;
+            border: 1px solid var(--border);
+            transition: var(--transition);
+            box-shadow: var(--card-shadow);
+            position: relative;
+            cursor: pointer;
         }
-        .logo svg { display: block; width: 100%; height: 100% }
-        .muted { color: #4b5563 }
-        .summary {
-            margin: 10px 0 20px;
-            padding: 10px 14px;
-            border: 1px solid #e5e7eb;
-            border-radius: 12px;
-            background: #f9fafb;
-            font-size: 14px;
+
+        .figure-card:hover {
+            border-color: var(--primary);
+            box-shadow: var(--card-shadow-hover), var(--neon-glow);
+            transform: translateY(-2px);
+        }
+
+        .card-preview {
+            height: 160px;
+            background: var(--surface);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            position: relative;
+            border-bottom: 1px solid var(--border-light);
+        }
+
+        .card-preview iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            pointer-events: none;
+        }
+
+        .preview-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.45);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: var(--transition);
+            backdrop-filter: blur(3px);
+        }
+
+        .figure-card:hover .preview-overlay {
+            opacity: 1;
+        }
+
+        .click-hint {
+            color: white;
+            font-weight: 600;
+            font-size: 0.9rem;
+            text-align: center;
+            padding: 0 1rem;
+        }
+
+        .card-info {
+            padding: 1.25rem;
+        }
+
+        .card-title {
+            font-weight: 600;
+            font-size: 1.1rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .card-id {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+        }
+
+        /* List View (Default) - Compact Single Line */
+        .list-view {
+            display: block;
+            background: var(--surface-light);
+            border: 1px solid var(--border);
+            box-shadow: var(--card-shadow);
+        }
+
+        .list-header {
+            display: grid;
+            grid-template-columns: 80px 1fr 200px;
+            padding: 0.75rem 1.5rem;
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            font-weight: 600;
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+        }
+
+        .list-item {
+            display: grid;
+            grid-template-columns: 80px 1fr 200px;
+            padding: 0.75rem 1.5rem;
+            border-bottom: 1px solid var(--border-light);
+            text-decoration: none;
+            color: inherit;
+            transition: var(--transition);
+            align-items: center;
+            height: 56px;
+            cursor: pointer;
+        }
+
+        .list-item:last-child {
+            border-bottom: none;
+        }
+
+        .list-item:hover {
+            background: var(--surface);
+            box-shadow: inset 0 0 0 1px var(--primary), var(--neon-glow);
+        }
+
+        .list-id {
+            font-weight: 600;
+            color: var(--primary);
+            font-size: 0.95rem;
+        }
+
+        .list-title {
+            font-weight: 500;
+            font-size: 0.95rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .list-link {
+            color: var(--primary);
+            font-family: 'Monaco', 'Consolas', monospace;
+            font-size: 0.85rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 3rem 2rem;
+            background: var(--surface-light);
+            border: 1px solid var(--border);
+            box-shadow: var(--card-shadow);
+            margin-top: 1rem;
+        }
+
+        .empty-icon {
+            width: 60px;
+            height: 60px;
+            margin: 0 auto 1rem;
+            background: var(--surface);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid var(--border);
+        }
+
+        .empty-icon svg {
+            width: 30px;
+            height: 30px;
+            color: var(--text-secondary);
+        }
+
+        .empty-state h3 {
+            font-size: 1.25rem;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+        }
+
+        .empty-state p {
+            color: var(--text-secondary);
+            margin-bottom: 1.5rem;
+            max-width: 400px;
+            margin-left: auto;
+            margin-right: auto;
+            font-size: 0.9rem;
+        }
+
+        .cta-button {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 0.6rem 1.25rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            font-size: 0.9rem;
+        }
+
+        .cta-button:hover {
+            background: var(--primary-dark);
+            box-shadow: var(--neon-glow);
+        }
+
+        /* Status Link */
+        .status-section {
+            text-align: center;
+            margin-top: 2rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid var(--border);
+        }
+
+        .status-link {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.875rem;
+            transition: var(--transition);
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .status-link:hover {
+            color: var(--primary);
+        }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .grid-view {
+                grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            }
+        }
+
+        @media (max-width: 768px) {
+            .app-header {
+                padding: 1rem;
+                flex-direction: column;
+                gap: 1rem;
+            }
+
+            .main-container {
+                padding: 1rem;
+            }
+
+            .stats-bar {
+                flex-direction: column;
+                gap: 1rem;
+                align-items: flex-start;
+            }
+
+            .search-box input {
+                width: 100%;
+            }
+
+            .grid-view {
+                grid-template-columns: 1fr;
+            }
+
+            .list-header, .list-item {
+                grid-template-columns: 60px 1fr;
+                padding: 0.75rem 1rem;
+            }
+
+            .list-link {
+                display: none;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .view-controls {
+                width: 100%;
+                justify-content: center;
+            }
+
+            .list-header, .list-item {
+                grid-template-columns: 50px 1fr;
+            }
         }
     </style>
 </head>
 <body>
-
-<header>
-    <div class="logo" aria-hidden="true">
-        {{& logo_svg}} <!-- raw SVG injected from code -->
+<!-- Default view is set to LIST (compact single line) -->
+<header class="app-header">
+    <div class="brand">
+        <div class="logo-container">
+            {{& logo_svg}}
+        </div>
+        <div class="brand-text">
+            <h1>Figure Manager</h1>
+            <div class="subtitle">Instance: <strong>{{figuremanager_name}}</strong></div>
+        </div>
     </div>
-    <div>
-        <h1 style="margin:0">Figure Manager</h1>
-        <div class="muted">Instance: <b>{{figuremanager_name}}</b></div>
+
+    <div class="view-controls">
+        <button id="grid-view-btn" class="view-btn">
+            <svg viewBox="0 0 24 24" fill="currentColor">
+                <path d="M3 3h8v8H3V3zm0 10h8v8H3v-8zM13 3h8v8h-8V3zm0 10h8v8h-8v-8z"/>
+            </svg>
+            Grid
+        </button>
+        <button id="list-view-btn" class="view-btn active">
+            <svg viewBox="0 0 24 24" fill="currentColor">
+                <path d="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0 4h2v-2H3v2zm16-8h2v-2h-2v2zm0 4h2v-2h-2v2zm0 4h2v-2h-2v2zM5 21v-8h14v8H5zM5 9V5h14v4H5z"/>
+            </svg>
+            List
+        </button>
     </div>
 </header>
 
-<div class="summary">
-    Total figures: <b>{{count}}</b>
-</div>
-
-<section class="grid" aria-label="Figures list">
-    {{#figures}}
-    <article class="card">
-        <div><b>#{{index1}}</b> — {{title}}</div>
-        <div style="margin-top:6px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12.5px">
-            <a href="/figure/{{index1}}">/figure/{{index1}}</a>
+<main class="main-container">
+    <div class="stats-bar">
+        <div class="figure-count">Total figures: <strong>{{count}}</strong></div>
+        <div class="search-box">
+            <svg viewBox="0 0 24 24" fill="currentColor">
+                <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
+            </svg>
+            <input type="text" placeholder="Search figures...">
         </div>
-    </article>
-    {{/figures}}
+    </div>
+
+    <!-- Grid View -->
+    <section id="grid-view" class="grid-view">
+        {{#figures}}
+        <div class="figure-card" data-figure-id="{{index1}}">
+            <div class="card-preview">
+                <iframe src="/figure/{{index1}}" title="Preview of {{title}}" scrolling="no"></iframe>
+                <div class="preview-overlay">
+                    <div class="click-hint">Click to view figure</div>
+                </div>
+            </div>
+            <div class="card-info">
+                <div class="card-title">{{title}}</div>
+                <div class="card-id">ID: {{index1}}</div>
+            </div>
+        </div>
+        {{/figures}}
+    </section>
+
+    <!-- List View (Default View) - Compact Single Line -->
+    <section id="list-view" class="list-view">
+        <div class="list-header">
+            <div>ID</div>
+            <div>Title</div>
+            <div>Link</div>
+        </div>
+        {{#figures}}
+        <a href="/figure/{{index1}}" class="list-item">
+            <div class="list-id">#{{index1}}</div>
+            <div class="list-title">{{title}}</div>
+            <div class="list-link">/figure/{{index1}}</div>
+        </a>
+        {{/figures}}
+    </section>
 
     {{^has_figures}}
-    <article class="card">No figures yet. POST or add via API.</article>
+    <div class="empty-state">
+        <div class="empty-icon">
+            <svg viewBox="0 0 24 24" fill="currentColor">
+                <path d="M19 5v14H5V5h14m0-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-4.86 8.86l-3 3.87L9 13.14 6 17h12l-3.86-5.14z"/>
+            </svg>
+        </div>
+        <h3>No Figures Yet</h3>
+        <p>Create your first figure by using the API or uploading data to get started with visualization.</p>
+        <button class="cta-button">Create New Figure</button>
+    </div>
     {{/has_figures}}
-</section>
 
-<p class="muted" style="margin-top:16px">
-    <small>Status: <a><code>/status</code></a></small>
-</p>
+    <div class="status-section">
+        <a href="/status" class="status-link">
+            <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/>
+            </svg>
+            System Status: <code>/status</code>
+        </a>
+    </div>
+</main>
 
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const gridViewBtn = document.getElementById('grid-view-btn');
+        const listViewBtn = document.getElementById('list-view-btn');
+        const gridView = document.getElementById('grid-view');
+        const listView = document.getElementById('list-view');
+
+        // Default view is set to LIST in CSS
+
+        gridViewBtn.addEventListener('click', function() {
+            gridViewBtn.classList.add('active');
+            listViewBtn.classList.remove('active');
+            gridView.style.display = 'grid';
+            listView.style.display = 'none';
+        });
+
+        listViewBtn.addEventListener('click', function() {
+            listViewBtn.classList.add('active');
+            gridViewBtn.classList.remove('active');
+            listView.style.display = 'block';
+            gridView.style.display = 'none';
+        });
+
+        // Add click handlers for grid cards
+        const gridCards = document.querySelectorAll('.figure-card');
+        gridCards.forEach(card => {
+            card.addEventListener('click', function() {
+                const figureId = this.getAttribute('data-figure-id');
+                window.location.href = `/figure/${figureId}`;
+            });
+        });
+
+        // Search functionality
+        const searchInput = document.querySelector('.search-box input');
+        searchInput.addEventListener('input', function() {
+            const searchTerm = this.value.toLowerCase();
+            const cards = document.querySelectorAll('.figure-card');
+            const listItems = document.querySelectorAll('.list-item');
+
+            cards.forEach(card => {
+                const title = card.querySelector('.card-title').textContent.toLowerCase();
+                const id = card.querySelector('.card-id').textContent.toLowerCase();
+
+                if (title.includes(searchTerm) || id.includes(searchTerm)) {
+                    card.style.display = 'block';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+
+            listItems.forEach(item => {
+                const title = item.querySelector('.list-title').textContent.toLowerCase();
+                const id = item.querySelector('.list-id').textContent.toLowerCase();
+
+                if (title.includes(searchTerm) || id.includes(searchTerm)) {
+                    item.style.display = 'grid';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+        });
+    });
+</script>
 </body>
 </html>
