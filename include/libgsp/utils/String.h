@@ -8,22 +8,15 @@
 
 #include <string>
 
-
-std::string trim(const std::string& s) {
-    // Find the first non-whitespace character from the beginning
-    std::string whitespace = " \t\n\r\f\v";
-    size_t first = s.find_first_not_of(whitespace);
-
-    // If no non-whitespace character is found, the string is all whitespace
-    if (std::string::npos == first) {
-        return s; // Or return an empty string if desired for all-whitespace input
-    }
-
-    // Find the last non-whitespace character from the end
-    size_t last = s.find_last_not_of(whitespace);
-
-    // Extract the substring between the first and last non-whitespace characters
-    return s.substr(first, (last - first + 1));
-}
+namespace gsp::utils {
+// Trim leading and trailing whitespace from a string
+std::string trim(const std::string& s);
+// Compress HTML by removing unnecessary whitespace and optionally comments
+// - Preserves single spaces in text content (outside tags)
+// - Preserves single spaces in attributes (inside tags with quotes)
+// - Removes all other whitespace
+// - If removeComments is true, removes HTML comments <!-- ... -->
+std::string compressHTML(const std::string& html, bool removeComments = false);
+}  // namespace gsp::utils
 
 #endif  // LIBGSP_STRING_H

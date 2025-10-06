@@ -192,7 +192,7 @@ FigureManager& FigureManager::defaultInstance() {
 }
 
 FigureManager& FigureManager::instance(const std::string& name_ws) {
-    std::string name = trim(name_ws);
+    std::string name = gsp::utils::trim(name_ws);
     assert(!name.empty());
     if (name == "default") {
         return defaultInstance();
