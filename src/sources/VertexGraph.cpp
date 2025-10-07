@@ -3,6 +3,7 @@
 //
 
 #include "libgsp/VertexGraph.h"
+#include <cassert>
 
 gsp::VertexGraph::VertexGraph(uint32_t num_nodes) : num_nodes(num_nodes), _state_vertex(0) {}
 
