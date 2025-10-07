@@ -6,9 +6,28 @@
 #define LIBGSP_LOGGING_H
 #pragma once
 
+#if defined(__clang__)
+#  pragma clang diagnostic push
+#  pragma clang diagnostic ignored "-Weverything"
+#elif defined(__GNUC__)
+#  pragma GCC diagnostic push
+#  pragma GCC diagnostic ignored "-Wall"
+#  pragma GCC diagnostic ignored "-Wextra"
+#elif defined(_MSC_VER)
+#  pragma warning(push, 0)
+#endif
 
 #include <spdlog/spdlog.h>
 #include <fmt/ostr.h>
+
+#if defined(__clang__)
+#  pragma clang diagnostic pop
+#elif defined(__GNUC__)
+#  pragma GCC diagnostic pop
+#elif defined(_MSC_VER)
+#  pragma warning(pop)
+#endif
+
 #include <memory>
 #include <string>
 
