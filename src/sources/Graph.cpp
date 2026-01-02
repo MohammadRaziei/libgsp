@@ -6,6 +6,7 @@
 #include "libgsp/EdgeGenerator.h"
 #include "libgsp/Graph.h"
 #include "libgsp/utils/Matrix.h"
+#include <ciso646>
 
 template <class Matrix>
 class gsp::MatrixBox {
