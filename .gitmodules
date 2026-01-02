@@ -1,3 +1,7 @@
+[submodule "src/third_party/nanobind"]
+	path = src/third_party/nanobind
+	url = https://github.com/wjakob/nanobind
+
 [submodule "src/third_party/eigen"]
 	path = src/third_party/eigen
 	url = https://github.com/MohammadRaziei/eigen
@@ -50,6 +54,7 @@
 	path = tests/third_party/googletest
 	url = https://github.com/google/googletest.git
 	shallow = true
+
 [submodule "src/third_party/bin2text"]
 	path = src/third_party/bin2text
 	url = https://github.com/mohammadraziei/bin2text.git
