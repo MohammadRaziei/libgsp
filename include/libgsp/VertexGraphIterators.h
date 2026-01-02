@@ -3,6 +3,7 @@
 
 #include "VertexGraph.h"
 #include "iterators/VertexIterator.h"
+#include <iterator>
 
 namespace gsp {
 
@@ -29,6 +30,31 @@ inline ConstVertexIterator VertexGraph::cbegin() const {
 
 inline ConstVertexIterator VertexGraph::cend() const {
     return ConstVertexIterator(this, num_nodes);
+}
+
+// Inline implementations of reverse iterator methods
+inline std::reverse_iterator<VertexIterator> VertexGraph::rbegin() {
+    return std::reverse_iterator<VertexIterator>(end());
+}
+
+inline std::reverse_iterator<VertexIterator> VertexGraph::rend() {
+    return std::reverse_iterator<VertexIterator>(begin());
+}
+
+inline std::reverse_iterator<ConstVertexIterator> VertexGraph::rbegin() const {
+    return std::reverse_iterator<ConstVertexIterator>(end());
+}
+
+inline std::reverse_iterator<ConstVertexIterator> VertexGraph::rend() const {
+    return std::reverse_iterator<ConstVertexIterator>(begin());
+}
+
+inline std::reverse_iterator<ConstVertexIterator> VertexGraph::crbegin() const {
+    return std::reverse_iterator<ConstVertexIterator>(cend());
+}
+
+inline std::reverse_iterator<ConstVertexIterator> VertexGraph::crend() const {
+    return std::reverse_iterator<ConstVertexIterator>(cbegin());
 }
 
 } // namespace gsp

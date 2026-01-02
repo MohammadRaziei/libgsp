@@ -14,7 +14,7 @@ namespace gsp {
 
 class VertexIterator {
 public:
-    using iterator_category = std::forward_iterator_tag;
+    using iterator_category = std::bidirectional_iterator_tag;  // Changed to bidirectional
     using value_type = Node;
     using difference_type = std::ptrdiff_t;
     using pointer = Node*;
@@ -58,6 +58,21 @@ public:
         return tmp;
     }
 
+    // Pre-decrement (for bidirectional iterator)
+    VertexIterator& operator--() {
+        if (index_ > 0) {
+            --index_;
+        }
+        return *this;
+    }
+
+    // Post-decrement (for bidirectional iterator)
+    VertexIterator operator--(int) {
+        VertexIterator tmp = *this;
+        --(*this);
+        return tmp;
+    }
+
     // Equality comparison
     bool operator==(const VertexIterator& other) const {
         return graph_ == other.graph_ && index_ == other.index_;
@@ -75,7 +90,7 @@ private:
 
 class ConstVertexIterator {
 public:
-    using iterator_category = std::forward_iterator_tag;
+    using iterator_category = std::bidirectional_iterator_tag;  // Changed to bidirectional
     using value_type = Node;
     using difference_type = std::ptrdiff_t;
     using pointer = const Node*;
@@ -116,6 +131,21 @@ public:
     ConstVertexIterator operator++(int) {
         ConstVertexIterator tmp = *this;
         ++(*this);
+        return tmp;
+    }
+
+    // Pre-decrement (for bidirectional iterator)
+    ConstVertexIterator& operator--() {
+        if (index_ > 0) {
+            --index_;
+        }
+        return *this;
+    }
+
+    // Post-decrement (for bidirectional iterator)
+    ConstVertexIterator operator--(int) {
+        ConstVertexIterator tmp = *this;
+        --(*this);
         return tmp;
     }
 

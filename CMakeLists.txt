@@ -190,6 +190,7 @@ if (BUILD_EXAMPLES)
         add_executable(${SAMPLE_NAME} ${SAMPLE_SOURCE} )
         target_link_libraries(${SAMPLE_NAME} PRIVATE libgsp::libgsp)
     endforeach()
+
 endif()
 
 if(BUILD_TESTING)

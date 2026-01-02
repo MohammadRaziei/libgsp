@@ -8,6 +8,7 @@
 #include <utility>
 #include <vector>
 #include <optional>
+#include <iterator>
 
 #include <Eigen/Eigen>
 #include "CommonTypes.h"
@@ -45,6 +46,14 @@ public:
     ConstVertexIterator end() const;
     ConstVertexIterator cbegin() const;
     ConstVertexIterator cend() const;
+
+    // Reverse iterator methods
+    std::reverse_iterator<VertexIterator> rbegin();
+    std::reverse_iterator<VertexIterator> rend();
+    std::reverse_iterator<ConstVertexIterator> rbegin() const;
+    std::reverse_iterator<ConstVertexIterator> rend() const;
+    std::reverse_iterator<ConstVertexIterator> crbegin() const;
+    std::reverse_iterator<ConstVertexIterator> crend() const;
 
 public:
     const uint32_t num_nodes;
