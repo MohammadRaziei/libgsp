@@ -3,6 +3,7 @@
 //
 
 #include "libgsp/VertexGraph.h"
+#include "libgsp/CommonTypes.h"
 #include <cassert>
 
 gsp::VertexGraph::VertexGraph(uint32_t num_nodes) : num_nodes(num_nodes), _state_vertex(0) {}
@@ -28,21 +29,6 @@ gsp::VertexGraph::CoordMat gsp::VertexGraph::coords() {
     return _coords;
 }
 gsp::VertexGraph::~VertexGraph() {
-}
-void gsp::VertexGraph::nodeIter() {
-    _state_vertex = 0;
-}
-std::optional<gsp::Node> gsp::VertexGraph::nodeNext() {
-    if (_state_vertex >= num_nodes) {
-        return std::nullopt;
-    }
-
-
-    gsp::Node node(_state_vertex,
-                   getCoord(_state_vertex),
-                   getName(_state_vertex));
-    ++_state_vertex;
-    return std::optional<gsp::Node>({std::move(node)});
 }
 
 std::vector<gsp::Node> gsp::VertexGraph::nodes() const {

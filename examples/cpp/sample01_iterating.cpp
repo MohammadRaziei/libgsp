@@ -8,9 +8,8 @@
 uint32_t countNumNodes(gsp::BaseGraph& graph) {
     auto logger = gsp::logging::getLogger("countNumNodes");
     uint32_t count_nodes = 0;
-    graph.nodeIter();
-    while (auto node = graph.nodeNext()) {
-        logger->info("Node {}: {} @ ({:.5g},{:.5g},{:.5g})", node->id, node->name, node->coord.x, node->coord.y, node->coord.z);
+    for (auto it = graph.begin(); it != graph.end(); ++it) {
+        logger->info("Node {}: {} @ ({:.5g},{:.5g},{:.5g})", it->id, it->name, it->coord.x, it->coord.y, it->coord.z);
         ++count_nodes;
     }
     logger->info("There is {} nodes", count_nodes);

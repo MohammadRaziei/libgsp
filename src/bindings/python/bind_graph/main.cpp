@@ -63,8 +63,6 @@ NB_MODULE(_graph, m) {
         .def("setNames", &gsp::VertexGraph::setNames)
         .def("getCoord", &gsp::VertexGraph::getCoord)
         .def("getName", &gsp::VertexGraph::getName)
-        .def("nodeIter", &gsp::VertexGraph::nodeIter)
-        .def("nodeNext", &gsp::VertexGraph::nodeNext)
         .def("nodes", &gsp::VertexGraph::nodes)
         .def_property_readonly("num_nodes", [](const gsp::VertexGraph& vg) { return vg.num_nodes; })
         .def_readonly("names", &gsp::VertexGraph::names);

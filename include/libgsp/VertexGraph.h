@@ -10,28 +10,14 @@
 #include <optional>
 
 #include <Eigen/Eigen>
+#include "CommonTypes.h"
 
+// Forward declarations for iterators
 namespace gsp {
-    struct Coord;
-    struct Node;
-
-
+    class VertexIterator;
+    class ConstVertexIterator;
     class VertexGraph;
 }  // namespace gsp
-
-struct gsp::Coord {
-    Coord() = default;
-    Coord(double x, double y, double z = 0) : x(x), y(y), z(z) {}
-    double x, y, z;
-};
-
-struct gsp::Node {
-    Node(uint32_t id, const Coord& coord, const std::string& name):
-          id(id), coord(coord), name(name) {}
-    uint32_t id;
-    gsp::Coord coord;
-    std::string name;
-};
 
 
 class gsp::VertexGraph {
@@ -50,9 +36,15 @@ public:
     virtual gsp::Coord getCoord(uint32_t idx) const;
     virtual std::string getName(uint32_t idx) const;
 
-    virtual void nodeIter();
-    virtual std::optional<gsp::Node> nodeNext();
     virtual std::vector<gsp::Node> nodes() const;
+
+    // Iterator methods
+    VertexIterator begin();
+    VertexIterator end();
+    ConstVertexIterator begin() const;
+    ConstVertexIterator end() const;
+    ConstVertexIterator cbegin() const;
+    ConstVertexIterator cend() const;
 
 public:
     const uint32_t num_nodes;
@@ -63,5 +55,7 @@ public:
     uint32_t _state_vertex;
 };
 
+#include "iterators/VertexIterator.h"
+#include "VertexGraphIterators.h"
 
 #endif  // LIBGSP_VERTEXGRAPH_H
