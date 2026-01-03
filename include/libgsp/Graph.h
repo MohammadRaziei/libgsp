@@ -8,9 +8,11 @@
 
 #include <vector>
 #include <cstdint>
+#include <memory>
 
 #include "BaseGraph.h"
 #include "libgsp/utils/Types.h"
+#include "libgsp/iterators/EdgeGenerator.h"
 
 namespace gsp {
     enum class ShiftType;
@@ -68,10 +70,26 @@ class gsp::Graph : public gsp::BaseGraph {
     virtual const Matrix& normalizedLaplacian();
     virtual const  densevector& degrees();
 
+    // New method for edge iteration using EdgeGenerator
+    EdgeGenerator<Matrix> iterEdges(double thresh = 0.0) const;
+
+    // Template method for type-specific edge iteration
+    template <class TMatrix>
+    typename std::enable_if<std::is_same<TMatrix, densematrix>::value || std::is_same<TMatrix, sparsematrix>::value,
+                           EdgeGenerator<TMatrix>>::type
+    iterEdges(double thresh = 0.0) const {
+        return EdgeGenerator<TMatrix>(&this->_weights, this->num_nodes, this->_is_directed);
+    }
+
     void invalidateCache();
    protected:
     bool _is_directed;
     Matrix _weights;
+
+   private:
+    // Temporary field for backward compatibility with edgeIter/edgeNext
+    // This is a compromise to maintain the old interface while implementing the new design
+    mutable std::unique_ptr<EdgeGenerator<Matrix>> _temp_edge_generator;
 
     gsp::ShiftType shift_type = gsp::ShiftType::Laplacian;
    private:

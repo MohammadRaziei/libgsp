@@ -1,9 +1,9 @@
 //
-// Created by mohammad on 8/12/25.
+// Created by Mohammad on 1/3/2026.
 //
 
-#include "libgsp/EdgeGenerator.h"
-#include "libgsp/Graph.h"
+#include "libgsp/iterators/EdgeGenerator.h"
+#include "libgsp/BaseGraph.h"
 
 #include <Eigen/Dense>
 #include <Eigen/SparseCore>
@@ -11,9 +11,7 @@
 
 namespace gsp {
 
-
-
-
+// Dense matrix state implementation
 template <>
 struct EdgeGenerator<densematrix>::State {
     State(const densematrix*) { reset(); }
@@ -21,6 +19,7 @@ struct EdgeGenerator<densematrix>::State {
     uint32_t _row, _col;
 };
 
+// Sparse matrix state implementation
 template <>
 struct EdgeGenerator<sparsematrix>::State {
     using InnerIt = sparsematrix::InnerIterator;
@@ -49,30 +48,26 @@ struct EdgeGenerator<sparsematrix>::State {
     std::unique_ptr<InnerIt> it;            // iterator within current row
 };
 
-
-
+// Constructor
 template <class Matrix>
-EdgeGenerator<Matrix>::EdgeGenerator(const gsp::Graph<Matrix>* graph) {
-    _weights  = graph ? &graph->weights() : nullptr;
-    _num_nodes= graph ? static_cast<int>(graph->num_nodes) : 0;
-    _is_directed = graph && graph->isDirected();
-    _state = new State(_weights);
-    iter();
+EdgeGenerator<Matrix>::EdgeGenerator(const Matrix* weights, int num_nodes, bool is_directed) 
+    : _weights(weights), _num_nodes(num_nodes), _is_directed(is_directed) {
+    _state = std::make_unique<State>(weights);
+    reset(); // Initialize with default threshold
 }
 
-
+// Destructor
 template <class Matrix>
-EdgeGenerator<Matrix>::~EdgeGenerator() {
-    delete _state;
-}
+EdgeGenerator<Matrix>::~EdgeGenerator() = default;
 
+// Reset with threshold
 template <class Matrix>
-void EdgeGenerator<Matrix>::iter(types::elem_t<Matrix> thresh) {
-    _thresh      = thresh;
+void EdgeGenerator<Matrix>::reset(types::elem_t<Matrix> thresh) {
+    _thresh = thresh;
     _state->reset();
 }
 
-
+// Next edge for dense matrix
 template <>
 std::optional<Edge> EdgeGenerator<densematrix>::next() {
     if (!_weights || _num_nodes <= 0 || !_state || _weights->rows() == 0) return std::nullopt;
@@ -93,15 +88,12 @@ std::optional<Edge> EdgeGenerator<densematrix>::next() {
     return std::nullopt;
 }
 
-
-
-
-
+// Next edge for sparse matrix
 template <>
 std::optional<Edge> EdgeGenerator<sparsematrix>::next() {
     if (!_weights || _num_nodes <= 0 || !_state || _weights->rows() == 0) return std::nullopt;
 
-    auto* st = _state; // convenience
+    auto* st = _state.get(); // convenience
 
     while (st->W && st->outer < st->W->outerSize()) {
         if (!st->it) st->advance_to_next_nonempty_row();
@@ -132,21 +124,7 @@ std::optional<Edge> EdgeGenerator<sparsematrix>::next() {
     return std::nullopt;
 }
 
-
-
-template <class Matrix>
-std::vector<Edge> EdgeGenerator<Matrix>::toVector() {
-    std::vector<Edge> edges;
-    const size_t max_num = (_is_directed) ? _num_nodes * _num_nodes : _num_nodes * (_num_nodes + 1) / 2; // max edges in undirected graph
-    edges.reserve(max_num);
-    iter();
-    while (auto edge = next()) {
-        edges.push_back(*edge);
-    }
-    return edges;
-}
-
-// Optional explicit instantiation to keep symbols in TU (if needed):
+// Explicit instantiations
 template class EdgeGenerator<densematrix>;
 template class EdgeGenerator<sparsematrix>;
 

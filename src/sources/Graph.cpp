@@ -3,7 +3,7 @@
 //
 #include  <Eigen/Eigen>
 
-#include "libgsp/EdgeGenerator.h"
+#include "libgsp/iterators/EdgeGenerator.h"
 #include "libgsp/Graph.h"
 #include "libgsp/utils/Matrix.h"
 #include <ciso646>
@@ -41,7 +41,6 @@ class gsp::CacheBox {
    public:
     CacheBox(gsp::Graph<Matrix>* graph);
 
-    gsp::EdgeGenerator<Matrix> _generator;
     gsp::MatrixBox<Matrix> _matrix;
 };
 
@@ -119,18 +118,37 @@ void gsp::Graph<Matrix>::invalidateCache() {
 
 template <class Matrix>
 void gsp::Graph<Matrix>::edgeIter(double thresh) {
-    this->cache()->_generator.iter(thresh);
+    // Create or reset the temporary generator for backward compatibility
+    // This is a compromise to maintain the old interface while implementing the new design
+    _temp_edge_generator = std::make_unique<EdgeGenerator<Matrix>>(&this->_weights, this->num_nodes, this->_is_directed);
+    _temp_edge_generator->reset(thresh);
 }
 
 template <class Matrix>
 std::optional<gsp::Edge> gsp::Graph<Matrix>::edgeNext() {
-    return this->cache()->_generator.next();
+    // Use the temporary generator for backward compatibility
+    if (!_temp_edge_generator) {
+        // If no generator exists, create one with default settings
+        _temp_edge_generator = std::make_unique<EdgeGenerator<Matrix>>(&this->_weights, this->num_nodes, this->_is_directed);
+        _temp_edge_generator->reset(0.0); // Default threshold
+    }
+    return _temp_edge_generator->next();
 }
 
 template <class Matrix>
 std::vector<gsp::Edge> gsp::Graph<Matrix>::edges() const {
-    gsp::EdgeGenerator gen(this);
-    return gen.toVector();
+    auto gen = this->iterEdges();
+    std::vector<gsp::Edge> edges;
+    gen.reset(); // Reset to beginning
+    while (auto edge = gen.next()) {
+        edges.push_back(*edge);
+    }
+    return edges;
+}
+
+template <class Matrix>
+gsp::EdgeGenerator<Matrix> gsp::Graph<Matrix>::iterEdges(double thresh) const {
+    return gsp::EdgeGenerator<Matrix>(&this->_weights, this->num_nodes, this->_is_directed);
 }
 
 
@@ -368,7 +386,7 @@ typename gsp::Graph<Matrix>::densevector& gsp::MatrixBox<Matrix>::degrees() {
 
 
 template <class Matrix>
-gsp::CacheBox<Matrix>::CacheBox(gsp::Graph<Matrix>* graph) : _matrix(&graph->weights()), _generator(graph) {
+gsp::CacheBox<Matrix>::CacheBox(gsp::Graph<Matrix>* graph) : _matrix(&graph->weights()) {
 
 }
 
@@ -392,5 +410,6 @@ template class gsp::MatrixBox<gsp::sparsematrix>; /// SparseMatrix
 
 template class gsp::CacheBox<gsp::densematrix>;  /// DenseMatrix
 template class gsp::CacheBox<gsp::sparsematrix>; /// SparseMatrix
+
 
 

@@ -10,6 +10,7 @@
 #include <optional>
 
 #include "VertexGraph.h"
+#include "libgsp/iterators/EdgeGenerator.h"
 
 #define GSP_IS_DIRECTED_DEFAULT false
 
@@ -38,6 +39,7 @@ class gsp::BaseGraph : public gsp::VertexGraph {
     virtual void edgeIter(double thresh = 0.) = 0;
     virtual std::optional<gsp::Edge> edgeNext() = 0;
     virtual std::vector<gsp::Edge> edges() const = 0;
+
 };
 
 #endif  // LIBGSP_BASEGRAPH_H
