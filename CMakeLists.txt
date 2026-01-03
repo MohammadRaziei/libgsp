@@ -58,6 +58,7 @@ target_include_directories(gsp
         PUBLIC ${PROJECT_SOURCE_DIR}/include
         PRIVATE ${PROJECT_SOURCE_DIR}/src/sources
 )
+target_include_directories(gsp PUBLIC src/third_party/bin2text/include)
 target_include_directories(gsp PUBLIC src/third_party/spdlog/include)
 target_include_directories(gsp PUBLIC src/third_party/spdlog/include/spdlog)
 target_include_directories(gsp PUBLIC src/third_party/mustache)

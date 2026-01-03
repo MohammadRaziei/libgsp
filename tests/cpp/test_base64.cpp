@@ -1,5 +1,4 @@
 #include <gtest/gtest.h>
-#include <libgsp/utils/Base64.h>
 #include <string>
 #include <vector>
 #include <toml++/toml.h>
@@ -8,8 +7,8 @@
 #include <string>
 #include <cstdint>
 #include <filesystem>
+#include "base64.h"
 
-using namespace gsp::utils;
 using namespace std;
 namespace fs = std::filesystem;
 
@@ -38,52 +37,52 @@ protected:
 
 TEST_F(Base64Test, EncodeEmptyString) {
     string result;
-    base64_encode(result, emptyString);
+    b2t::base64_encode(result, emptyString);
     EXPECT_EQ(result, emptyStringEncoded);
 }
 
 TEST_F(Base64Test, EncodeString) {
     string result;
-    base64_encode(result, testString);
+    b2t::base64_encode(result, testString);
     EXPECT_EQ(result, testStringEncoded);
 }
 
 TEST_F(Base64Test, EncodeBinaryVector) {
     string result;
-    base64_encode(result, testBinary);
+    b2t::base64_encode(result, testBinary);
     EXPECT_EQ(result, testBinaryEncoded);
 }
 
 TEST_F(Base64Test, EncodeBinaryData) {
     string result;
-    base64_encode(result, testBinary.data(), testBinary.size());
+    b2t::base64_encode(result, testBinary.data(), testBinary.size());
     EXPECT_EQ(result, testBinaryEncoded);
 }
 
 TEST_F(Base64Test, DecodeToVector) {
     vector<uint8_t> result;
-    base64_decode(result, testBinaryEncoded);
+    b2t::base64_decode(result, testBinaryEncoded);
     EXPECT_EQ(result, testBinary);
 }
 
 TEST_F(Base64Test, DecodeToString) {
     string result;
-    base64_decode(result, testStringEncoded);
+    b2t::base64_decode(result, testStringEncoded);
     EXPECT_EQ(result, testString);
 }
 
 TEST_F(Base64Test, EncodeDecodeRoundTripString) {
     string encoded, decoded;
-    base64_encode(encoded, testString);
-    base64_decode(decoded, encoded);
+    b2t::base64_encode(encoded, testString);
+    b2t::base64_decode(decoded, encoded);
     EXPECT_EQ(decoded, testString);
 }
 
 TEST_F(Base64Test, EncodeDecodeRoundTripBinary) {
     string encoded;
     vector<uint8_t> decoded;
-    base64_encode(encoded, testBinary);
-    base64_decode(decoded, encoded);
+    b2t::base64_encode(encoded, testBinary);
+    b2t::base64_decode(decoded, encoded);
     EXPECT_EQ(decoded, testBinary);
 }
 
@@ -91,10 +90,10 @@ TEST_F(Base64Test, DecodeInvalidBase64) {
     // Test with invalid Base64 characters
     string invalidBase64 = "SGVsbG8sIFdvcmxkIQ==!@#";
     string result;
-    
+
     // Should throw an exception or handle it gracefully
-    EXPECT_NO_THROW(base64_decode(result, invalidBase64));
-    
+    EXPECT_NO_THROW(b2t::base64_decode(result, invalidBase64));
+
     // The result should be truncated at the first invalid character
     EXPECT_EQ(result, "Hello, World!");
 }
@@ -105,22 +104,17 @@ TEST_F(Base64Test, EncodeDecodeAllBytes) {
     for (int i = 0; i < 256; ++i) {
         allBytes[i] = static_cast<uint8_t>(i);
     }
-    
+
     string encoded;
     vector<uint8_t> decoded;
-    
-    base64_encode(encoded, allBytes);
-    base64_decode(decoded, encoded);
-    
+
+    b2t::base64_encode(encoded, allBytes);
+    b2t::base64_decode(decoded, encoded);
+
     EXPECT_EQ(decoded, allBytes);
 }
 
 
-namespace gsp::utils {
-    // Forward declarations assumed to be implemented elsewhere
-    void base64_encode(std::string& out, const std::vector<uint8_t>& buf);
-    void base64_decode(std::vector<uint8_t>& out, const std::string& encoded_string);
-} // namespace gsp::utils
 
 struct Base64TestCase {
     std::string description;
@@ -133,7 +127,7 @@ class Base64TestP : public ::testing::TestWithParam<Base64TestCase> {};
 TEST_P(Base64TestP, EncodeMatchesExpected) {
     const auto& test_case = GetParam();
     std::string actual_encoded;
-    gsp::utils::base64_encode(actual_encoded, test_case.input);
+    b2t::base64_encode(actual_encoded, test_case.input);
     EXPECT_EQ(actual_encoded, test_case.expected_encoded);
 }
 
@@ -141,7 +135,7 @@ TEST_P(Base64TestP, DecodeRoundtrip) {
     const auto& test_case = GetParam();
     std::string encoded = test_case.expected_encoded;
     std::vector<uint8_t> decoded;
-    gsp::utils::base64_decode(decoded, encoded);
+    b2t::base64_decode(decoded, encoded);
     EXPECT_EQ(decoded, test_case.input);
 }
 std::vector<Base64TestCase> LoadBase64TestCases() {
