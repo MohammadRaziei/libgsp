@@ -11,7 +11,7 @@
 #include <iterator>
 
 #include <Eigen/Eigen>
-#include "CommonTypes.h"
+#include "libgsp/CommonTypes.h"
 
 // Forward declarations for iterators
 namespace gsp {

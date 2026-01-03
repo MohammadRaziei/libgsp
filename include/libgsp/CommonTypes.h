@@ -7,7 +7,7 @@
 namespace gsp {
 
 struct Coord {
-    Coord() = default;
+    Coord() : x(0), y(0), z(0) {}
     Coord(double x, double y, double z = 0) : x(x), y(y), z(z) {}
     double x, y, z;
 };

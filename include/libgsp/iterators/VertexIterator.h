@@ -1,7 +1,7 @@
 #ifndef LIBGSP_VERTEXITERATOR_H
 #define LIBGSP_VERTEXITERATOR_H
 
-#include "../CommonTypes.h"
+#include "libgsp/CommonTypes.h"
 #include <iterator>
 #include <cstddef>
 
@@ -12,6 +12,7 @@ namespace gsp {
 
 namespace gsp {
 
+
 class ConstVertexIterator {
 public:
     using iterator_category = std::bidirectional_iterator_tag;  // Changed to bidirectional
@@ -21,33 +22,31 @@ public:
     using reference = const Node&;
 
     explicit ConstVertexIterator(const VertexGraph* graph, uint32_t index = 0)
-        : graph_(graph), index_(index), current_(index, graph->getCoord(index), graph->getName(index)){}
+        : graph_(graph), index_(index) ,current_(index, graph->getCoord(index), graph->getName(index)) {
+    }
 
     // Dereference operator
     reference operator*() const {
-        if (index_ >= graph_->num_nodes) {
+        if (index_ < 0 || static_cast<uint32_t>(index_) >= graph_->num_nodes) {
             throw std::out_of_range("ConstVertexIterator out of range");
         }
-        static thread_local Node node(index_, graph_->getCoord(index_), graph_->getName(index_));
-        node.id = index_;
-        return node;
+        return current_;
     }
 
     // Pointer operator
     pointer operator->() const {
-        if (index_ >= graph_->num_nodes) {
+        if (index_ < 0 || static_cast<uint32_t>(index_) >= graph_->num_nodes) {
             throw std::out_of_range("ConstVertexIterator out of range");
         }
-        static thread_local Node node(index_, graph_->getCoord(index_), graph_->getName(index_));
-        node.id = index_;
-        return &node;
+        return &current_;
     }
 
     // Pre-increment
     ConstVertexIterator& operator++() {
-        if (index_ < graph_->num_nodes) {
-            if (++index_ < graph_->num_nodes) {
-                current_ = Node(index_, graph_->getCoord(index_), graph_->getName(index_));
+        if (index_ < static_cast<int32_t>(graph_->num_nodes)) {
+            ++index_;
+            if (index_ < static_cast<int32_t>(graph_->num_nodes)) {
+                updateCurrent();
             }
         }
         return *this;
@@ -63,9 +62,8 @@ public:
     // Pre-decrement (for bidirectional iterator)
     ConstVertexIterator& operator--() {
         if (index_ > 0) {
-            if (--index_ > 0) {
-                current_ = Node(index_, graph_->getCoord(index_), graph_->getName(index_));
-            }
+            --index_;
+            updateCurrent();
         }
         return *this;
     }
@@ -89,8 +87,14 @@ public:
 
 private:
     const VertexGraph* graph_;
-    uint32_t index_;
+    int32_t index_;
     value_type current_;
+
+    void updateCurrent() {
+        if (index_ >= 0 && static_cast<uint32_t>(index_) < graph_->num_nodes) {
+            current_ = Node(index_, graph_->getCoord(index_), graph_->getName(index_));
+        }
+    }
 };
 
 } // namespace gsp
