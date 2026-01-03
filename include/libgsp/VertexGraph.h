@@ -29,6 +29,7 @@ public:
     double x() const {return x_;}
     double y() const {return y_;}
     double z() const {return z_;}
+    void setCoord(double x, double y, double z = 0.);
     void setX(double x);
     void setY(double y);
     void setZ(double z);
@@ -64,6 +65,7 @@ public:
     virtual void setCoords(const std::vector<gsp::Coord>& coords);
     virtual void setCoord(uint32_t idx, const gsp::Coord& coord);
     virtual void setCoord(uint32_t row, uint32_t col, double value);
+    virtual void setCoord(uint32_t idx, double x, double y, double z);
     virtual void setNames(const std::vector<std::string>&);
     virtual gsp::Coord coord(uint32_t idx);
     virtual const gsp::Coord coord(uint32_t idx) const;

@@ -62,17 +62,20 @@ gsp::Coord gsp::VertexGraph::coord(uint32_t idx) {
      }
  }
 
-
-void gsp::VertexGraph::setCoord(uint32_t idx, const Coord &coord) {
+void gsp::VertexGraph::setCoord(uint32_t idx, double x, double y, double z) {
     if (idx >= num_nodes) {
         throw std::out_of_range("out of the range!");
     }
     if (_coords.rows() == 0) {
         _coords.resize(num_nodes, 3);
     }
-    _coords(idx, 0) = coord.x();
-    _coords(idx, 1) = coord.y();
-    _coords(idx, 2) = coord.z();
+    _coords(idx, 0) = x;
+    _coords(idx, 1) = y;
+    _coords(idx, 2) = z;
+}
+
+void gsp::VertexGraph::setCoord(uint32_t idx, const Coord &coord) {
+    setCoord(idx, coord.x(), coord.y(), coord.z());
 }
 
 void gsp::VertexGraph::setCoord(uint32_t row, uint32_t col, double value) {
@@ -84,7 +87,6 @@ void gsp::VertexGraph::setCoord(uint32_t row, uint32_t col, double value) {
     }
     _coords(row, col) = value;
 }
-
 
 gsp::VertexIterator gsp::VertexGraph::begin() {
     return VertexIterator(this, 0);
@@ -134,6 +136,14 @@ std::reverse_iterator<gsp::ConstVertexIterator> gsp::VertexGraph::crend() const 
     return std::reverse_iterator<ConstVertexIterator>(cbegin());
 }
 
+void gsp::Coord::setCoord(double x, double y, double z) {
+    x_ = x;
+    y_ = y;
+    z_ = z;
+    if (graph_) {
+        graph_->setCoord(idx_, x, y, z);
+    }
+}
 
 void gsp::Coord::setX(double x) {
     x_ = x;

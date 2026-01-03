@@ -76,6 +76,8 @@ int main() {
     // Test non-const begin/end
     logger->info("Non-const begin to end:");
     for (auto it = graph.begin(); it != graph.end(); ++it) {
+        auto& coord = it->coord;
+        coord.setCoord(coord.x()* 2, coord.y()*2, coord.z()+1);
         logger->info("  Node ID: {}, Name: {}, Coord: ({:.5g},{:.5g},{:.5g})",
                     it->id, it->name, it->coord.x(), it->coord.y(), it->coord.z());
     }
@@ -84,6 +86,7 @@ int main() {
     logger->info("Const begin to end:");
     const gsp::BaseGraph& const_graph = graph;
     for (auto it = const_graph.begin(); it != const_graph.end(); ++it) {
+        // it->coord.setCoord(2, 2, 2); // ERROR
         logger->info("  Node ID: {}, Name: {}, Coord: ({:.5g},{:.5g},{:.5g})",
                     it->id, it->name, it->coord.x(), it->coord.y(), it->coord.z());
     }
