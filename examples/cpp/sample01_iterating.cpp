@@ -9,7 +9,7 @@ uint32_t countNumNodes(gsp::BaseGraph& graph) {
     auto logger = gsp::logging::getLogger("countNumNodes");
     uint32_t count_nodes = 0;
     for (auto it = graph.begin(); it != graph.end(); ++it) {
-        logger->info("Node {}: {} @ ({:.5g},{:.5g},{:.5g})", it->id, it->name, it->coord.x, it->coord.y, it->coord.z);
+        logger->info("Node {}: {} @ ({:.5g},{:.5g},{:.5g})", it->id, it->name, it->coord.x(), it->coord.y(), it->coord.z());
         ++count_nodes;
     }
     logger->info("There is {} nodes", count_nodes);
@@ -70,7 +70,22 @@ int main() {
     logger->info("Range-based for loop:");
     for (const auto& node : graph) {
         logger->info("  Node ID: {}, Name: {}, Coord: ({:.5g},{:.5g},{:.5g})",
-                     node.id, node.name, node.coord.x, node.coord.y, node.coord.z);
+                     node.id, node.name, node.coord.x(), node.coord.y(), node.coord.z());
+    }
+
+    // Test reverse iterators
+    logger->info("Reverse iterator (rbegin to rend):");
+    for (auto it = graph.rbegin(); it != graph.rend(); ++it) {
+        logger->info("  Node ID: {}, Name: {}, Coord: ({:.5g},{:.5g},{:.5g})",
+                    it->id, it->name, it->coord.x(), it->coord.y(), it->coord.z());
+    }
+
+    // Test const reverse iterators
+    logger->info("Const reverse iterator (crbegin to crend):");
+    const gsp::BaseGraph& const_graph = graph;
+    for (auto it = const_graph.crbegin(); it != const_graph.crend(); ++it) {
+        logger->info("  Node ID: {}, Name: {}, Coord: ({:.5g},{:.5g},{:.5g})",
+                    it->id, it->name, it->coord.x(), it->coord.y(), it->coord.z());
     }
 
 

@@ -140,8 +140,8 @@ struct GraphSvg::Impl {
 
         for (size_t i = 0; i < nodes.size(); ++i) {
             const auto& c = nodes[i].coord;
-            const double X  = ns * c.x;
-            const double Y  = ns * c.y;
+            const double X  = ns * c.x();
+            const double Y  = ns * c.y();
 
             double sg = 0.0;
             if (signal[i].has_value()) sg = *signal[i];
@@ -278,10 +278,10 @@ struct GraphSvg::Impl {
             const auto& s = nodes[e.source].coord;
             const auto& t = nodes[e.target].coord;
 
-            const double x1 = node_space_scale * s.x - min_x;
-            const double y1 = -node_space_scale * s.y + max_y;
-            const double x2 = node_space_scale * t.x - min_x;
-            const double y2 = -node_space_scale * t.y + max_y;
+            const double x1 = node_space_scale * s.x() - min_x;
+            const double y1 = -node_space_scale * s.y() + max_y;
+            const double x2 = node_space_scale * t.x() - min_x;
+            const double y2 = -node_space_scale * t.y() + max_y;
 
             fmt::format_to(std::back_inserter(body),
                 R"(  <line class="edge" x1="{}" y1="{}" x2="{}" y2="{}" v1="{}" v2="{}" weight="{}"/>)"
@@ -291,16 +291,16 @@ struct GraphSvg::Impl {
         // Nodes + signals
         for (size_t i = 0; i < nodes.size(); ++i) {
             const auto& node = nodes[i];
-            const double X = node_space_scale * node.coord.x - min_x;
-            const double Y = -node_space_scale * node.coord.y + max_y;
-            const double Z = node.coord.z;
+            const double X = node_space_scale * node.coord.x() - min_x;
+            const double Y = -node_space_scale * node.coord.y() + max_y;
+            const double Z = node.coord.z();
             const std::string name = node.name.empty()
                                      ? fmt::format("v{}", node.id)
                                      : node.name;
 
             fmt::format_to(std::back_inserter(body),
                 R"(  <circle class="node" cx="{}" cy="{}" r="{}" vx="{}" vy="{}" vz="{}" v="{}" name="{}"/>)"
-                "\n", X, Y, node_radius, node.coord.x, node.coord.y, Z, node.id, name);
+                "\n", X, Y, node_radius, node.coord.x(), node.coord.y(), Z, node.id, name);
 
             fmt::format_to(std::back_inserter(body),
                 R"(  <text class="node-label" x="{}" y="{}">{}</text>)"
