@@ -51,8 +51,6 @@ class gsp::Graph : public gsp::BaseGraph {
     Graph(const gsp::VertexGraph& other);
     virtual ~Graph();
 
-    virtual void edgeIter(double thresh = 0.) override;
-    virtual std::optional<gsp::Edge> edgeNext() override;
     virtual std::vector<gsp::Edge> edges() const override;
 
     virtual void setEdges(const std::vector<gsp::Edge>& edges, bool is_directed = GSP_IS_DIRECTED_DEFAULT) override;
@@ -85,11 +83,6 @@ class gsp::Graph : public gsp::BaseGraph {
    protected:
     bool _is_directed;
     Matrix _weights;
-
-   private:
-    // Temporary field for backward compatibility with edgeIter/edgeNext
-    // This is a compromise to maintain the old interface while implementing the new design
-    mutable std::unique_ptr<EdgeGenerator<Matrix>> _temp_edge_generator;
 
     gsp::ShiftType shift_type = gsp::ShiftType::Laplacian;
    private:

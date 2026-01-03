@@ -116,27 +116,11 @@ void gsp::Graph<Matrix>::invalidateCache() {
 
 
 
-template <class Matrix>
-void gsp::Graph<Matrix>::edgeIter(double thresh) {
-    // Create or reset the temporary generator for backward compatibility
-    // This is a compromise to maintain the old interface while implementing the new design
-    _temp_edge_generator = std::make_unique<EdgeGenerator<Matrix>>(&this->_weights, this->num_nodes, this->_is_directed);
-    _temp_edge_generator->reset(thresh);
-}
 
-template <class Matrix>
-std::optional<gsp::Edge> gsp::Graph<Matrix>::edgeNext() {
-    // Use the temporary generator for backward compatibility
-    if (!_temp_edge_generator) {
-        // If no generator exists, create one with default settings
-        _temp_edge_generator = std::make_unique<EdgeGenerator<Matrix>>(&this->_weights, this->num_nodes, this->_is_directed);
-        _temp_edge_generator->reset(0.0); // Default threshold
-    }
-    return _temp_edge_generator->next();
-}
 
 template <class Matrix>
 std::vector<gsp::Edge> gsp::Graph<Matrix>::edges() const {
+    // Create a temporary generator to get all edges
     auto gen = this->iterEdges();
     std::vector<gsp::Edge> edges;
     gen.reset(); // Reset to beginning
