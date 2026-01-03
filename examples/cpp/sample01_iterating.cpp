@@ -73,17 +73,24 @@ int main() {
                      node.id, node.name, node.coord.x(), node.coord.y(), node.coord.z());
     }
 
-    // Test reverse iterators
-    logger->info("Reverse iterator (rbegin to rend):");
-    for (auto it = graph.rbegin(); it != graph.rend(); ++it) {
+    // Test non-const begin/end
+    logger->info("Non-const begin to end:");
+    for (auto it = graph.begin(); it != graph.end(); ++it) {
         logger->info("  Node ID: {}, Name: {}, Coord: ({:.5g},{:.5g},{:.5g})",
                     it->id, it->name, it->coord.x(), it->coord.y(), it->coord.z());
     }
 
-    // Test const reverse iterators
-    logger->info("Const reverse iterator (crbegin to crend):");
+    // Test const begin/end
+    logger->info("Const begin to end:");
     const gsp::BaseGraph& const_graph = graph;
-    for (auto it = const_graph.crbegin(); it != const_graph.crend(); ++it) {
+    for (auto it = const_graph.begin(); it != const_graph.end(); ++it) {
+        logger->info("  Node ID: {}, Name: {}, Coord: ({:.5g},{:.5g},{:.5g})",
+                    it->id, it->name, it->coord.x(), it->coord.y(), it->coord.z());
+    }
+
+    // Test cbegin/cend
+    logger->info("cbegin to cend:");
+    for (auto it = const_graph.cbegin(); it != const_graph.cend(); ++it) {
         logger->info("  Node ID: {}, Name: {}, Coord: ({:.5g},{:.5g},{:.5g})",
                     it->id, it->name, it->coord.x(), it->coord.y(), it->coord.z());
     }

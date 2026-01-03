@@ -86,6 +86,14 @@ void gsp::VertexGraph::setCoord(uint32_t row, uint32_t col, double value) {
 }
 
 
+gsp::VertexIterator gsp::VertexGraph::begin() {
+    return VertexIterator(this, 0);
+}
+
+gsp::VertexIterator gsp::VertexGraph::end() {
+    return VertexIterator(this, num_nodes);
+}
+
 gsp::ConstVertexIterator gsp::VertexGraph::begin() const {
     return ConstVertexIterator(this, 0);
 }
@@ -100,6 +108,14 @@ gsp::ConstVertexIterator gsp::VertexGraph::cbegin() const {
 
 gsp::ConstVertexIterator gsp::VertexGraph::cend() const {
     return ConstVertexIterator(this, num_nodes);
+}
+
+std::reverse_iterator<gsp::VertexIterator> gsp::VertexGraph::rbegin() {
+    return std::reverse_iterator<VertexIterator>(end());
+}
+
+std::reverse_iterator<gsp::VertexIterator> gsp::VertexGraph::rend() {
+    return std::reverse_iterator<VertexIterator>(begin());
 }
 
 std::reverse_iterator<gsp::ConstVertexIterator> gsp::VertexGraph::rbegin() const {

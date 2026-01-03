@@ -72,12 +72,16 @@ public:
     virtual std::vector<gsp::Node> nodes() const;
 
     // Iterator methods
+    VertexIterator begin();
+    VertexIterator end();
     ConstVertexIterator begin() const;
     ConstVertexIterator end() const;
     ConstVertexIterator cbegin() const;
     ConstVertexIterator cend() const;
 
     // Reverse iterator methods
+    std::reverse_iterator<VertexIterator> rbegin();
+    std::reverse_iterator<VertexIterator> rend();
     std::reverse_iterator<ConstVertexIterator> rbegin() const;
     std::reverse_iterator<ConstVertexIterator> rend() const;
     std::reverse_iterator<ConstVertexIterator> crbegin() const;
