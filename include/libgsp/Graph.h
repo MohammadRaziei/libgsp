@@ -79,6 +79,9 @@ class gsp::Graph : public gsp::BaseGraph {
         return EdgeGenerator<TMatrix>(&this->_weights, this->num_nodes, this->_is_directed);
     }
 
+    // Clone method to create a deep copy of the graph
+    std::unique_ptr<Graph<Matrix>> clone() const;
+
     void invalidateCache();
    protected:
     bool _is_directed;

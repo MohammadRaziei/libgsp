@@ -135,6 +135,26 @@ gsp::EdgeGenerator<Matrix> gsp::Graph<Matrix>::iterEdges(double thresh) const {
     return gsp::EdgeGenerator<Matrix>(&this->_weights, this->num_nodes, this->_is_directed);
 }
 
+template <class Matrix>
+std::unique_ptr<gsp::Graph<Matrix>> gsp::Graph<Matrix>::clone() const {
+    auto cloned_graph = std::make_unique<gsp::Graph<Matrix>>(this->num_nodes);
+
+    // Copy all properties from the current graph
+    cloned_graph->_weights = this->_weights;  // This performs a deep copy for Eigen matrices
+    cloned_graph->_is_directed = this->_is_directed;
+    cloned_graph->shift_type = this->shift_type;
+
+    // Copy names if they exist
+    if (!this->names.empty()) {
+        cloned_graph->names = this->names;
+    }
+
+    // Note: We don't copy the cache since it's computed on-demand
+    // The cache will be recreated when needed
+
+    return cloned_graph;
+}
+
 
 
 
@@ -394,6 +414,7 @@ template class gsp::MatrixBox<gsp::sparsematrix>; /// SparseMatrix
 
 template class gsp::CacheBox<gsp::densematrix>;  /// DenseMatrix
 template class gsp::CacheBox<gsp::sparsematrix>; /// SparseMatrix
+
 
 
 
