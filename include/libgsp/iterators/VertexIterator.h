@@ -16,7 +16,7 @@ namespace gsp {
 
 class ConstVertexIterator {
 public:
-    using iterator_category = std::bidirectional_iterator_tag;  // Changed to bidirectional
+    using iterator_category = std::random_access_iterator_tag;  // Changed to random access
     using value_type = Node;
     using difference_type = std::ptrdiff_t;
     using pointer = const Node*;
@@ -72,14 +72,84 @@ public:
         return tmp;
     }
 
-    // Equality comparison
+    // Arithmetic operators
+    ConstVertexIterator& operator+=(difference_type n) {
+        index_ += n;
+        if (index_ >= 0 && index_ < graph_->num_nodes) {
+            updateCurrent();
+        }
+        return *this;
+    }
+
+    ConstVertexIterator& operator-=(difference_type n) {
+        index_ -= n;
+        if (index_ >= 0 && index_ < graph_->num_nodes) {
+            updateCurrent();
+        }
+        return *this;
+    }
+
+    ConstVertexIterator operator+(difference_type n) const {
+        ConstVertexIterator tmp = *this;
+        tmp += n;
+        return tmp;
+    }
+
+    ConstVertexIterator operator-(difference_type n) const {
+        ConstVertexIterator tmp = *this;
+        tmp -= n;
+        return tmp;
+    }
+
+    difference_type operator-(const ConstVertexIterator& other) const {
+        if (graph_ != other.graph_) {
+            throw std::invalid_argument("Cannot subtract iterators from different graphs");
+        }
+        return index_ - other.index_;
+    }
+
+    // Subscript operator
+    reference operator[](difference_type n) const {
+        ConstVertexIterator tmp = *this;
+        tmp += n;
+        return *tmp;
+    }
+
+    // Comparison operators
     bool operator==(const ConstVertexIterator& other) const {
         return graph_ == other.graph_ && index_ == other.index_;
     }
 
-    // Inequality comparison
     bool operator!=(const ConstVertexIterator& other) const {
         return !(*this == other);
+    }
+
+    bool operator<(const ConstVertexIterator& other) const {
+        if (graph_ != other.graph_) {
+            throw std::invalid_argument("Cannot compare iterators from different graphs");
+        }
+        return index_ < other.index_;
+    }
+
+    bool operator<=(const ConstVertexIterator& other) const {
+        if (graph_ != other.graph_) {
+            throw std::invalid_argument("Cannot compare iterators from different graphs");
+        }
+        return index_ <= other.index_;
+    }
+
+    bool operator>(const ConstVertexIterator& other) const {
+        if (graph_ != other.graph_) {
+            throw std::invalid_argument("Cannot compare iterators from different graphs");
+        }
+        return index_ > other.index_;
+    }
+
+    bool operator>=(const ConstVertexIterator& other) const {
+        if (graph_ != other.graph_) {
+            throw std::invalid_argument("Cannot compare iterators from different graphs");
+        }
+        return index_ >= other.index_;
     }
 
 private:
