@@ -109,10 +109,14 @@ public:
     }
 
     // Subscript operator
-    reference operator[](difference_type n) const {
-        ConstVertexIterator tmp = *this;
-        tmp += n;
-        return *tmp;
+    value_type operator[](difference_type n) const {
+        // Create a temporary iterator at the target position and return its value
+        difference_type new_index = index_ + n;
+        if (new_index < 0 || new_index >= static_cast<difference_type>(graph_->num_nodes)) {
+            throw std::out_of_range("ConstVertexIterator subscript out of range");
+        }
+        // Create a temporary node at the target position
+        return value_type(new_index, graph_->coord(new_index), graph_->name(new_index));
     }
 
     // Comparison operators
@@ -168,7 +172,7 @@ private:
 
 class VertexIterator {
 public:
-    using iterator_category = std::bidirectional_iterator_tag;  // Changed to bidirectional
+    using iterator_category = std::random_access_iterator_tag;  // Changed to random access
     using value_type = Node;
     using difference_type = std::ptrdiff_t;
     using pointer = Node*;
@@ -224,14 +228,88 @@ public:
         return tmp;
     }
 
-    // Equality comparison
+    // Arithmetic operators
+    VertexIterator& operator+=(difference_type n) {
+        index_ += n;
+        if (index_ >= 0 && index_ < graph_->num_nodes) {
+            updateCurrent();
+        }
+        return *this;
+    }
+
+    VertexIterator& operator-=(difference_type n) {
+        index_ -= n;
+        if (index_ >= 0 && index_ < graph_->num_nodes) {
+            updateCurrent();
+        }
+        return *this;
+    }
+
+    VertexIterator operator+(difference_type n) const {
+        VertexIterator tmp = *this;
+        tmp += n;
+        return tmp;
+    }
+
+    VertexIterator operator-(difference_type n) const {
+        VertexIterator tmp = *this;
+        tmp -= n;
+        return tmp;
+    }
+
+    difference_type operator-(const VertexIterator& other) const {
+        if (graph_ != other.graph_) {
+            throw std::invalid_argument("Cannot subtract iterators from different graphs");
+        }
+        return index_ - other.index_;
+    }
+
+    // Subscript operator
+    value_type operator[](difference_type n) const {
+        // Create a temporary iterator at the target position and return its value
+        difference_type new_index = index_ + n;
+        if (new_index < 0 || new_index >= static_cast<difference_type>(graph_->num_nodes)) {
+            throw std::out_of_range("VertexIterator subscript out of range");
+        }
+        // Create a temporary node at the target position
+        return value_type(new_index, graph_->coord(new_index), graph_->name(new_index));
+    }
+
+    // Comparison operators
     bool operator==(const VertexIterator& other) const {
         return graph_ == other.graph_ && index_ == other.index_;
     }
 
-    // Inequality comparison
     bool operator!=(const VertexIterator& other) const {
         return !(*this == other);
+    }
+
+    bool operator<(const VertexIterator& other) const {
+        if (graph_ != other.graph_) {
+            throw std::invalid_argument("Cannot compare iterators from different graphs");
+        }
+        return index_ < other.index_;
+    }
+
+    bool operator<=(const VertexIterator& other) const {
+        if (graph_ != other.graph_) {
+            throw std::invalid_argument("Cannot compare iterators from different graphs");
+        }
+        return index_ <= other.index_;
+    }
+
+    bool operator>(const VertexIterator& other) const {
+        if (graph_ != other.graph_) {
+            throw std::invalid_argument("Cannot compare iterators from different graphs");
+        }
+        return index_ > other.index_;
+    }
+
+    bool operator>=(const VertexIterator& other) const {
+        if (graph_ != other.graph_) {
+            throw std::invalid_argument("Cannot compare iterators from different graphs");
+        }
+        return index_ >= other.index_;
     }
 
     // Conversion from VertexIterator to ConstVertexIterator

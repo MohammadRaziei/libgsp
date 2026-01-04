@@ -173,5 +173,72 @@ int main() {
         }
     }
 
+    // Test enhanced VertexIterator functionality
+    logger->info("Testing enhanced VertexIterator functionality:");
+
+    // Test arithmetic operations
+    logger->info("Testing iterator arithmetic:");
+    auto begin_it = graph.begin();
+    auto end_it = graph.end();
+    logger->info("Graph has {} nodes", end_it - begin_it);
+
+    // Test += operator
+    auto it = graph.begin();
+    logger->info("First node: ID={}, Name={}", it->id, it->name);
+    it += 2;
+    logger->info("After += 2: ID={}, Name={}", it->id, it->name);
+
+    // Test -= operator
+    it -= 1;
+    logger->info("After -= 1: ID={}, Name={}", it->id, it->name);
+
+    // Test + operator
+    auto it_plus_2 = graph.begin() + 2;
+    logger->info("Iterator + 2: ID={}, Name={}", it_plus_2->id, it_plus_2->name);
+
+    // Test - operator
+    auto it_minus_1 = it_plus_2 - 1;
+    logger->info("Iterator - 1: ID={}, Name={}", it_minus_1->id, it_minus_1->name);
+
+    // Test subscript operator
+    logger->info("Testing subscript operator:");
+    auto start_it = graph.begin();
+    logger->info("start_it[0]: ID={}, Name={}", start_it[0].id, start_it[0].name);
+    logger->info("start_it[1]: ID={}, Name={}", start_it[1].id, start_it[1].name);
+    logger->info("start_it[2]: ID={}, Name={}", start_it[2].id, start_it[2].name);
+
+    // Test comparison operators
+    logger->info("Testing comparison operators:");
+    auto it1 = graph.begin();
+    auto it2 = graph.begin() + 1;
+    logger->info("it1 < it2: {}", it1 < it2);
+    logger->info("it1 <= it2: {}", it1 <= it2);
+    logger->info("it1 > it2: {}", it1 > it2);
+    logger->info("it1 >= it1: {}", it1 >= it1);
+
+    // Test random access iteration
+    logger->info("Testing random access iteration:");
+    for (int i = 0; i < (graph.end() - graph.begin()); ++i) {
+        auto node_it = graph.begin() + i;
+        logger->info("  Node at index {}: ID={}, Name={}", i, node_it->id, node_it->name);
+    }
+
+    // Test const iterator functionality
+    logger->info("Testing const iterator functionality:");
+    auto const_begin = const_graph.begin();
+    auto const_end = const_graph.end();
+    logger->info("Const iterator arithmetic: distance = {}", const_end - const_begin);
+
+    auto const_it = const_graph.begin() + 1;
+    logger->info("Const iterator at position 1: ID={}, Name={}", const_it->id, const_it->name);
+
+    // Test iterator subtraction
+    logger->info("Testing iterator subtraction:");
+    auto pos1 = graph.begin() + 1;
+    auto pos3 = graph.begin() + 3;
+    logger->info("Distance between position 3 and 1: {}", pos3 - pos1);
+
+    logger->info("All enhanced iterator functionality tests completed!");
+
     return 0;
 }
