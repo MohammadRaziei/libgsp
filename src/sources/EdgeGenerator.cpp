@@ -48,30 +48,22 @@ struct EdgeGenerator<sparsematrix>::State {
     std::unique_ptr<InnerIt> it;            // iterator within current row
 };
 
-// Constructor
-template <class Matrix>
-EdgeGenerator<Matrix>::EdgeGenerator(const Matrix* weights, int num_nodes, bool is_directed)
-    : _weights(weights), _num_nodes(num_nodes), _is_directed(is_directed) {
-    _state = std::make_unique<State>(weights);
-    reset(); // Initialize with default threshold
-}
-
 // Constructor with threshold
 template <class Matrix>
 EdgeGenerator<Matrix>::EdgeGenerator(const Matrix* weights, int num_nodes, bool is_directed, types::elem_t<Matrix> thresh)
     : _weights(weights), _num_nodes(num_nodes), _is_directed(is_directed) {
     _state = std::make_unique<State>(weights);
-    reset(thresh); // Initialize with provided threshold
+    _thresh = thresh;  // Set the threshold
+    _state->reset();   // Reset the state
 }
 
 // Destructor
 template <class Matrix>
 EdgeGenerator<Matrix>::~EdgeGenerator() = default;
 
-// Reset with threshold
+// Reset (keeps current threshold)
 template <class Matrix>
-void EdgeGenerator<Matrix>::reset(types::elem_t<Matrix> thresh) {
-    _thresh = thresh;
+void EdgeGenerator<Matrix>::reset() {
     _state->reset();
 }
 

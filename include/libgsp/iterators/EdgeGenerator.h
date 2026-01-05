@@ -23,13 +23,12 @@ class Edge; // forward: must expose source, target, weight
 template <class Matrix>
 class EdgeGenerator {
 public:
-    explicit EdgeGenerator(const Matrix* weights, int num_nodes, bool is_directed);
     EdgeGenerator(const Matrix* weights, int num_nodes, bool is_directed, types::elem_t<Matrix> thresh);
     EdgeGenerator(const EdgeGenerator&) = delete;
     EdgeGenerator& operator=(const EdgeGenerator&) = delete;
     ~EdgeGenerator();
 
-    void reset(types::elem_t<Matrix> thresh = 0.0);  // reset internal cursor
+    void reset();  // reset internal cursor (keeps current threshold)
     std::optional<Edge> next();        // next edge or std::nullopt
 
 private:
