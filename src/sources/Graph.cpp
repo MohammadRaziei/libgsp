@@ -144,15 +144,28 @@ std::unique_ptr<gsp::Graph<Matrix>> gsp::Graph<Matrix>::clone() const {
     cloned_graph->_is_directed = this->_is_directed;
     cloned_graph->shift_type = this->shift_type;
 
-    // Copy names if they exist
+    // Copy VertexGraph properties (coordinates and names) using public interface
+    // Copy names
     if (!this->names.empty()) {
-        cloned_graph->names = this->names;
+        cloned_graph->setNames(this->names);
     }
 
-    // Note: We don't copy the cache since it's computed on-demand
-    // The cache will be recreated when needed
+    // Copy coordinates
+    for (uint32_t i = 0; i < this->num_nodes; ++i) {
+        auto coord = this->coord(i);
+        cloned_graph->setCoord(i, coord);
+    }
+
+    // Note: Internal caches are not copied and will be recreated when needed
+    // The cloned graph starts with a clean cache state (nullptr)
 
     return cloned_graph;
+}
+
+template <class Matrix>
+std::unique_ptr<gsp::BaseGraph> gsp::Graph<Matrix>::copy() const {
+    // Delegate to the clone method to maintain deep copy semantics
+    return std::unique_ptr<gsp::BaseGraph>(this->clone().release());
 }
 
 
