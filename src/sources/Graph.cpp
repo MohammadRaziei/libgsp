@@ -7,6 +7,8 @@
 #include "libgsp/Graph.h"
 #include "libgsp/utils/Matrix.h"
 #include <ciso646>
+#include <type_traits>
+#include <iostream>
 
 template <class Matrix>
 class gsp::MatrixBox {
@@ -48,6 +50,46 @@ class gsp::CacheBox {
 template <class Matrix>
 gsp::Graph<Matrix>::Graph(uint32_t num_nodes):
       BaseGraph(num_nodes), _cache(nullptr), _is_directed(GSP_IS_DIRECTED_DEFAULT) {
+}
+
+
+template<class Matrix>
+gsp::Graph<Matrix>::Graph(const gsp::Graph<Matrix> *other) noexcept :
+    gsp::BaseGraph(dynamic_cast<const BaseGraph*>(other)), _cache(nullptr),
+    _is_directed(other->_is_directed), _weights(other->_weights), shift_type(other->shift_type) {
+}
+
+
+template<class Matrix>
+gsp::Graph<Matrix>::Graph(gsp::Graph<Matrix> &&other) noexcept
+    : BaseGraph(std::move(other)), _weights(std::move(other._weights)),
+      _is_directed(other._is_directed), shift_type(other.shift_type), _cache(other._cache) {
+    // Reset the moved-from object's cache pointer
+    other._cache = nullptr;
+}
+
+
+template<class Matrix>
+gsp::Graph<Matrix>::Graph(const gsp::VertexGraph *other) noexcept: gsp::BaseGraph(other) {
+}
+
+
+template<class Matrix>
+gsp::Graph<Matrix>& gsp::Graph<Matrix>::operator=(gsp::Graph<Matrix> &&other) noexcept {
+    if (this == &other) return *this;
+    // Move the matrix
+
+    _weights = std::move(other._weights);
+    // Move other members
+    _is_directed = other._is_directed;
+    shift_type = other.shift_type;
+
+    // Move the cache
+    delete _cache;  // Clean up existing cache
+    _cache = other._cache;
+    other._cache = nullptr;  // Reset moved-from object's cache pointer
+
+    return *this;
 }
 
 template <class Matrix>
@@ -131,41 +173,63 @@ std::vector<gsp::Edge> gsp::Graph<Matrix>::edges() const {
 }
 
 template <class Matrix>
-gsp::EdgeGenerator<Matrix> gsp::Graph<Matrix>::iterEdges(double thresh) const {
-    return gsp::EdgeGenerator<Matrix>(&this->_weights, this->num_nodes, this->_is_directed, static_cast<types::elem_t<Matrix>>(thresh));
+gsp::EdgeGenerator<Matrix> gsp::Graph<Matrix>::iterEdges(gsp::types::elem_t<Matrix> thresh) const {
+    return gsp::EdgeGenerator<Matrix>(&this->_weights, this->num_nodes, this->_is_directed, thresh);
 }
 
 template <class Matrix>
-std::unique_ptr<gsp::Graph<Matrix>> gsp::Graph<Matrix>::clone() const {
-    auto cloned_graph = std::make_unique<gsp::Graph<Matrix>>(this->num_nodes);
-
-    // Copy all properties from the current graph
-    cloned_graph->_weights = this->_weights;  // This performs a deep copy for Eigen matrices
-    cloned_graph->_is_directed = this->_is_directed;
-    cloned_graph->shift_type = this->shift_type;
-
-    // Copy VertexGraph properties (coordinates and names) using public interface
-    // Copy names
-    if (!this->names.empty()) {
-        cloned_graph->setNames(this->names);
-    }
-
-    // Copy coordinates
-    for (uint32_t i = 0; i < this->num_nodes; ++i) {
-        auto coord = this->coord(i);
-        cloned_graph->setCoord(i, coord);
-    }
-
-    // Note: Internal caches are not copied and will be recreated when needed
-    // The cloned graph starts with a clean cache state (nullptr)
-
-    return cloned_graph;
+gsp::Graph<Matrix> gsp::Graph<Matrix>::clone() const {
+    return gsp::Graph<Matrix>(this);
 }
 
 template <class Matrix>
 std::unique_ptr<gsp::BaseGraph> gsp::Graph<Matrix>::copy() const {
     // Delegate to the clone method to maintain deep copy semantics
-    return std::unique_ptr<gsp::BaseGraph>(this->clone().release());
+    auto result = std::make_unique<gsp::Graph<Matrix>>(this->clone());
+    return result;
+}
+
+// Implementation of toSparse method
+template <>
+gsp::SparseGraph gsp::Graph<gsp::sparsematrix>::toSparse(double thresh) const {
+    return clone();
+}
+
+template <>
+gsp::DenseGraph gsp::Graph<gsp::densematrix>::toDense(double thresh) const {
+    return clone();
+}
+
+template <>
+gsp::SparseGraph gsp::Graph<gsp::densematrix>::toSparse(double thresh) const {
+
+    gsp::SparseGraph sparse_graph(dynamic_cast<const VertexGraph*>(this));
+
+    auto generator = this->iterEdges(0.0); // Include all edges with weight > 0
+    std::vector<gsp::Edge> edges;
+    while (auto edge = generator.next()) {
+        edges.push_back(*edge);
+    }
+
+    sparse_graph.setEdges(edges, this->_is_directed);
+    sparse_graph.invalidateCache();
+    return sparse_graph;
+}
+
+template <>
+gsp::DenseGraph gsp::Graph<gsp::sparsematrix>::toDense(double thresh) const {
+    gsp::DenseGraph dense_graph(this->num_nodes);
+
+    auto generator = this->iterEdges(thresh); // Include all edges with weight > 0
+
+    std::vector<gsp::Edge> edges;
+    while (auto edge = generator.next()) {
+        edges.push_back(*edge);
+    }
+
+    dense_graph.setEdges(edges, this->_is_directed);
+    dense_graph.invalidateCache();
+    return dense_graph;
 }
 
 

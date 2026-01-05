@@ -57,10 +57,13 @@ public:
 
     explicit VertexGraph(uint32_t);
     VertexGraph(const gsp::VertexGraph& other) = delete;
-    void operator=(const gsp::VertexGraph& other) = delete;
+    VertexGraph(gsp::VertexGraph&& other) noexcept;
+    explicit VertexGraph(const gsp::VertexGraph* other) noexcept;
+
+    gsp::VertexGraph& operator=(const gsp::VertexGraph& other) = delete;
 
     virtual ~VertexGraph();
-    virtual CoordMat coords();
+    virtual CoordMat coords() const;
     virtual void setCoords(const Eigen::MatrixXd& coords);
     virtual void setCoords(const std::vector<gsp::Coord>& coords);
     virtual void setCoord(uint32_t idx, const gsp::Coord& coord);

@@ -7,6 +7,14 @@
 
 gsp::VertexGraph::VertexGraph(uint32_t num_nodes) : num_nodes(num_nodes), _coords(Eigen::Matrix<double, Eigen::Dynamic, 3, Eigen::RowMajor>::Zero(num_nodes, 3)) {}
 
+gsp::VertexGraph::VertexGraph(gsp::VertexGraph &&other) noexcept : num_nodes(other.num_nodes),
+    _coords(std::move(other._coords)), names(std::move(other.names)) {
+}
+
+gsp::VertexGraph::VertexGraph(const gsp::VertexGraph *other) noexcept : num_nodes(other->num_nodes),
+                                    _coords(other->_coords), names(other->names) {
+}
+
 void gsp::VertexGraph::setNames(const std::vector<std::string>& names) {
     assert(names.size() == num_nodes && "names size mismatch");
     this->names = names;
@@ -26,7 +34,7 @@ void gsp::VertexGraph::setCoords(const std::vector<gsp::Coord>& src) {
     }
 }
 
-gsp::VertexGraph::CoordMat gsp::VertexGraph::coords() {
+gsp::VertexGraph::CoordMat gsp::VertexGraph::coords() const {
     return _coords;
 }
 gsp::VertexGraph::~VertexGraph() {

@@ -17,7 +17,7 @@ protected:
 };
 
 TEST_F(EdgeGeneratorTest, EmptyGraph) {
-    gsp::DenseGraph graph(0);
+    gsp::DenseGraph graph(0u);
     
     auto generator = graph.iterEdges();
     auto edge = generator.next();

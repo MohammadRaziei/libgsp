@@ -47,7 +47,11 @@ class gsp::Graph : public gsp::BaseGraph {
    public:
     explicit Graph(uint32_t num_nodes);
     Graph(const gsp::Graph<Matrix>& other) = delete;
+    Graph(gsp::Graph<Matrix>&& other) noexcept;
+    explicit Graph(const gsp::Graph<Matrix>* other) noexcept;
+    explicit Graph(const gsp::VertexGraph* other) noexcept;
     void operator=(const gsp::Graph<Matrix>& other) = delete;
+    gsp::Graph<Matrix>& operator=(gsp::Graph<Matrix>&& other) noexcept;
     Graph(const gsp::VertexGraph& other);
     virtual ~Graph();
 
@@ -69,7 +73,7 @@ class gsp::Graph : public gsp::BaseGraph {
     virtual const  densevector& degrees();
 
     // New method for edge iteration using EdgeGenerator
-    EdgeGenerator<Matrix> iterEdges(double thresh = 0.0) const;
+    EdgeGenerator<Matrix> iterEdges(gsp::types::elem_t<Matrix> thresh = 0.0) const;
 
     // Template method for type-specific edge iteration
     template <class TMatrix>
@@ -80,10 +84,13 @@ class gsp::Graph : public gsp::BaseGraph {
     }
 
     // Clone method to create a deep copy of the graph (value-based, preserves concrete type)
-    std::unique_ptr<Graph<Matrix>> clone() const;
-
+    Graph<Matrix> clone() const;
     // Polymorphic copy method that delegates to clone()
     virtual std::unique_ptr<BaseGraph> copy() const override;
+
+    // Graph conversion methods
+    SparseGraph toSparse(gsp::types::elem_t<Matrix> thresh = 0.) const;
+    DenseGraph toDense(gsp::types::elem_t<Matrix> thresh = 0.) const;
 
     void invalidateCache();
    protected:
@@ -95,9 +102,6 @@ class gsp::Graph : public gsp::BaseGraph {
     gsp::CacheBox<Matrix>* cache();
     gsp::CacheBox<Matrix>* _cache;
 };
-
-
-
 
 
 
