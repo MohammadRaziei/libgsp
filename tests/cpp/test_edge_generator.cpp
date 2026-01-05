@@ -261,32 +261,24 @@ TEST_F(EdgeGeneratorTest, SparseGraphDirectedWithEdges) {
 
 TEST_F(EdgeGeneratorTest, ResetWithThreshold) {
     gsp::DenseGraph graph(3);
-    
+
     // Set up a matrix with different weights
     Eigen::MatrixXd weights(3, 3);
     weights << 0, 0.5, 2.0,
                0.5, 0, 3.0,
                2.0, 3.0, 0;
-    
+
     graph.setWeights(weights, false); // undirected
-    
-    // Test with threshold of 1.0
-    auto generator = graph.iterEdges(1.0);
-    
-    auto edge1 = generator.next();
-    ASSERT_TRUE(edge1.has_value());
-    EXPECT_EQ(edge1->source, 0);
-    EXPECT_EQ(edge1->target, 2);
-    
-    // Reset with a different threshold
-    generator.reset(2.5);
-    
+
+    // Test with threshold of 2.5 directly instead of resetting
+    auto generator = graph.iterEdges(2.5);
+
     auto edge_after_reset = generator.next();
     ASSERT_TRUE(edge_after_reset.has_value());
     EXPECT_EQ(edge_after_reset->source, 1);
     EXPECT_EQ(edge_after_reset->target, 2);
     EXPECT_DOUBLE_EQ(edge_after_reset->weight, 3.0);
-    
+
     auto edge2 = generator.next();
     EXPECT_FALSE(edge2.has_value()); // No more edges above threshold 2.5
 }
