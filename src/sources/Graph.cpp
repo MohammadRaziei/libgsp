@@ -132,7 +132,7 @@ std::vector<gsp::Edge> gsp::Graph<Matrix>::edges() const {
 
 template <class Matrix>
 gsp::EdgeGenerator<Matrix> gsp::Graph<Matrix>::iterEdges(double thresh) const {
-    return gsp::EdgeGenerator<Matrix>(&this->_weights, this->num_nodes, this->_is_directed);
+    return gsp::EdgeGenerator<Matrix>(&this->_weights, this->num_nodes, this->_is_directed, static_cast<types::elem_t<Matrix>>(thresh));
 }
 
 template <class Matrix>

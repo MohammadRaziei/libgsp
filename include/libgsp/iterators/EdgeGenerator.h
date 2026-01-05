@@ -24,6 +24,7 @@ template <class Matrix>
 class EdgeGenerator {
 public:
     explicit EdgeGenerator(const Matrix* weights, int num_nodes, bool is_directed);
+    EdgeGenerator(const Matrix* weights, int num_nodes, bool is_directed, types::elem_t<Matrix> thresh);
     EdgeGenerator(const EdgeGenerator&) = delete;
     EdgeGenerator& operator=(const EdgeGenerator&) = delete;
     ~EdgeGenerator();
