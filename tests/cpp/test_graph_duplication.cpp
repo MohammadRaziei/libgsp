@@ -32,7 +32,7 @@ TEST_F(GraphDuplicationTest, CloneMethodCreatesDeepCopy) {
     auto cloned_graph = original_graph->clone();
 
     // Verify that the clone has the same properties
-    ASSERT_EQ(cloned_graph->num_nodes, original_graph->num_nodes);
+    ASSERT_EQ(cloned_graph->numNodes(), original_graph->numNodes());
     
     // Check that coordinates are the same
     auto orig_coord_0 = original_graph->coord(0);
@@ -67,7 +67,7 @@ TEST_F(GraphDuplicationTest, CopyMethodCreatesDeepCopy) {
     std::unique_ptr<gsp::BaseGraph> copied_graph = original_graph->copy();
 
     // Verify that the copy has the same properties
-    ASSERT_EQ(copied_graph->num_nodes, original_graph->num_nodes);
+    ASSERT_EQ(copied_graph->numNodes(), original_graph->numNodes());
     
     // Check that coordinates are the same (using BaseGraph interface)
     auto orig_coord_0 = original_graph->coord(0);
@@ -113,12 +113,12 @@ TEST(GraphDuplicationSparseTest, CloneAndCopyWithSparseGraph) {
 
     // Test clone method
     auto sparse_cloned = sparse_original.clone();
-    ASSERT_EQ(sparse_cloned->num_nodes, sparse_original.num_nodes);
+    ASSERT_EQ(sparse_cloned->numNodes(), sparse_original.numNodes());
     EXPECT_EQ(sparse_cloned->name(0), "snode0");
 
     // Test copy method (polymorphic)
     std::unique_ptr<gsp::BaseGraph> sparse_copied = sparse_original.copy();
-    ASSERT_EQ(sparse_copied->num_nodes, sparse_original.num_nodes);
+    ASSERT_EQ(sparse_copied->numNodes(), sparse_original.numNodes());
     EXPECT_EQ(sparse_copied->name(0), "snode0");
 
     // Verify independence
@@ -140,7 +140,7 @@ TEST_F(GraphDuplicationTest, TypePreservationDifference) {
     // Using copy() returns BaseGraph*, so we lose direct access to Graph-specific methods
     std::unique_ptr<gsp::BaseGraph> copied_base = original_graph->copy();
     // We can only access BaseGraph interface methods
-    EXPECT_EQ(copied_base->num_nodes, 3);
+    EXPECT_EQ(copied_base->numNodes(), 3);
     
     // Verify that both objects are independent
     original_graph->setCoord(1, gsp::Coord(99.0, 99.0, 99.0));

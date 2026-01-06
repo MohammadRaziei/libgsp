@@ -64,7 +64,6 @@ public:
     gsp::VertexGraph& operator=(gsp::VertexGraph&& other) noexcept;
 
     virtual ~VertexGraph();
-    virtual CoordMat coords() const;
     virtual void setCoords(const Eigen::MatrixXd& coords);
     virtual void setCoords(const std::vector<gsp::Coord>& coords);
     virtual void setCoord(uint32_t idx, const gsp::Coord& coord);
@@ -93,12 +92,22 @@ public:
     std::reverse_iterator<ConstVertexIterator> crbegin() const;
     std::reverse_iterator<ConstVertexIterator> crend() const;
 
-public:
-    uint32_t num_nodes;
-    std::vector<std::string> names;
+    // Getters
+    uint32_t numNodes() const { return num_nodes_; }
+    const std::vector<std::string>& names() const { return names_; }
+    const CoordMat& coords() const { return coords_; }
 
-   private:
-    CoordMat _coords; // size fixed elsewhere to (num_nodes x 3)
+    // Setters
+    void setCoords(const CoordMat& coords);
+
+    // Clear methods
+    void clearNames();
+    void clearCoords();
+
+private:
+    uint32_t num_nodes_;
+    std::vector<std::string> names_; // Names of vertices
+    CoordMat coords_; // size fixed elsewhere to (num_nodes x 3)
 };
 
 #include "libgsp/iterators/VertexIterator.h"

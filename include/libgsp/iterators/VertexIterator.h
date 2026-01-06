@@ -28,7 +28,7 @@ public:
 
     // Dereference operator
     reference operator*() const {
-        if (index_ < 0 || static_cast<uint32_t>(index_) >= graph_->num_nodes) {
+        if (index_ < 0 || static_cast<uint32_t>(index_) >= graph_->numNodes()) {
             throw std::out_of_range("ConstVertexIterator out of range");
         }
         return current_;
@@ -36,7 +36,7 @@ public:
 
     // Pointer operator
     pointer operator->() const {
-        if (index_ < 0 || static_cast<uint32_t>(index_) >= graph_->num_nodes) {
+        if (index_ < 0 || static_cast<uint32_t>(index_) >= graph_->numNodes()) {
             throw std::out_of_range("ConstVertexIterator out of range");
         }
         return &current_;
@@ -44,7 +44,7 @@ public:
 
     // Pre-increment
     ConstVertexIterator& operator++() {
-        if (++index_ < static_cast<int32_t>(graph_->num_nodes)) {
+        if (++index_ < static_cast<int32_t>(graph_->numNodes())) {
             updateCurrent();
         }
         return *this;
@@ -75,7 +75,7 @@ public:
     // Arithmetic operators
     ConstVertexIterator& operator+=(difference_type n) {
         index_ += n;
-        if (index_ >= 0 && index_ < graph_->num_nodes) {
+        if (index_ >= 0 && index_ < graph_->numNodes()) {
             updateCurrent();
         }
         return *this;
@@ -83,7 +83,7 @@ public:
 
     ConstVertexIterator& operator-=(difference_type n) {
         index_ -= n;
-        if (index_ >= 0 && index_ < graph_->num_nodes) {
+        if (index_ >= 0 && index_ < graph_->numNodes()) {
             updateCurrent();
         }
         return *this;
@@ -112,7 +112,7 @@ public:
     value_type operator[](difference_type n) const {
         // Create a temporary iterator at the target position and return its value
         difference_type new_index = index_ + n;
-        if (new_index < 0 || new_index >= static_cast<difference_type>(graph_->num_nodes)) {
+        if (new_index < 0 || new_index >= static_cast<difference_type>(graph_->numNodes())) {
             throw std::out_of_range("ConstVertexIterator subscript out of range");
         }
         // Create a temporary node at the target position
@@ -162,7 +162,7 @@ private:
     value_type current_;
 
     void updateCurrent() {
-        if (index_ >= 0 && index_ < graph_->num_nodes) {
+        if (index_ >= 0 && index_ < graph_->numNodes()) {
             current_.id = index_;
             current_.coord = graph_->coord(index_);
             current_.name = graph_->name(index_);
@@ -184,7 +184,7 @@ public:
 
     // Dereference operator
     reference operator*() const {
-        if (index_ < 0 || static_cast<uint32_t>(index_) >= graph_->num_nodes) {
+        if (index_ < 0 || static_cast<uint32_t>(index_) >= graph_->numNodes()) {
             throw std::out_of_range("VertexIterator out of range");
         }
         return const_cast<reference>(current_);
@@ -192,7 +192,7 @@ public:
 
     // Pointer operator
     pointer operator->() const {
-        if (index_ < 0 || static_cast<uint32_t>(index_) >= graph_->num_nodes) {
+        if (index_ < 0 || static_cast<uint32_t>(index_) >= graph_->numNodes()) {
             throw std::out_of_range("VertexIterator out of range");
         }
         return const_cast<pointer>(&current_);
@@ -200,7 +200,7 @@ public:
 
     // Pre-increment
     VertexIterator& operator++() {
-        if (++index_ < static_cast<int32_t>(graph_->num_nodes)) {
+        if (++index_ < static_cast<int32_t>(graph_->numNodes())) {
             updateCurrent();
         }
         return *this;
@@ -231,7 +231,7 @@ public:
     // Arithmetic operators
     VertexIterator& operator+=(difference_type n) {
         index_ += n;
-        if (index_ >= 0 && index_ < graph_->num_nodes) {
+        if (index_ >= 0 && index_ < graph_->numNodes()) {
             updateCurrent();
         }
         return *this;
@@ -239,7 +239,7 @@ public:
 
     VertexIterator& operator-=(difference_type n) {
         index_ -= n;
-        if (index_ >= 0 && index_ < graph_->num_nodes) {
+        if (index_ >= 0 && index_ < graph_->numNodes()) {
             updateCurrent();
         }
         return *this;
@@ -268,7 +268,7 @@ public:
     value_type operator[](difference_type n) const {
         // Create a temporary iterator at the target position and return its value
         difference_type new_index = index_ + n;
-        if (new_index < 0 || new_index >= static_cast<difference_type>(graph_->num_nodes)) {
+        if (new_index < 0 || new_index >= static_cast<difference_type>(graph_->numNodes())) {
             throw std::out_of_range("VertexIterator subscript out of range");
         }
         // Create a temporary node at the target position
@@ -323,7 +323,7 @@ private:
     mutable value_type current_;  // mutable to allow updates in const methods
 
     void updateCurrent() const {
-        if (index_ >= 0 && index_ < graph_->num_nodes) {
+        if (index_ >= 0 && index_ < graph_->numNodes()) {
             current_.id = static_cast<uint32_t>(index_);
             current_.coord = graph_->coord(static_cast<uint32_t>(index_));
             current_.name = graph_->name(static_cast<uint32_t>(index_));

@@ -5,54 +5,59 @@
 #include "libgsp/VertexGraph.h"
 #include <cassert>
 
-gsp::VertexGraph::VertexGraph(uint32_t num_nodes) : num_nodes(num_nodes), _coords(Eigen::Matrix<double, Eigen::Dynamic, 3, Eigen::RowMajor>::Zero(num_nodes, 3)) {}
+gsp::VertexGraph::VertexGraph(uint32_t num_nodes) : num_nodes_(num_nodes), coords_(Eigen::Matrix<double, Eigen::Dynamic, 3, Eigen::RowMajor>::Zero(num_nodes, 3)) {}
 
-gsp::VertexGraph::VertexGraph(gsp::VertexGraph &&other) noexcept : num_nodes(other.num_nodes),
-    _coords(std::move(other._coords)), names(std::move(other.names)) {
+gsp::VertexGraph::VertexGraph(gsp::VertexGraph &&other) noexcept : num_nodes_(other.num_nodes_),
+    coords_(std::move(other.coords_)), names_(std::move(other.names_)) {
 }
 
 gsp::VertexGraph& gsp::VertexGraph::operator=(gsp::VertexGraph&& other) noexcept {
     if (this != &other) {
-        num_nodes = other.num_nodes;
-        _coords = std::move(other._coords);
-        names = std::move(other.names);
+        // num_nodes_ is const, so we can't assign to it
+        // Only move the mutable members
+        coords_ = std::move(other.coords_);
+        names_ = std::move(other.names_);
     }
     return *this;
 }
 
-gsp::VertexGraph::VertexGraph(const gsp::VertexGraph *other) noexcept : num_nodes(other->num_nodes),
-                                    _coords(other->_coords), names(other->names) {
+gsp::VertexGraph::VertexGraph(const gsp::VertexGraph *other) noexcept : num_nodes_(other->num_nodes_),
+                                    coords_(other->coords_), names_(other->names_) {
 }
 
 void gsp::VertexGraph::setNames(const std::vector<std::string>& names) {
-    assert(names.size() == num_nodes && "names size mismatch");
-    this->names = names;
+    assert(names.size() == num_nodes_ && "names size mismatch");
+    this->names_ = names;
 }
 void gsp::VertexGraph::setCoords(const Eigen::MatrixXd& coords) {
-    assert(coords.rows() == num_nodes && coords.cols() == 3 && "coords size mismatch");
-    this->_coords = coords;
+    assert(coords.rows() == num_nodes_ && coords.cols() == 3 && "coords size mismatch");
+    this->coords_ = coords;
+}
+
+void gsp::VertexGraph::clearNames() {
+    this->names_.clear();
+}
+void gsp::VertexGraph::clearCoords() {
+    this->coords_.setZero();
 }
 void gsp::VertexGraph::setCoords(const std::vector<gsp::Coord>& src) {
-    assert(src.size() == num_nodes && "coords size mismatch");
+    assert(src.size() == num_nodes_ && "coords size mismatch");
 
-    _coords.resize(num_nodes, 3);
-    for (uint32_t i = 0; i < num_nodes; ++i) {
-        _coords(i, 0) = src[i].x();
-        _coords(i, 1) = src[i].y();
-        _coords(i, 2) = src[i].z();
+    coords_.resize(num_nodes_, 3);
+    for (uint32_t i = 0; i < num_nodes_; ++i) {
+        coords_(i, 0) = src[i].x();
+        coords_(i, 1) = src[i].y();
+        coords_(i, 2) = src[i].z();
     }
 }
 
-gsp::VertexGraph::CoordMat gsp::VertexGraph::coords() const {
-    return _coords;
-}
 gsp::VertexGraph::~VertexGraph() {
 }
 
 std::vector<gsp::Node> gsp::VertexGraph::nodes() const {
     std::vector<gsp::Node> vec;
-    vec.reserve(num_nodes);
-    for (uint32_t i = 0; i < num_nodes; ++i) {
+    vec.reserve(num_nodes_);
+    for (uint32_t i = 0; i < num_nodes_; ++i) {
         vec.emplace_back(i, coord(i), name(i));
     }
     return vec;
@@ -60,35 +65,35 @@ std::vector<gsp::Node> gsp::VertexGraph::nodes() const {
 
 
  const std::string gsp::VertexGraph::name(uint32_t idx) const{
-     return (!names.empty() && idx < names.size()) ? names[idx] : "v"+std::to_string(idx);
+     return (!names_.empty() && idx < names_.size()) ? names_[idx] : "v"+std::to_string(idx);
  }
 
 const gsp::Coord gsp::VertexGraph::coord(uint32_t idx) const{
-    if (_coords.rows() > 0 && idx < static_cast<uint32_t>(_coords.rows())) {
-        return gsp::Coord(_coords(idx, 0), _coords(idx, 1), _coords(idx, 2), const_cast<VertexGraph*>(this), idx);
+    if (coords_.rows() > 0 && idx < static_cast<uint32_t>(coords_.rows())) {
+        return gsp::Coord(coords_(idx, 0), coords_(idx, 1), coords_(idx, 2), const_cast<VertexGraph*>(this), idx);
     } else {
         return gsp::Coord(NAN, NAN, NAN, const_cast<VertexGraph*>(this), idx);
     }
 }
 
 gsp::Coord gsp::VertexGraph::coord(uint32_t idx) {
-     if (_coords.rows() > 0 && idx < static_cast<uint32_t>(_coords.rows())) {
-         return gsp::Coord(_coords(idx, 0), _coords(idx, 1), _coords(idx, 2), const_cast<VertexGraph*>(this), idx);
+     if (coords_.rows() > 0 && idx < static_cast<uint32_t>(coords_.rows())) {
+         return gsp::Coord(coords_(idx, 0), coords_(idx, 1), coords_(idx, 2), const_cast<VertexGraph*>(this), idx);
      } else {
          return gsp::Coord(NAN, NAN, NAN, const_cast<VertexGraph*>(this), idx);
      }
  }
 
 void gsp::VertexGraph::setCoord(uint32_t idx, double x, double y, double z) {
-    if (idx >= num_nodes) {
+    if (idx >= num_nodes_) {
         throw std::out_of_range("out of the range!");
     }
-    if (_coords.rows() == 0) {
-        _coords.resize(num_nodes, 3);
+    if (coords_.rows() == 0) {
+        coords_.resize(num_nodes_, 3);
     }
-    _coords(idx, 0) = x;
-    _coords(idx, 1) = y;
-    _coords(idx, 2) = z;
+    coords_(idx, 0) = x;
+    coords_(idx, 1) = y;
+    coords_(idx, 2) = z;
 }
 
 void gsp::VertexGraph::setCoord(uint32_t idx, const Coord &coord) {
@@ -96,13 +101,13 @@ void gsp::VertexGraph::setCoord(uint32_t idx, const Coord &coord) {
 }
 
 void gsp::VertexGraph::setCoord(uint32_t row, uint32_t col, double value) {
-    if (row >= num_nodes || col >= 3) {
+    if (row >= num_nodes_ || col >= 3) {
         throw std::out_of_range("out of the range!");
     }
-    if (_coords.rows() == 0) {
-        _coords.resize(num_nodes, 3);
+    if (coords_.rows() == 0) {
+        coords_.resize(num_nodes_, 3);
     }
-    _coords(row, col) = value;
+    coords_(row, col) = value;
 }
 
 gsp::VertexIterator gsp::VertexGraph::begin() {
@@ -110,7 +115,7 @@ gsp::VertexIterator gsp::VertexGraph::begin() {
 }
 
 gsp::VertexIterator gsp::VertexGraph::end() {
-    return VertexIterator(this, num_nodes);
+    return VertexIterator(this, num_nodes_);
 }
 
 gsp::ConstVertexIterator gsp::VertexGraph::begin() const {
@@ -118,7 +123,7 @@ gsp::ConstVertexIterator gsp::VertexGraph::begin() const {
 }
 
 gsp::ConstVertexIterator gsp::VertexGraph::end() const {
-    return ConstVertexIterator(this, num_nodes);
+    return ConstVertexIterator(this, num_nodes_);
 }
 
 gsp::ConstVertexIterator gsp::VertexGraph::cbegin() const {
@@ -126,7 +131,7 @@ gsp::ConstVertexIterator gsp::VertexGraph::cbegin() const {
 }
 
 gsp::ConstVertexIterator gsp::VertexGraph::cend() const {
-    return ConstVertexIterator(this, num_nodes);
+    return ConstVertexIterator(this, num_nodes_);
 }
 
 std::reverse_iterator<gsp::VertexIterator> gsp::VertexGraph::rbegin() {
