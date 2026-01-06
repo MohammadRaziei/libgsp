@@ -77,9 +77,10 @@ gsp::Graph<Matrix>::Graph(const gsp::VertexGraph *other) noexcept: gsp::BaseGrap
 template<class Matrix>
 gsp::Graph<Matrix>& gsp::Graph<Matrix>::operator=(gsp::Graph<Matrix> &&other) noexcept {
     if (this == &other) return *this;
-    // Move the matrix
 
+    // Move the matrix
     _weights = std::move(other._weights);
+
     // Move other members
     _is_directed = other._is_directed;
     shift_type = other.shift_type;
@@ -88,6 +89,14 @@ gsp::Graph<Matrix>& gsp::Graph<Matrix>::operator=(gsp::Graph<Matrix> &&other) no
     delete _cache;  // Clean up existing cache
     _cache = other._cache;
     other._cache = nullptr;  // Reset moved-from object's cache pointer
+
+    // Move VertexGraph properties (names and coordinates) using public interface
+    this->names = std::move(other.names);
+    // Copy coordinates using public interface
+    for (uint32_t i = 0; i < other.num_nodes && i < this->num_nodes; ++i) {
+        auto coord = other.coord(i);
+        this->setCoord(i, coord);
+    }
 
     return *this;
 }
@@ -178,59 +187,117 @@ gsp::EdgeGenerator<Matrix> gsp::Graph<Matrix>::iterEdges(gsp::types::elem_t<Matr
 }
 
 template <class Matrix>
-gsp::Graph<Matrix> gsp::Graph<Matrix>::clone() const {
-    return gsp::Graph<Matrix>(this);
+std::unique_ptr<gsp::Graph<Matrix>> gsp::Graph<Matrix>::clone() const {
+    auto cloned_graph = std::make_unique<gsp::Graph<Matrix>>(this->num_nodes);
+
+    // Copy all properties from the current graph
+    cloned_graph->_weights = this->_weights;  // This performs a deep copy for Eigen matrices
+    cloned_graph->_is_directed = this->_is_directed;
+    cloned_graph->shift_type = this->shift_type;
+
+    // Copy VertexGraph properties (coordinates and names) using public interface
+    // Copy names
+    if (!this->names.empty()) {
+        cloned_graph->setNames(this->names);
+    }
+
+    // Copy coordinates
+    for (uint32_t i = 0; i < this->num_nodes; ++i) {
+        auto coord = this->coord(i);
+        cloned_graph->setCoord(i, coord);
+    }
+
+    // Note: Internal caches are not copied and will be recreated when needed
+    // The cloned graph starts with a clean cache state (nullptr)
+    cloned_graph->invalidateCache();
+
+    return cloned_graph;
 }
 
 template <class Matrix>
 std::unique_ptr<gsp::BaseGraph> gsp::Graph<Matrix>::copy() const {
     // Delegate to the clone method to maintain deep copy semantics
-    auto result = std::make_unique<gsp::Graph<Matrix>>(this->clone());
-    return result;
+    return std::unique_ptr<gsp::BaseGraph>(this->clone().release());
 }
 
 // Implementation of toSparse method
-template <>
-gsp::SparseGraph gsp::Graph<gsp::sparsematrix>::toSparse(double thresh) const {
-    return clone();
-}
+template <class Matrix>
+std::unique_ptr<gsp::SparseGraph> gsp::Graph<Matrix>::toSparse() const {
+    // Check if this is already a sparse graph
+    if constexpr (std::is_same_v<Matrix, gsp::sparsematrix>) {
+        // Emit warning and return a clone
+        std::cerr << "Warning: Graph is already sparse, returning clone" << std::endl;
+        auto cloned = this->clone();
+        auto result = std::make_unique<gsp::SparseGraph>(cloned->num_nodes);
+        result->_weights = cloned->_weights;
+        result->_is_directed = cloned->_is_directed;
+        result->shift_type = cloned->shift_type;
+        if (!cloned->names.empty()) {
+            result->names = cloned->names;
+        }
+        for (uint32_t i = 0; i < cloned->num_nodes; ++i) {
+            auto coord = cloned->coord(i);
+            result->setCoord(i, coord);
+        }
+        result->invalidateCache();
+        return result;
+    } else {
+        // Convert from dense to sparse
+        auto sparse_graph = std::make_unique<gsp::SparseGraph>(this->num_nodes);
 
-template <>
-gsp::DenseGraph gsp::Graph<gsp::densematrix>::toDense(double thresh) const {
-    return clone();
-}
+        // Use iterEdges to efficiently convert
+        auto generator = this->iterEdges(0.0); // Include all edges with weight > 0
 
-template <>
-gsp::SparseGraph gsp::Graph<gsp::densematrix>::toSparse(double thresh) const {
+        std::vector<gsp::Edge> edges;
+        while (auto edge = generator.next()) {
+            edges.push_back(*edge);
+        }
 
-    gsp::SparseGraph sparse_graph(dynamic_cast<const VertexGraph*>(this));
-
-    auto generator = this->iterEdges(0.0); // Include all edges with weight > 0
-    std::vector<gsp::Edge> edges;
-    while (auto edge = generator.next()) {
-        edges.push_back(*edge);
+        sparse_graph->setEdges(edges, this->_is_directed);
+        sparse_graph->invalidateCache();
+        return sparse_graph;
     }
-
-    sparse_graph.setEdges(edges, this->_is_directed);
-    sparse_graph.invalidateCache();
-    return sparse_graph;
 }
 
-template <>
-gsp::DenseGraph gsp::Graph<gsp::sparsematrix>::toDense(double thresh) const {
-    gsp::DenseGraph dense_graph(this->num_nodes);
+// Implementation of toDense method
+template <class Matrix>
+std::unique_ptr<gsp::DenseGraph> gsp::Graph<Matrix>::toDense() const {
+    // Check if this is already a dense graph
+    if constexpr (std::is_same_v<Matrix, gsp::densematrix>) {
+        // Emit warning and return a clone
+        std::cerr << "Warning: Graph is already dense, returning clone" << std::endl;
+        auto cloned = this->clone();
+        auto result = std::make_unique<gsp::DenseGraph>(cloned->num_nodes);
+        result->_weights = cloned->_weights;
+        result->_is_directed = cloned->_is_directed;
+        result->shift_type = cloned->shift_type;
+        if (!cloned->names.empty()) {
+            result->names = cloned->names;
+        }
+        for (uint32_t i = 0; i < cloned->num_nodes; ++i) {
+            auto coord = cloned->coord(i);
+            result->setCoord(i, coord);
+        }
+        result->invalidateCache();
+        return result;
+    } else {
+        // Convert from sparse to dense
+        auto dense_graph = std::make_unique<gsp::DenseGraph>(this->num_nodes);
 
-    auto generator = this->iterEdges(thresh); // Include all edges with weight > 0
+        // Use iterEdges to efficiently convert
+        auto generator = this->iterEdges(0.0); // Include all edges with weight > 0
 
-    std::vector<gsp::Edge> edges;
-    while (auto edge = generator.next()) {
-        edges.push_back(*edge);
+        std::vector<gsp::Edge> edges;
+        while (auto edge = generator.next()) {
+            edges.push_back(*edge);
+        }
+
+        dense_graph->setEdges(edges, this->_is_directed);
+        dense_graph->invalidateCache();
+        return dense_graph;
     }
-
-    dense_graph.setEdges(edges, this->_is_directed);
-    dense_graph.invalidateCache();
-    return dense_graph;
 }
+
 
 
 

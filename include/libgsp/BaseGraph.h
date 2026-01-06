@@ -13,7 +13,7 @@
 #include "VertexGraph.h"
 #include "libgsp/iterators/EdgeGenerator.h"
 
-#define GSP_IS_DIRECTED_DEFAULT false
+#define GSP_IS_DIRECTED_DEFAULT true
 
 
 

@@ -84,13 +84,13 @@ class gsp::Graph : public gsp::BaseGraph {
     }
 
     // Clone method to create a deep copy of the graph (value-based, preserves concrete type)
-    Graph<Matrix> clone() const;
+    std::unique_ptr<Graph<Matrix>> clone() const;
     // Polymorphic copy method that delegates to clone()
     virtual std::unique_ptr<BaseGraph> copy() const override;
 
     // Graph conversion methods
-    SparseGraph toSparse(gsp::types::elem_t<Matrix> thresh = 0.) const;
-    DenseGraph toDense(gsp::types::elem_t<Matrix> thresh = 0.) const;
+    std::unique_ptr<SparseGraph> toSparse() const;
+    std::unique_ptr<DenseGraph> toDense() const;
 
     void invalidateCache();
    protected:
