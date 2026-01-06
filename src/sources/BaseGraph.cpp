@@ -12,3 +12,11 @@ gsp::BaseGraph::BaseGraph(const gsp::BaseGraph *other) noexcept :
 gsp::BaseGraph::BaseGraph(const gsp::VertexGraph *other) noexcept  :
    gsp::VertexGraph(other) {}
 
+gsp::BaseGraph& gsp::BaseGraph::operator=(gsp::BaseGraph&& other) noexcept {
+    if (this != &other) {
+        // Call base class move assignment
+        VertexGraph::operator=(std::move(other));
+    }
+    return *this;
+}
+

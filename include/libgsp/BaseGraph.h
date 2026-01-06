@@ -38,6 +38,7 @@ class gsp::BaseGraph : public gsp::VertexGraph {
     explicit BaseGraph(const gsp::VertexGraph* other) noexcept;
     virtual ~BaseGraph();
     void operator=(const gsp::BaseGraph& other) = delete;
+    BaseGraph& operator=(gsp::BaseGraph&& other) noexcept;
 
     virtual void setEdges(const std::vector<gsp::Edge>& edges, bool is_directed = GSP_IS_DIRECTED_DEFAULT) = 0;
     virtual std::vector<gsp::Edge> edges() const = 0;

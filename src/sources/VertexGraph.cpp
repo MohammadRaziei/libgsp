@@ -11,6 +11,15 @@ gsp::VertexGraph::VertexGraph(gsp::VertexGraph &&other) noexcept : num_nodes(oth
     _coords(std::move(other._coords)), names(std::move(other.names)) {
 }
 
+gsp::VertexGraph& gsp::VertexGraph::operator=(gsp::VertexGraph&& other) noexcept {
+    if (this != &other) {
+        num_nodes = other.num_nodes;
+        _coords = std::move(other._coords);
+        names = std::move(other.names);
+    }
+    return *this;
+}
+
 gsp::VertexGraph::VertexGraph(const gsp::VertexGraph *other) noexcept : num_nodes(other->num_nodes),
                                     _coords(other->_coords), names(other->names) {
 }

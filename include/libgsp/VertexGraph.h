@@ -61,6 +61,7 @@ public:
     explicit VertexGraph(const gsp::VertexGraph* other) noexcept;
 
     gsp::VertexGraph& operator=(const gsp::VertexGraph& other) = delete;
+    gsp::VertexGraph& operator=(gsp::VertexGraph&& other) noexcept;
 
     virtual ~VertexGraph();
     virtual CoordMat coords() const;
@@ -93,7 +94,7 @@ public:
     std::reverse_iterator<ConstVertexIterator> crend() const;
 
 public:
-    const uint32_t num_nodes;
+    uint32_t num_nodes;
     std::vector<std::string> names;
 
    private:

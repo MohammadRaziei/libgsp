@@ -78,6 +78,9 @@ template<class Matrix>
 gsp::Graph<Matrix>& gsp::Graph<Matrix>::operator=(gsp::Graph<Matrix> &&other) noexcept {
     if (this == &other) return *this;
 
+    // Call base class move assignment operator
+    BaseGraph::operator=(std::move(other));
+
     // Move the matrix
     _weights = std::move(other._weights);
 
@@ -89,14 +92,6 @@ gsp::Graph<Matrix>& gsp::Graph<Matrix>::operator=(gsp::Graph<Matrix> &&other) no
     delete _cache;  // Clean up existing cache
     _cache = other._cache;
     other._cache = nullptr;  // Reset moved-from object's cache pointer
-
-    // Move VertexGraph properties (names and coordinates) using public interface
-    this->names = std::move(other.names);
-    // Copy coordinates using public interface
-    for (uint32_t i = 0; i < other.num_nodes && i < this->num_nodes; ++i) {
-        auto coord = other.coord(i);
-        this->setCoord(i, coord);
-    }
 
     return *this;
 }
