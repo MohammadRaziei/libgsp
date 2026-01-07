@@ -23,12 +23,14 @@ namespace gsp {
 
 class gsp::Coord {
 public:
-    Coord() : x_(0), y_(0), z_(0), graph_(nullptr), idx_(0u) {}
-    Coord(double x, double y, double z = 0, VertexGraph* graph = nullptr, uint32_t idx = 0u) :
+    Coord() noexcept : x_(0), y_(0), z_(0), graph_(nullptr), idx_(0u) {}
+    Coord(double x, double y, double z = 0, VertexGraph* graph = nullptr, uint32_t idx = 0u) noexcept :
         x_(x), y_(y), z_(z), graph_(graph), idx_(idx) {}
-    double x() const {return x_;}
-    double y() const {return y_;}
-    double z() const {return z_;}
+
+    Coord& operator=(const Coord& other) noexcept;
+    [[nodiscard]] double x() const noexcept {return x_;}
+    [[nodiscard]] double y() const noexcept {return y_;}
+    [[nodiscard]] double z() const noexcept {return z_;}
     void setCoord(double x, double y, double z = 0.);
     void setX(double x);
     void setY(double y);
@@ -36,8 +38,8 @@ public:
 
 protected:
     double x_, y_, z_;
-    uint32_t idx_;
-    VertexGraph* graph_;
+    uint32_t idx_ = 0u;
+    VertexGraph* graph_ = nullptr;
 };
 
 struct gsp::Node {

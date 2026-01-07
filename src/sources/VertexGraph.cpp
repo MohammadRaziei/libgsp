@@ -13,8 +13,7 @@ gsp::VertexGraph::VertexGraph(gsp::VertexGraph &&other) noexcept : num_nodes_(ot
 
 gsp::VertexGraph& gsp::VertexGraph::operator=(gsp::VertexGraph&& other) noexcept {
     if (this != &other) {
-        // num_nodes_ is const, so we can't assign to it
-        // Only move the mutable members
+        num_nodes_ = other.num_nodes_;
         coords_ = std::move(other.coords_);
         names_ = std::move(other.names_);
     }
@@ -156,6 +155,16 @@ std::reverse_iterator<gsp::ConstVertexIterator> gsp::VertexGraph::crbegin() cons
 
 std::reverse_iterator<gsp::ConstVertexIterator> gsp::VertexGraph::crend() const {
     return std::reverse_iterator<ConstVertexIterator>(cbegin());
+}
+
+gsp::Coord& gsp::Coord::operator=(const gsp::Coord& other) noexcept {
+    if (&other == this) {
+        return *this;
+    }
+    x_ = other.x_;
+    y_ = other.y_;
+    z_ = other.z_;
+    return *this;
 }
 
 void gsp::Coord::setCoord(double x, double y, double z) {
