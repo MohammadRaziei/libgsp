@@ -32,11 +32,5 @@ int main() {
     const auto path = fs::temp_directory_path() / "graph.svg";
     svg.save(path.string());
 
-
-
-
-
-
-
     return 0;
 }

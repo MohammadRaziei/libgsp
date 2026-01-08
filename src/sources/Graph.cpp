@@ -49,14 +49,15 @@ class gsp::CacheBox {
 
 template <class Matrix>
 gsp::Graph<Matrix>::Graph(uint32_t num_nodes):
-      BaseGraph(num_nodes), _cache(nullptr), _is_directed(GSP_IS_DIRECTED_DEFAULT) {
+      BaseGraph(num_nodes), _is_directed(GSP_IS_DIRECTED_DEFAULT),
+      _logger(gsp::logging::getLogger(detType())) {
     type_ = detType();
 }
 
 
 template<class Matrix>
 gsp::Graph<Matrix>::Graph(const gsp::Graph<Matrix> *other) noexcept :
-    gsp::BaseGraph(dynamic_cast<const BaseGraph*>(other)), _cache(nullptr),
+    gsp::BaseGraph(dynamic_cast<const BaseGraph*>(other)),
     _is_directed(other->_is_directed), _weights(other->_weights),
     _logger(gsp::logging::getLogger(detType())) {
         type_ = detType();
@@ -66,7 +67,8 @@ gsp::Graph<Matrix>::Graph(const gsp::Graph<Matrix> *other) noexcept :
 template<class Matrix>
 gsp::Graph<Matrix>::Graph(gsp::Graph<Matrix> &&other) noexcept
     : BaseGraph(std::move(other)), _weights(std::move(other._weights)),
-      _is_directed(other._is_directed), _cache(other._cache) {
+      _is_directed(other._is_directed), _cache(other._cache),
+      _logger(gsp::logging::getLogger(detType())) {
     // Reset the moved-from object's cache pointer
     other._cache = nullptr;
     type_ = detType();
@@ -74,7 +76,9 @@ gsp::Graph<Matrix>::Graph(gsp::Graph<Matrix> &&other) noexcept
 
 
 template<class Matrix>
-gsp::Graph<Matrix>::Graph(const gsp::VertexGraph *other) noexcept: gsp::BaseGraph(other) {
+gsp::Graph<Matrix>::Graph(const gsp::VertexGraph *other) noexcept: gsp::BaseGraph(other),
+   _logger(gsp::logging::getLogger(detType())) {
+    type_ = detType();
 }
 
 template<class Matrix>

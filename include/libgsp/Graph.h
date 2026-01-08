@@ -104,7 +104,7 @@ private:
     gsp::CacheBox<Matrix>* cache();
     std::string detType() const;
 
-    gsp::CacheBox<Matrix>* _cache;
+    gsp::CacheBox<Matrix>* _cache = nullptr;
 };
 
 
