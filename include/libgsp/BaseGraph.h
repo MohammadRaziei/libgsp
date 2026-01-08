@@ -41,10 +41,8 @@ class gsp::BaseGraph : public gsp::VertexGraph {
     BaseGraph& operator=(gsp::BaseGraph&& other) noexcept;
 
     virtual void setEdges(const std::vector<gsp::Edge>& edges, bool is_directed = GSP_IS_DIRECTED_DEFAULT) = 0;
-    virtual std::vector<gsp::Edge> edges() const = 0;
 
-    // Pure virtual method for polymorphic copying
-    virtual std::unique_ptr<BaseGraph> copy() const = 0;
+    virtual std::vector<gsp::Edge> edges(double thresh = 0.0) const = 0;
 
 };
 

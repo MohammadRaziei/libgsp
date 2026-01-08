@@ -5,9 +5,10 @@
 #include "libgsp/VertexGraph.h"
 #include <cassert>
 
-gsp::VertexGraph::VertexGraph(uint32_t num_nodes) : num_nodes_(num_nodes), coords_(Eigen::Matrix<double, Eigen::Dynamic, 3, Eigen::RowMajor>::Zero(num_nodes, 3)) {}
+gsp::VertexGraph::VertexGraph(uint32_t num_nodes) : num_nodes_(num_nodes), type_("VertexGraph"),
+    coords_(CoordMat::Zero(num_nodes, 3)) {}
 
-gsp::VertexGraph::VertexGraph(gsp::VertexGraph &&other) noexcept : num_nodes_(other.num_nodes_),
+gsp::VertexGraph::VertexGraph(gsp::VertexGraph &&other) noexcept : num_nodes_(other.num_nodes_), type_(other.type_),
     coords_(std::move(other.coords_)), names_(std::move(other.names_)) {
 }
 

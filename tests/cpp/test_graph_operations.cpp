@@ -319,22 +319,22 @@ TEST_F(GraphOperationsTest, MixedOperationsWithSmartPointers) {
     auto dense_ptr = std::make_unique<gsp::DenseGraph>(2);
     dense_ptr->setCoord(0, gsp::Coord(1.0, 1.0, 1.0));
     dense_ptr->setCoord(1, gsp::Coord(2.0, 2.0, 2.0));
-    
+
     std::vector<std::string> names = {"ptr0", "ptr1"};
     dense_ptr->setNames(names);
 
     // Clone it
     auto cloned_ptr = dense_ptr->clone();
-    
+
     // Convert to sparse
     auto sparse_ptr = dense_ptr->toSparse();
-    
+
     // Convert cloned to dense (no-op)
     auto dense_again_ptr = cloned_ptr->toDense();
 
     // Verify all are independent
     dense_ptr->setCoord(0, gsp::Coord(10.0, 10.0, 10.0));
-    
+
     EXPECT_DOUBLE_EQ(dense_ptr->coord(0).x(), 10.0);
     EXPECT_DOUBLE_EQ(cloned_ptr->coord(0).x(), 1.0);  // Unchanged
     EXPECT_DOUBLE_EQ(sparse_ptr->coord(0).x(), 1.0);  // Unchanged
@@ -345,4 +345,53 @@ TEST_F(GraphOperationsTest, MixedOperationsWithSmartPointers) {
     EXPECT_EQ(cloned_ptr->name(0), "ptr0");
     EXPECT_EQ(sparse_ptr->name(0), "ptr0");
     EXPECT_EQ(dense_again_ptr->name(0), "ptr0");
+}
+
+// Test threshold functionality in toSparse and toDense methods
+TEST_F(GraphOperationsTest, ThresholdFunctionality) {
+    // Create a dense graph with various edge weights
+    gsp::DenseGraph dense_graph(4);
+
+    // Add edges with different weights
+    std::vector<gsp::Edge> edges = {
+        gsp::Edge(0, 1, 0.8),  // High weight
+        gsp::Edge(1, 2, 0.3),  // Low weight
+        gsp::Edge(2, 3, 0.6),  // Medium weight
+        gsp::Edge(0, 3, 0.1)   // Very low weight
+    };
+
+    dense_graph.setEdges(edges, true);  // directed
+
+    // Test toSparse with threshold 0.5 (should exclude edges with weight <= 0.5)
+    auto sparse_thresh = dense_graph.toSparse(0.5);
+    auto sparse_edges_thresh = sparse_thresh->edges();
+
+    // Should only have edges with weight > 0.5: (0,1,0.8) and (2,3,0.6)
+    EXPECT_EQ(sparse_edges_thresh.size(), 2);
+    for (const auto& edge : sparse_edges_thresh) {
+        EXPECT_GT(edge.weight, 0.5);
+    }
+
+    // Test toSparse with threshold 0.0 (should include all edges)
+    auto sparse_no_thresh = dense_graph.toSparse(0.0);
+    auto sparse_edges_no_thresh = sparse_no_thresh->edges();
+
+    EXPECT_EQ(sparse_edges_no_thresh.size(), 4);  // All original edges
+
+    // Test toDense with threshold 0.4 (should exclude edges with weight <= 0.4)
+    auto sparse_for_test = dense_graph.toSparse(0.0);  // First convert to sparse
+    auto dense_thresh = sparse_for_test->toDense(0.4);
+    auto dense_edges_thresh = dense_thresh->edges();
+
+    // Should only have edges with weight > 0.4
+    EXPECT_EQ(dense_edges_thresh.size(), 2);  // (0,1,0.8) and (2,3,0.6)
+    for (const auto& edge : dense_edges_thresh) {
+        EXPECT_GT(edge.weight, 0.4);
+    }
+
+    // Test toDense with threshold 0.0 (should include all edges)
+    auto dense_no_thresh = sparse_for_test->toDense(0.0);
+    auto dense_edges_no_thresh = dense_no_thresh->edges();
+
+    EXPECT_EQ(dense_edges_no_thresh.size(), 4);  // All edges
 }

@@ -98,6 +98,7 @@ public:
     uint32_t numNodes() const { return num_nodes_; }
     const std::vector<std::string>& names() const { return names_; }
     const CoordMat& coords() const { return coords_; }
+    std::string type() const { return type_; }
 
     // Setters
     void setCoords(const CoordMat& coords);
@@ -105,6 +106,10 @@ public:
     // Clear methods
     void clearNames();
     void clearCoords();
+
+
+protected:
+    std::string type_;
 
 private:
     uint32_t num_nodes_;

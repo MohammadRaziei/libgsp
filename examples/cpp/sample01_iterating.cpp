@@ -16,31 +16,15 @@ uint32_t countNumNodes(gsp::BaseGraph& graph) {
     return count_nodes;
 }
 
-uint32_t countNumEdges(gsp::BaseGraph& graph) {
+template<typename Matrix>
+uint32_t countNumEdges(gsp::Graph<Matrix>& graph) {
     auto logger = gsp::logging::getLogger("countNumEdges");
 
     uint32_t num_edges = 0;
-
-    // Use the new iterEdges API instead of the old edgeIter/edgeNext
-    if (auto dense_graph = dynamic_cast<gsp::Graph<gsp::densematrix>*>(&graph)) {
-        auto edge_gen = dense_graph->iterEdges();
-        while (auto edge = edge_gen.next()) {
-            logger->info("Edge: from[{}] to[{}] weight[{:.5g}]", edge->source, edge->target, edge->weight);
-            ++num_edges;
-        }
-    } else if (auto sparse_graph = dynamic_cast<gsp::Graph<gsp::sparsematrix>*>(&graph)) {
-        auto edge_gen = sparse_graph->iterEdges();
-        while (auto edge = edge_gen.next()) {
-            logger->info("Edge: from[{}] to[{}] weight[{:.5g}]", edge->source, edge->target, edge->weight);
-            ++num_edges;
-        }
-    } else {
-        // Fallback: use the edges() method
-        auto all_edges = graph.edges();
-        for (const auto& edge : all_edges) {
-            logger->info("Edge: from[{}] to[{}] weight[{:.5g}]", edge.source, edge.target, edge.weight);
-            ++num_edges;
-        }
+    auto edge_gen = graph.iterEdges();
+    while (auto edge = edge_gen.next()) {
+        logger->info("Edge: from[{}] to[{}] weight[{:.5g}]", edge->source, edge->target, edge->weight);
+        ++num_edges;
     }
 
     logger->info("There is {} edges", num_edges);
@@ -121,7 +105,7 @@ int main() {
 
     {
         const auto dense_graph = graph.toDense();
-        auto edge_gen = dense_graph->iterEdges();
+        auto edge_gen = dense_graph.iterEdges();
         logger->info("Dense graph edges via iterEdges:");
         int edge_count = 0;
         while (auto edge = edge_gen.next()) {
@@ -133,7 +117,7 @@ int main() {
     // Test sparse graph edges
     {
         const auto sparse_graph = graph.toSparse();
-        auto edge_gen = sparse_graph->iterEdges();
+        auto edge_gen = sparse_graph.iterEdges();
         logger->info("Sparse graph edges via iterEdges:");
         int edge_count = 0;
         while (auto edge = edge_gen.next()) {
@@ -145,7 +129,7 @@ int main() {
     // Test edge iteration with threshold
     {
         const auto dense_graph = graph.toDense();
-        auto edge_gen = dense_graph->iterEdges(0.5); // threshold of 0.5
+        auto edge_gen = dense_graph.iterEdges(0.5); // threshold of 0.5
         logger->info("Dense graph edges with threshold 0.5:");
         int edge_count = 0;
         while (auto edge = edge_gen.next()) {
@@ -158,7 +142,7 @@ int main() {
     {
         const auto dense_graph = graph.toDense();
 
-        auto edge_gen = dense_graph->iterEdges();
+        auto edge_gen = dense_graph.iterEdges();
         logger->info("Testing reset functionality:");
 
         // Get first edge
@@ -242,7 +226,75 @@ int main() {
     auto pos3 = graph.begin() + 3;
     logger->info("Distance between position 3 and 1: {}", pos3 - pos1);
 
+    // Test threshold functionality in toSparse and toDense methods
+    logger->info("Testing threshold functionality in toSparse and toDense methods:");
+    {
+        // Create a new graph with various edge weights for threshold testing
+        gsp::DenseGraph test_graph(4);
+
+        // Add edges with different weights
+        std::vector<gsp::Edge> test_edges = {
+            gsp::Edge(0, 1, 0.8),  // High weight
+            gsp::Edge(1, 2, 0.3),  // Low weight
+            gsp::Edge(2, 3, 0.6),  // Medium weight
+            gsp::Edge(0, 3, 0.1)   // Very low weight
+        };
+
+        test_graph.setEdges(test_edges, true);
+
+        logger->info("Original graph has {} edges", test_graph.edges().size());
+
+        // Test toSparse with threshold 0.5 (should exclude edges with weight <= 0.5)
+        auto sparse_thresh = test_graph.toSparse(0.5);
+        auto sparse_edges_thresh = sparse_thresh.edges();
+
+        logger->info("Sparse graph with threshold 0.5 has {} edges:", sparse_edges_thresh.size());
+        for (const auto& edge : sparse_edges_thresh) {
+            logger->info("  Edge: {} -> {} with weight {:.5g}", edge.source, edge.target, edge.weight);
+        }
+
+        // Verify that only edges with weight > 0.5 are present
+        bool all_above_threshold = true;
+        for (const auto& edge : sparse_edges_thresh) {
+            if (edge.weight <= 0.5) {
+                all_above_threshold = false;
+                logger->error("ERROR: Found edge with weight {} <= 0.5", edge.weight);
+            }
+        }
+
+        if (all_above_threshold) {
+            logger->info("SUCCESS: All edges in sparse graph have weight > 0.5");
+        } else {
+            logger->error("FAILURE: Some edges in sparse graph have weight <= 0.5");
+        }
+
+        // Test toDense with threshold 0.4
+        auto dense_thresh = sparse_thresh.toDense(0.4);
+        auto dense_edges_thresh = dense_thresh.edges();
+
+        logger->info("Dense graph converted back with threshold 0.4 has {} edges:", dense_edges_thresh.size());
+        for (const auto& edge : dense_edges_thresh) {
+            logger->info("  Edge: {} -> {} with weight {:.5svg}", edge.source, edge.target, edge.weight);
+        }
+
+        // Verify that only edges with weight > 0.4 are present
+        all_above_threshold = true;
+        for (const auto& edge : dense_edges_thresh) {
+            if (edge.weight <= 0.4) {
+                all_above_threshold = false;
+                logger->error("ERROR: Found edge with weight {} <= 0.4", edge.weight);
+            }
+        }
+
+        if (all_above_threshold) {
+            logger->info("SUCCESS: All edges in dense graph have weight > 0.4");
+        } else {
+            logger->error("FAILURE: Some edges in dense graph have weight <= 0.4");
+        }
+    }
+
     logger->info("All enhanced iterator functionality tests completed!");
+    logger->info("All threshold functionality tests completed!");
 
     return 0;
 }
