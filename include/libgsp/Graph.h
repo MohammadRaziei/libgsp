@@ -82,12 +82,12 @@ class gsp::Graph : public gsp::BaseGraph {
     template<class Target> gsp::Graph<Target> to(double thresh = 0.0) const {
         if constexpr (std::is_same_v<Matrix, Target>) {
             if (thresh == 0) {
-                _logger->warn("Warning: Graph is already dense!");
+                logger_->warn("Warning: Graph is already dense!");
                 return clone();
             }
         }
         Graph<Target> graph(dynamic_cast<const VertexGraph*>(this));
-        graph.setEdges(this->edges(thresh), this->_is_directed);
+        graph.setEdges(this->edges(thresh), this->is_directed_);
         return graph;
     }
     SparseGraph toSparse(double thresh = 0.0) const;
@@ -95,16 +95,16 @@ class gsp::Graph : public gsp::BaseGraph {
 
     void invalidateCache();
    protected:
-    bool _is_directed;
-    Matrix _weights;
+    bool is_directed_;
+    Matrix weights_;
 
-    gsp::logging::Logger _logger;
+    gsp::logging::Logger logger_;
 
 private:
     gsp::CacheBox<Matrix>* cache();
     std::string detType() const;
 
-    gsp::CacheBox<Matrix>* _cache = nullptr;
+    gsp::CacheBox<Matrix>* cache_ = nullptr;
 };
 
 
