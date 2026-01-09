@@ -43,6 +43,7 @@ template <class Matrix>
 class gsp::Graph : public gsp::BaseGraph {
    public:
     using densevector = typename Eigen::Matrix<gsp::types::elem_t<Matrix>, Eigen::Dynamic, 1, Eigen::ColMajor>;
+    using value_type = Matrix;
 
    public:
     explicit Graph(uint32_t num_nodes);
@@ -82,7 +83,7 @@ class gsp::Graph : public gsp::BaseGraph {
     template<class Target> gsp::Graph<Target> to(double thresh = 0.0) const {
         if constexpr (std::is_same_v<Matrix, Target>) {
             if (thresh == 0) {
-                logger_->warn("Warning: Graph is already dense!");
+                logger_->warn("Warning: Graph is already {}!", type_);
                 return clone();
             }
             Graph<Target> graph(dynamic_cast<const VertexGraph*>(this));

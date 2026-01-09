@@ -7,6 +7,7 @@
 
 uint32_t countNumNodes(gsp::BaseGraph& graph) {
     auto logger = gsp::logging::getLogger("countNumNodes");
+    logger->info("graph type: {}", graph.type());
     uint32_t count_nodes = 0;
     for (auto it = graph.begin(); it != graph.end(); ++it) {
         logger->info("Node {}: {} @ ({:.5g},{:.5g},{:.5g})", it->id, it->name, it->coord.x(), it->coord.y(), it->coord.z());
@@ -105,6 +106,7 @@ int main() {
 
     {
         const auto dense_graph = graph.toDense();
+        logger->info("graph type: {}; expected: DenseGraph", dense_graph.type());
         auto edge_gen = dense_graph.iterEdges();
         logger->info("Dense graph edges via iterEdges:");
         int edge_count = 0;
@@ -117,6 +119,7 @@ int main() {
     // Test sparse graph edges
     {
         const auto sparse_graph = graph.toSparse();
+        logger->info("graph type: {}; expected: SparseGraph", sparse_graph.type());
         auto edge_gen = sparse_graph.iterEdges();
         logger->info("Sparse graph edges via iterEdges:");
         int edge_count = 0;
@@ -129,6 +132,7 @@ int main() {
     // Test edge iteration with threshold
     {
         const auto dense_graph = graph.toDense();
+        logger->info("graph type: {}; expected: DenseGraph", dense_graph.type());
         auto edge_gen = dense_graph.iterEdges(0.5); // threshold of 0.5
         logger->info("Dense graph edges with threshold 0.5:");
         int edge_count = 0;
@@ -141,6 +145,7 @@ int main() {
     // Test reset functionality
     {
         const auto dense_graph = graph.toDense();
+        logger->info("graph type: {}; expected: DenseGraph", dense_graph.type());
 
         auto edge_gen = dense_graph.iterEdges();
         logger->info("Testing reset functionality:");
