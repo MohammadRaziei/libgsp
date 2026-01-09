@@ -12,7 +12,6 @@
 
 #include "BaseGraph.h"
 #include "libgsp/utils/Types.h"
-#include "libgsp/iterators/EdgeGenerator.h"
 #include "libgsp/utils/Logging.h"
 
 namespace gsp {
@@ -59,6 +58,7 @@ class gsp::Graph : public gsp::BaseGraph {
     virtual std::vector<gsp::Edge> edges(double thresh = 0) const override;
 
     virtual void setEdges(const std::vector<gsp::Edge>& edges, bool is_directed = GSP_IS_DIRECTED_DEFAULT) override;
+    virtual void setEdges(gsp::EdgeGenerator<Matrix>& generator, bool is_directed = GSP_IS_DIRECTED_DEFAULT);
     virtual void setWeights(const Matrix& matrix, bool is_directed = GSP_IS_DIRECTED_DEFAULT);
     virtual void setWeights(const std::vector<gsp::Edge>& edges, bool is_directed = GSP_IS_DIRECTED_DEFAULT);
 
@@ -85,9 +85,16 @@ class gsp::Graph : public gsp::BaseGraph {
                 logger_->warn("Warning: Graph is already dense!");
                 return clone();
             }
+            Graph<Target> graph(dynamic_cast<const VertexGraph*>(this));
+            graph.setEdges(this->edges(thresh), this->is_directed_);
         }
         Graph<Target> graph(dynamic_cast<const VertexGraph*>(this));
-        graph.setEdges(this->edges(thresh), this->is_directed_);
+        if constexpr (std::is_same_v<Matrix, Target>) {
+            auto gen = this->iterEdges(thresh);
+            graph.setEdges(gen, this->is_directed_);
+        } else {
+            graph.setEdges(this->edges(thresh), this->is_directed_);
+        }
         return graph;
     }
     SparseGraph toSparse(double thresh = 0.0) const;
@@ -106,6 +113,9 @@ private:
 
     gsp::CacheBox<Matrix>* cache_ = nullptr;
 };
+
+
+#include "libgsp/iterators/EdgeGenerator.h"
 
 
 #endif  // LIBGSP_GRAPH_H

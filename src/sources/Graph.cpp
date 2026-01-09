@@ -148,6 +148,29 @@ void gsp::Graph<Matrix>::setEdges(const std::vector<gsp::Edge>& edges, bool is_d
     }
 }
 
+template <class Matrix>
+void gsp::Graph<Matrix>::setEdges(gsp::EdgeGenerator<Matrix>& generator, bool is_directed) {
+    invalidateCache();
+    this->is_directed_ = is_directed;
+    gsp::matrix::free(this->weights_);
+    gsp::matrix::allocate(this->weights_, this->numNodes(), this->numNodes());
+    gsp::matrix::fillZero(this->weights_);
+    while (auto it = generator.next()) {
+        if (it->weight == 0) continue;
+        gsp::matrix::setElement(this->weights_, it->source, it->target, it->weight);
+        if (!is_directed) {
+            const double w = gsp::matrix::getElement(this->weights_, it->target, it->source);
+            if (w == 0) {
+                gsp::matrix::setElement(this->weights_, it->target, it->source, it->weight);
+            } else if (w != it->weight) {
+                gsp::matrix::free(this->weights_);
+                throw std::invalid_argument("Weights for undirected edges must be equal.");
+            }
+        }
+    }
+}
+
+
 
 template <class Matrix>
 bool gsp::Graph<Matrix>::isDirected() const {
@@ -255,7 +278,7 @@ void gsp::MatrixBox<Matrix>::setWeights(Matrix* matrix) {
 }
 
 template <class Matrix>
-const Matrix& gsp::MatrixBox<Matrix>::weights() const{
+const Matrix& gsp::MatrixBox<Matrix>::weights() const {
     return *(this->weights_);
 }
 
