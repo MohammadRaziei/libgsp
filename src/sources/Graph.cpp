@@ -60,8 +60,8 @@ gsp::Graph<Matrix>::Graph(const gsp::Graph<Matrix> *other) noexcept :
     gsp::BaseGraph(dynamic_cast<const BaseGraph*>(other)),
     _is_directed(other->_is_directed), _weights(other->_weights),
     _logger(gsp::logging::getLogger(detType())) {
-        type_ = detType();
-    }
+    type_ = detType();
+}
 
 
 template<class Matrix>
@@ -137,7 +137,7 @@ void gsp::Graph<Matrix>::setEdges(const std::vector<gsp::Edge>& edges, bool is_d
         if (it->weight == 0) continue;
         gsp::matrix::setElement(this->_weights, it->source, it->target, it->weight);
         if (!is_directed) {
-            double w = gsp::matrix::getElement(this->_weights, it->target, it->source);
+            const double w = gsp::matrix::getElement(this->_weights, it->target, it->source);
             if (w == 0) {
                 gsp::matrix::setElement(this->_weights, it->target, it->source, it->weight);
             } else if (w != it->weight) {
@@ -185,8 +185,8 @@ template <class Matrix>
 std::vector<gsp::Edge> gsp::Graph<Matrix>::edges(double thresh) const {
     // Create a temporary generator to get all edges
     auto gen = this->iterEdges(thresh);
-    std::vector<gsp::Edge> edges;
     gen.reset(); // Reset to beginning
+    std::vector<gsp::Edge> edges;
     while (auto edge = gen.next()) {
         edges.push_back(*edge);
     }

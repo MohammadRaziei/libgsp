@@ -18,15 +18,19 @@
 
 
 namespace gsp {
-struct Edge;
+class Edge;
 class BaseGraph;
 }
 
-struct gsp::Edge {
-    Edge(uint32_t source, uint32_t target, double weight=1.0) :
-          source(source), target(target), weight(weight) {}
+class gsp::Edge {
+    /// TODO: add setEdge
+public:
+    Edge(uint32_t source, uint32_t target, double weight=1.0, gsp::BaseGraph* graph = nullptr, void* ptr = nullptr) :
+          source(source), target(target), weight(weight), graph(graph), ptr(ptr) {}
     uint32_t source, target;
     double weight;
+    gsp::BaseGraph* graph;
+    void* ptr;
 };
 
 class gsp::BaseGraph : public gsp::VertexGraph {

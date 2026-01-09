@@ -79,7 +79,7 @@ int main() {
     logger->info("Non-const begin to end:");
     for (auto it = graph.begin(); it != graph.end(); ++it) {
         auto& coord = it->coord;
-        coord.setCoord(coord.x()* 2, coord.y()*2, coord.z()+1);
+        coord.set(coord.x() * 2, coord.y() * 2, coord.z() + 1);
         logger->info("  Node ID: {}, Name: {}, Coord: ({:.5g},{:.5g},{:.5g})",
                     it->id, it->name, it->coord.x(), it->coord.y(), it->coord.z());
     }

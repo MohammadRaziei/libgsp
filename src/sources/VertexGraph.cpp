@@ -168,7 +168,7 @@ gsp::Coord& gsp::Coord::operator=(const gsp::Coord& other) noexcept {
     return *this;
 }
 
-void gsp::Coord::setCoord(double x, double y, double z) {
+void gsp::Coord::set(double x, double y, double z) {
     x_ = x;
     y_ = y;
     z_ = z;

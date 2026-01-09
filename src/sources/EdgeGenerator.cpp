@@ -15,8 +15,8 @@ namespace gsp {
 template <>
 struct EdgeGenerator<densematrix>::State {
     State(const densematrix*) { reset(); }
-    void reset() { _row = _col = 0; }
-    uint32_t _row, _col;
+    void reset() { row_ = col_ = 0; }
+    uint32_t row_, col_;
 };
 
 // Sparse matrix state implementation
@@ -51,10 +51,10 @@ struct EdgeGenerator<sparsematrix>::State {
 // Constructor with threshold
 template <class Matrix>
 EdgeGenerator<Matrix>::EdgeGenerator(const Matrix* weights, int num_nodes, bool is_directed, types::elem_t<Matrix> thresh)
-    : _weights(weights), _num_nodes(num_nodes), _is_directed(is_directed) {
-    _state = std::make_unique<State>(weights);
-    _thresh = thresh;  // Set the threshold
-    _state->reset();   // Reset the state
+    : weights_(weights), num_nodes_(num_nodes), is_directed_(is_directed) {
+        state_ = std::make_unique<State>(weights);
+        thresh_ = thresh;  // Set the threshold
+    state_->reset();   // Reset the state
 }
 
 // Destructor
@@ -64,26 +64,26 @@ EdgeGenerator<Matrix>::~EdgeGenerator() = default;
 // Reset (keeps current threshold)
 template <class Matrix>
 void EdgeGenerator<Matrix>::reset() {
-    _state->reset();
+    state_->reset();
 }
 
 // Next edge for dense matrix
 template <>
 std::optional<Edge> EdgeGenerator<densematrix>::next() {
-    if (!_weights || _num_nodes <= 0 || !_state || _weights->rows() == 0) return std::nullopt;
+    if (!weights_ || num_nodes_ <= 0 || !state_ || weights_->rows() == 0) return std::nullopt;
 
-    while (_state->_row < _num_nodes) {
+    while (state_->row_ < num_nodes_) {
         // for undirected we emit only upper triangle: col starts at row
-        while (_state->_col < _num_nodes) {
-            const uint32_t col = _state->_col++;               // advance state BEFORE possible return
-            const double w = (*_weights)(_state->_row, col);
+        while (state_->col_ < num_nodes_) {
+            const uint32_t col = state_->col_++;               // advance state BEFORE possible return
+            const double w = (*weights_)(state_->row_, col);
 
-            if (std::abs(w) <= _thresh) continue;
+            if (std::abs(w) <= thresh_) continue;
 
-            return Edge(_state->_row, col, w);
+            return Edge(state_->row_, col, w);
         }
-        ++_state->_row;
-        _state->_col = (_is_directed) ? 0 : _state->_row; // reset for next row
+        ++state_->row_;
+        state_->col_ = (is_directed_) ? 0 : state_->row_; // reset for next row
     }
     return std::nullopt;
 }
@@ -91,9 +91,9 @@ std::optional<Edge> EdgeGenerator<densematrix>::next() {
 // Next edge for sparse matrix
 template <>
 std::optional<Edge> EdgeGenerator<sparsematrix>::next() {
-    if (!_weights || _num_nodes <= 0 || !_state || _weights->rows() == 0) return std::nullopt;
+    if (!weights_ || num_nodes_ <= 0 || !state_ || weights_->rows() == 0) return std::nullopt;
 
-    auto* st = _state.get(); // convenience
+    auto* st = state_.get(); // convenience
 
     while (st->W && st->outer < st->W->outerSize()) {
         if (!st->it) st->advance_to_next_nonempty_row();
@@ -112,9 +112,9 @@ std::optional<Edge> EdgeGenerator<sparsematrix>::next() {
         ++(*st->it);
 
         // undirected: keep only upper triangle (i <= j)
-        if (!_is_directed && r > c) continue;
+        if (!is_directed_ && r > c) continue;
 
-        if (std::abs(w) <= static_cast<double>(_thresh)) continue;
+        if (std::abs(w) <= static_cast<double>(thresh_)) continue;
 
         return Edge(static_cast<uint32_t>(r),
                     static_cast<uint32_t>(c),

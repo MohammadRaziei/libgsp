@@ -33,13 +33,13 @@ public:
 
 private:
     // common state (used by specializations)
-    const Matrix*         _weights     = nullptr;
-    int                   _num_nodes;
-    types::elem_t<Matrix> _thresh;
-    bool                  _is_directed;
+    const Matrix*         weights_     = nullptr;
+    int                   num_nodes_;
+    types::elem_t<Matrix> thresh_;
+    bool                  is_directed_;
 
     struct State;
-    std::unique_ptr<State> _state;  // Using PIMPL pattern for state
+    std::unique_ptr<State> state_;  // Using PIMPL pattern for state
 };
 
 } // namespace gsp

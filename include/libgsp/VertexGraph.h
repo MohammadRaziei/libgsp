@@ -31,7 +31,7 @@ public:
     [[nodiscard]] double x() const noexcept {return x_;}
     [[nodiscard]] double y() const noexcept {return y_;}
     [[nodiscard]] double z() const noexcept {return z_;}
-    void setCoord(double x, double y, double z = 0.);
+    void set(double x, double y, double z = 0.);
     void setX(double x);
     void setY(double y);
     void setZ(double z);
