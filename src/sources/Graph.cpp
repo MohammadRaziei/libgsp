@@ -149,7 +149,7 @@ void gsp::Graph<Matrix>::setEdges(const std::vector<gsp::Edge>& edges, bool is_d
 }
 
 template <class Matrix>
-void gsp::Graph<Matrix>::setEdges(gsp::EdgeGenerator& generator, bool is_directed) {
+void gsp::Graph<Matrix>::setEdges(const gsp::ConstEdgeGenerator& generator, bool is_directed) {
     invalidateCache();
     this->is_directed_ = is_directed;
     gsp::matrix::free(this->weights_);
@@ -202,9 +202,9 @@ void gsp::Graph<Matrix>::invalidateCache() {
 
 
 template <class Matrix>
-const gsp::EdgeGenerator gsp::Graph<Matrix>::iterEdges(double thresh) const {
+gsp::ConstEdgeGenerator gsp::Graph<Matrix>::iterEdges(double thresh) const {
     BaseStateEdgeGenerator* state = new gsp::StateGraph<Matrix>(const_cast<Matrix*>(&weights_), numNodes(), is_directed_, thresh);
-    return gsp::EdgeGenerator(std::shared_ptr<BaseStateEdgeGenerator>(state));
+    return gsp::ConstEdgeGenerator(std::shared_ptr<BaseStateEdgeGenerator>(state));
 }
 
 template <class Matrix>

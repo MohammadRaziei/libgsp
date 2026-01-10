@@ -58,7 +58,7 @@ class gsp::Graph : public gsp::BaseGraph {
     gsp::Graph<Matrix>& operator=(gsp::Graph<Matrix>&& other) noexcept;
 
     virtual void setEdges(const std::vector<gsp::Edge>& edges, bool is_directed = GSP_IS_DIRECTED_DEFAULT) override;
-    virtual void setEdges(gsp::EdgeGenerator& generator, bool is_directed = GSP_IS_DIRECTED_DEFAULT);
+    virtual void setEdges(const gsp::ConstEdgeGenerator& generator, bool is_directed = GSP_IS_DIRECTED_DEFAULT);
     virtual void setWeights(const Matrix& matrix, bool is_directed = GSP_IS_DIRECTED_DEFAULT);
     virtual void setWeights(const std::vector<gsp::Edge>& edges, bool is_directed = GSP_IS_DIRECTED_DEFAULT);
 
@@ -74,7 +74,7 @@ class gsp::Graph : public gsp::BaseGraph {
     virtual const densevector& degrees();
 
     // New method for edge iteration using EdgeGenerator
-    virtual const gsp::EdgeGenerator iterEdges(double thresh = 0.0) const override;
+    virtual gsp::ConstEdgeGenerator iterEdges(double thresh = 0.0) const override;
     virtual gsp::EdgeGenerator iterEdges(double thresh = 0.0) override;
     // Clone method to create a deep copy of the graph (value-based, preserves concrete type)
     gsp::Graph<Matrix> clone() const;
@@ -90,12 +90,7 @@ class gsp::Graph : public gsp::BaseGraph {
             graph.setEdges(this->edges(thresh), this->is_directed_);
         }
         Graph<Target> graph(dynamic_cast<const VertexGraph*>(this));
-        if constexpr (std::is_same_v<Matrix, Target>) {
-            auto gen = this->iterEdges(thresh);
-            graph.setEdges(gen, this->is_directed_);
-        } else {
-            graph.setEdges(this->edges(thresh), this->is_directed_);
-        }
+        graph.setEdges(this->iterEdges(thresh), this->is_directed_);
         return graph;
     }
     SparseGraph toSparse(double thresh = 0.0) const;

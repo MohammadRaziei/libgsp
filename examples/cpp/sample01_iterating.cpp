@@ -105,12 +105,13 @@ int main() {
     logger->info("Testing EdgeGenerator with iterEdges:");
 
     {
-        const auto dense_graph = graph.toDense();
+        auto dense_graph = graph.toDense();
         logger->info("graph type: {}; expected: DenseGraph", dense_graph.type());
         auto edge_gen = dense_graph.iterEdges();
         logger->info("Dense graph edges via iterEdges:");
         int edge_count = 0;
-        while (auto edge = edge_gen.next()) {
+        while (const auto edge = edge_gen.next()) {
+//            *edge = 10; // error
             logger->info("  Edge {}: from {} to {} with weight {:.5g}",
                         edge_count++, edge->source(), edge->target(), edge->weight());
         }
@@ -124,6 +125,7 @@ int main() {
         logger->info("Sparse graph edges via iterEdges:");
         int edge_count = 0;
         while (auto edge = edge_gen.next()) {
+//            *edge = 3; // error
             logger->info("  Edge {}: from {} to {} with weight {:.5g}",
                         edge_count++, edge->source(), edge->target(), edge->weight());
         }
@@ -131,12 +133,13 @@ int main() {
 
     // Test edge iteration with threshold
     {
-        const auto dense_graph = graph.toDense();
+        auto dense_graph = graph.toDense();
         logger->info("graph type: {}; expected: DenseGraph", dense_graph.type());
         auto edge_gen = dense_graph.iterEdges(0.5); // threshold of 0.5
         logger->info("Dense graph edges with threshold 0.5:");
         int edge_count = 0;
         while (auto edge = edge_gen.next()) {
+            *edge = 3;
             logger->info("  Edge {}: from {} to {} with weight {:.5g}",
                         edge_count++, edge->source(), edge->target(), edge->weight());
         }

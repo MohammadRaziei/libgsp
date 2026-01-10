@@ -26,22 +26,24 @@ public:
 
     void reset();
     std::optional<gsp::Edge> next();
+//    const std::optional<const gsp::Edge> next() const;
+
 
 private:
     std::shared_ptr<BaseStateEdgeGenerator> state_;
 };
 
-//class gsp::ConstEdgeGenerator {
-//public:
-//    explicit ConstEdgeGenerator(std::shared_ptr<BaseStateEdgeGenerator> state);
-//    ~ConstEdgeGenerator();
-//
-//    void reset();
-//    const std::optional<gsp::Edge> next();
-//
-//private:
-//    std::shared_ptr<BaseStateEdgeGenerator> state_;
-//};
+class gsp::ConstEdgeGenerator {
+public:
+    explicit ConstEdgeGenerator(std::shared_ptr<BaseStateEdgeGenerator> state);
+    ~ConstEdgeGenerator();
+
+    void reset();
+    const std::optional<const gsp::Edge> next() const;
+
+private:
+    std::shared_ptr<BaseStateEdgeGenerator> state_;
+};
 
 
 class gsp::BaseStateEdgeGenerator {
