@@ -27,14 +27,17 @@ public:
     Coord(double x, double y, double z = 0, VertexGraph* graph = nullptr, uint32_t idx = 0u) noexcept :
         x_(x), y_(y), z_(z), graph_(graph), idx_(idx) {}
 
-    Coord& operator=(const Coord& other) noexcept;
+    gsp::Coord& operator=(const gsp::Coord& other) noexcept;
     [[nodiscard]] double x() const noexcept {return x_;}
     [[nodiscard]] double y() const noexcept {return y_;}
     [[nodiscard]] double z() const noexcept {return z_;}
     void set(double x, double y, double z = 0.);
+    void set(const gsp::Coord& other, bool ownership=false);
     void setX(double x);
     void setY(double y);
     void setZ(double z);
+
+    gsp::Coord detach() const;
 
 protected:
     double x_, y_, z_;

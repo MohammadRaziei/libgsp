@@ -162,16 +162,12 @@ gsp::Coord& gsp::Coord::operator=(const gsp::Coord& other) noexcept {
     if (&other == this) {
         return *this;
     }
-    x_ = other.x_;
-    y_ = other.y_;
-    z_ = other.z_;
+    set(other, false);
     return *this;
 }
 
 void gsp::Coord::set(double x, double y, double z) {
-    x_ = x;
-    y_ = y;
-    z_ = z;
+    x_ = x; y_ = y; z_ = z;
     if (graph_) {
         graph_->setCoord(idx_, x, y, z);
     }
@@ -196,4 +192,19 @@ void gsp::Coord::setZ(double z) {
     if (graph_) {
         graph_->setCoord(idx_, 2, z);
     }
+}
+
+void gsp::Coord::set(const gsp::Coord &other, bool ownership) {
+    if (&other == this) { return; }
+    x_ = other.x_; y_ = other.y_; z_ = other.z_;
+    if (ownership) {
+        graph_ = other.graph_;
+        idx_ = other.idx_;
+    } else if (graph_) {
+        graph_->setCoord(x_, y_, z_);
+    }
+}
+
+gsp::Coord gsp::Coord::detach() const {
+    return gsp::Coord(x_, y_, z_);
 }
