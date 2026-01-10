@@ -28,9 +28,13 @@ class gsp::Edge {
 public:
     Edge(uint32_t source, uint32_t target, double weight = 1.0,
          std::shared_ptr<gsp::BaseStateEdgeGenerator> state = nullptr);
-
     Edge& operator=(const gsp::Edge& other) = delete;
+
     Edge& operator=(double weight);
+    Edge& operator+=(double weight);
+    Edge& operator-=(double weight);
+    Edge& operator*=(double weight);
+    Edge& operator/=(double weight);
 
     [[nodiscard]] double weight() const { return weight_; }
     [[nodiscard]] const uint32_t source() const { return source_; }

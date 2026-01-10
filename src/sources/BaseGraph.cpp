@@ -14,10 +14,11 @@ void gsp::Edge::setWeight(double weight) {
     weight_ = weight;
 }
 
-gsp::Edge& gsp::Edge::operator=(double weight) {
-    setWeight(weight);
-    return *this;
-}
+gsp::Edge& gsp::Edge::operator=(double weight) { setWeight(weight); return *this; }
+gsp::Edge& gsp::Edge::operator+=(double weight) { setWeight(weight_ + weight); return *this; }
+gsp::Edge& gsp::Edge::operator-=(double weight) { setWeight(weight_ - weight); return *this; }
+gsp::Edge& gsp::Edge::operator*=(double weight) { setWeight(weight_ * weight); return *this; }
+gsp::Edge& gsp::Edge::operator/=(double weight) { setWeight(weight_ / weight); return *this; }
 
 
 gsp::BaseGraph::BaseGraph(uint32_t num_nodes) : VertexGraph(num_nodes) {}

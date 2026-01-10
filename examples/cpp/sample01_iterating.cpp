@@ -139,7 +139,7 @@ int main() {
         logger->info("Dense graph edges with threshold 0.5:");
         int edge_count = 0;
         while (auto edge = edge_gen.next()) {
-            *edge = 3;
+            *edge *= 10;
             logger->info("  Edge {}: from {} to {} with weight {:.5g}",
                         edge_count++, edge->source(), edge->target(), edge->weight());
         }
