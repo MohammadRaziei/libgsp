@@ -38,6 +38,7 @@ public:
     void setZ(double z);
 
     gsp::Coord detach() const;
+    bool isDetached() const;
 
 protected:
     double x_, y_, z_;

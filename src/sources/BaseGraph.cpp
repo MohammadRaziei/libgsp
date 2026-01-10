@@ -10,7 +10,7 @@ gsp::Edge::Edge(uint32_t source, uint32_t target, double weight,
     source_(source), target_(target), weight_(weight), state_(state) {}
 
 void gsp::Edge::setWeight(double weight) {
-    state_->setWeight(weight);
+    if (state_) state_->setWeight(weight);
     weight_ = weight;
 }
 
@@ -20,6 +20,13 @@ gsp::Edge& gsp::Edge::operator-=(double weight) { setWeight(weight_ - weight); r
 gsp::Edge& gsp::Edge::operator*=(double weight) { setWeight(weight_ * weight); return *this; }
 gsp::Edge& gsp::Edge::operator/=(double weight) { setWeight(weight_ / weight); return *this; }
 
+gsp::Edge gsp::Edge::detach() const {
+    return gsp::Edge(source_, target_, weight_);
+}
+
+bool gsp::Edge::isDetached() const {
+    return state_ == nullptr;
+}
 
 gsp::BaseGraph::BaseGraph(uint32_t num_nodes) : VertexGraph(num_nodes) {}
 gsp::BaseGraph::~BaseGraph() {}

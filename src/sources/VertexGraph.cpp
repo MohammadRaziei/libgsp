@@ -208,3 +208,7 @@ void gsp::Coord::set(const gsp::Coord &other, bool ownership) {
 gsp::Coord gsp::Coord::detach() const {
     return gsp::Coord(x_, y_, z_);
 }
+
+bool gsp::Coord::isDetached() const {
+    return graph_ == nullptr;
+}

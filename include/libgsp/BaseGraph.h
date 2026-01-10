@@ -42,6 +42,9 @@ public:
 
     void setWeight(double weight);
 
+    gsp::Edge detach() const;
+    bool isDetached() const;
+
 private:
     const uint32_t source_, target_;
     double weight_;
