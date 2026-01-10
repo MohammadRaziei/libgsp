@@ -14,8 +14,9 @@
 #include "libgsp/utils/Types.h"
 #include "libgsp/utils/Logging.h"
 
+
 namespace gsp {
-    enum class ShiftType;
+//    enum class ShiftType;
 
     template<class Matrix> class MatrixBox;
     template<class Matrix> class CacheBox;
@@ -29,12 +30,12 @@ namespace gsp {
 
 
 
-enum class gsp::ShiftType {
-    Weights,
-    Laplacian,
-    NormalizedWeights,
-    NormalizedLaplacian
-};
+//enum class gsp::ShiftType {
+//    Weights,
+//    Laplacian,
+//    NormalizedWeights,
+//    NormalizedLaplacian
+//};
 
 
 
@@ -56,10 +57,8 @@ class gsp::Graph : public gsp::BaseGraph {
     void operator=(const gsp::Graph<Matrix>& other) = delete;
     gsp::Graph<Matrix>& operator=(gsp::Graph<Matrix>&& other) noexcept;
 
-    virtual std::vector<gsp::Edge> edges(double thresh = 0) const override;
-
     virtual void setEdges(const std::vector<gsp::Edge>& edges, bool is_directed = GSP_IS_DIRECTED_DEFAULT) override;
-    virtual void setEdges(gsp::EdgeGenerator<Matrix>& generator, bool is_directed = GSP_IS_DIRECTED_DEFAULT);
+    virtual void setEdges(gsp::EdgeGenerator& generator, bool is_directed = GSP_IS_DIRECTED_DEFAULT);
     virtual void setWeights(const Matrix& matrix, bool is_directed = GSP_IS_DIRECTED_DEFAULT);
     virtual void setWeights(const std::vector<gsp::Edge>& edges, bool is_directed = GSP_IS_DIRECTED_DEFAULT);
 
@@ -72,10 +71,11 @@ class gsp::Graph : public gsp::BaseGraph {
     virtual const Matrix& weights() const;
     virtual const Matrix& laplacian();
     virtual const Matrix& normalizedLaplacian();
-    virtual const  densevector& degrees();
+    virtual const densevector& degrees();
 
     // New method for edge iteration using EdgeGenerator
-    gsp::EdgeGenerator<Matrix> iterEdges(double thresh = 0.0) const;
+    virtual const gsp::EdgeGenerator iterEdges(double thresh = 0.0) const override;
+    virtual gsp::EdgeGenerator iterEdges(double thresh = 0.0) override;
     // Clone method to create a deep copy of the graph (value-based, preserves concrete type)
     gsp::Graph<Matrix> clone() const;
     // Graph conversion methods
@@ -102,6 +102,7 @@ class gsp::Graph : public gsp::BaseGraph {
     DenseGraph toDense(double thresh = 0.0) const;
 
     void invalidateCache();
+
    protected:
     bool is_directed_;
     Matrix weights_;
@@ -115,8 +116,6 @@ private:
     gsp::CacheBox<Matrix>* cache_ = nullptr;
 };
 
-
-#include "libgsp/iterators/EdgeGenerator.h"
 
 
 #endif  // LIBGSP_GRAPH_H

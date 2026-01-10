@@ -275,8 +275,8 @@ struct GraphSvg::Impl {
 
         // Edges
         for (const auto& e : edges) {
-            const auto& s = nodes[e.source].coord;
-            const auto& t = nodes[e.target].coord;
+            const auto& s = nodes[e.source()].coord;
+            const auto& t = nodes[e.target()].coord;
 
             const double x1 = node_space_scale * s.x() - min_x;
             const double y1 = -node_space_scale * s.y() + max_y;
@@ -285,7 +285,7 @@ struct GraphSvg::Impl {
 
             fmt::format_to(std::back_inserter(body),
                 R"(  <line class="edge" x1="{}" y1="{}" x2="{}" y2="{}" v1="{}" v2="{}" weight="{}"/>)"
-                "\n", x1, y1, x2, y2, e.source, e.target, e.weight);
+                "\n", x1, y1, x2, y2, e.source(), e.target(), e.weight());
         }
 
         // Nodes + signals

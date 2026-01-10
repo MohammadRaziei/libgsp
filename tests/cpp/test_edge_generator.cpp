@@ -7,7 +7,7 @@
 #include <optional>
 
 #include "libgsp/Graph.h"
-#include "libgsp/iterators/EdgeGenerator.h"
+#include "libgsp/iterators/EdgeGenerator.hpp"
 
 class EdgeGeneratorTest : public ::testing::Test {
 protected:

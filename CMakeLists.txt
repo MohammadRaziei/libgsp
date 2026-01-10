@@ -10,7 +10,7 @@ message(STATUS "Project: ${PROJECT_NAME}@v${PROJECT_VERSION}")
 include(Startup)
 
 
-option(BUILD_PYTHON_BINDINGS "export python module" OFF)
+option(BUILD_PYTHON_BINDINGS "export python module" ON)
 option(BUILD_MEX_BINDINGS "export matlab mex file" OFF)
 option(BUILD_SHARED_LIBS "Build shared libraries" ON)
 option(BUILD_TESTING "Build tests" ${PROJECT_IS_TOP_LEVEL})
@@ -71,16 +71,17 @@ target_link_libraries(gsp PUBLIC eigen)
 
 
 
+find_package(Python3 REQUIRED COMPONENTS Interpreter)
 
 if(DEFINED SKBUILD)
     set(PYTHON_PROJECT_NAME "${SKBUILD_PROJECT_NAME}")
-elseif(BUILD_PYTHON)
+    message(STATUS "The `pip install` is detected")
+elseif(BUILD_PYTHON_BINDINGS)
     set(PYTHON_PROJECT_NAME "${CMAKE_BINARY_DIR}")
-
     if(NOT PYTHON_REQUIREMENT_INSTALLED)
         execute_process(
                 COMMAND "${Python3_EXECUTABLE}" -m pip install
-                nanobind ninja pytest # build requirements
+                    nanobind ninja pytest # build requirements
                 OUTPUT_QUIET
         )
         set(PYTHON_REQUIREMENT_INSTALLED TRUE CACHE INTERNAL "Python requirements installed")
@@ -92,6 +93,10 @@ elseif(BUILD_PYTHON)
 
     message(STATUS "Found NanoBind at ${NB_DIR}")
     list(APPEND CMAKE_PREFIX_PATH "${NB_DIR}")
+
+#    set(NB_DIR ${PROJECT_SOURCE_DIR}/src/third_party/nanobind)
+    #    list(APPEND CMAKE_PREFIX_PATH "${NB_DIR}/cmake")
+    #    add_subdirectory(${NB_DIR})
 endif()
 
 
@@ -103,6 +108,7 @@ if(DEFINED PYTHON_PROJECT_NAME)
             REQUIRED COMPONENTS Interpreter Development.Module
             OPTIONAL_COMPONENTS Development.SABIModule)
     # Import nanobind through CMake's find_package mechanism
+    message(STATUS "config nanobind python")
     find_package(nanobind CONFIG REQUIRED)
 
 

@@ -24,7 +24,7 @@ uint32_t countNumEdges(gsp::Graph<Matrix>& graph) {
     uint32_t num_edges = 0;
     auto edge_gen = graph.iterEdges();
     while (auto edge = edge_gen.next()) {
-        logger->info("Edge: from[{}] to[{}] weight[{:.5g}]", edge->source, edge->target, edge->weight);
+        logger->info("Edge: from[{}] to[{}] weight[{:.5g}]", edge->source(), edge->target(), edge->weight());
         ++num_edges;
     }
 
@@ -112,7 +112,7 @@ int main() {
         int edge_count = 0;
         while (auto edge = edge_gen.next()) {
             logger->info("  Edge {}: from {} to {} with weight {:.5g}",
-                        edge_count++, edge->source, edge->target, edge->weight);
+                        edge_count++, edge->source(), edge->target(), edge->weight());
         }
     }
 
@@ -125,7 +125,7 @@ int main() {
         int edge_count = 0;
         while (auto edge = edge_gen.next()) {
             logger->info("  Edge {}: from {} to {} with weight {:.5g}",
-                        edge_count++, edge->source, edge->target, edge->weight);
+                        edge_count++, edge->source(), edge->target(), edge->weight());
         }
     }
 
@@ -138,7 +138,7 @@ int main() {
         int edge_count = 0;
         while (auto edge = edge_gen.next()) {
             logger->info("  Edge {}: from {} to {} with weight {:.5g}",
-                        edge_count++, edge->source, edge->target, edge->weight);
+                        edge_count++, edge->source(), edge->target(), edge->weight());
         }
     }
 
@@ -153,7 +153,7 @@ int main() {
         // Get first edge
         if (auto edge = edge_gen.next()) {
             logger->info("  First edge: from {} to {} with weight {:.5g}",
-                        edge->source, edge->target, edge->weight);
+                        edge->source(), edge->target(), edge->weight());
         }
 
         // Reset the generator
@@ -162,7 +162,7 @@ int main() {
         // Get first edge again
         if (auto edge = edge_gen.next()) {
             logger->info("  First edge after reset: from {} to {} with weight {:.5g}",
-                        edge->source, edge->target, edge->weight);
+                         edge->source(), edge->target(), edge->weight());
         }
     }
 
@@ -255,15 +255,15 @@ int main() {
 
         logger->info("Sparse graph with threshold 0.5 has {} edges:", sparse_edges_thresh.size());
         for (const auto& edge : sparse_edges_thresh) {
-            logger->info("  Edge: {} -> {} with weight {:.5g}", edge.source, edge.target, edge.weight);
+            logger->info("  Edge: {} -> {} with weight {:.5g}", edge.source(), edge.target(), edge.weight());
         }
 
         // Verify that only edges with weight > 0.5 are present
         bool all_above_threshold = true;
         for (const auto& edge : sparse_edges_thresh) {
-            if (edge.weight <= 0.5) {
+            if (edge.weight() <= 0.5) {
                 all_above_threshold = false;
-                logger->error("ERROR: Found edge with weight {} <= 0.5", edge.weight);
+                logger->error("ERROR: Found edge with weight {} <= 0.5", edge.weight());
             }
         }
 
@@ -279,15 +279,15 @@ int main() {
 
         logger->info("Dense graph converted back with threshold 0.4 has {} edges:", dense_edges_thresh.size());
         for (const auto& edge : dense_edges_thresh) {
-            logger->info("  Edge: {} -> {} with weight {:.5svg}", edge.source, edge.target, edge.weight);
+            logger->info("  Edge: {} -> {} with weight {:.5svg}", edge.source(), edge.target(), edge.weight());
         }
 
         // Verify that only edges with weight > 0.4 are present
         all_above_threshold = true;
         for (const auto& edge : dense_edges_thresh) {
-            if (edge.weight <= 0.4) {
+            if (edge.weight() <= 0.4) {
                 all_above_threshold = false;
-                logger->error("ERROR: Found edge with weight {} <= 0.4", edge.weight);
+                logger->error("ERROR: Found edge with weight {} <= 0.4", edge.weight());
             }
         }
 

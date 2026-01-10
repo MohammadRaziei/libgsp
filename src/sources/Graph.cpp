@@ -1,14 +1,14 @@
 //
 // Created by Mohammad on 7/20/2025.
 //
-#include  <Eigen/Eigen>
 
-#include "libgsp/iterators/EdgeGenerator.h"
-#include "libgsp/Graph.h"
-#include "libgsp/utils/Matrix.h"
 #include <ciso646>
 #include <type_traits>
 #include <iostream>
+
+#include "libgsp/Graph.h"
+#include "libgsp/utils/Matrix.h"
+#include "libgsp/iterators/StateGraph.h"
 
 template <class Matrix>
 class gsp::MatrixBox {
@@ -77,7 +77,7 @@ gsp::Graph<Matrix>::Graph(gsp::Graph<Matrix> &&other) noexcept
 
 template<class Matrix>
 gsp::Graph<Matrix>::Graph(const gsp::VertexGraph *other) noexcept: gsp::BaseGraph(other),
-                                                                   logger_(gsp::logging::getLogger(detType())) {
+        logger_(gsp::logging::getLogger(detType())) {
     type_ = detType();
 }
 
@@ -134,13 +134,13 @@ void gsp::Graph<Matrix>::setEdges(const std::vector<gsp::Edge>& edges, bool is_d
     gsp::matrix::allocate(this->weights_, this->numNodes(), this->numNodes());
     gsp::matrix::fillZero(this->weights_);
     for (auto it = edges.begin(); it < edges.end(); ++it) {
-        if (it->weight == 0) continue;
-        gsp::matrix::setElement(this->weights_, it->source, it->target, it->weight);
+        if (it->weight() == 0) continue;
+        gsp::matrix::setElement(this->weights_, it->source(), it->target(), it->weight());
         if (!is_directed) {
-            const double w = gsp::matrix::getElement(this->weights_, it->target, it->source);
+            const double w = gsp::matrix::getElement(this->weights_, it->target(), it->source());
             if (w == 0) {
-                gsp::matrix::setElement(this->weights_, it->target, it->source, it->weight);
-            } else if (w != it->weight) {
+                gsp::matrix::setElement(this->weights_, it->target(), it->source(), it->weight());
+            } else if (w != it->weight()) {
                 gsp::matrix::free(this->weights_);
                 throw std::invalid_argument("Weights for undirected edges must be equal.");
             }
@@ -149,20 +149,20 @@ void gsp::Graph<Matrix>::setEdges(const std::vector<gsp::Edge>& edges, bool is_d
 }
 
 template <class Matrix>
-void gsp::Graph<Matrix>::setEdges(gsp::EdgeGenerator<Matrix>& generator, bool is_directed) {
+void gsp::Graph<Matrix>::setEdges(gsp::EdgeGenerator& generator, bool is_directed) {
     invalidateCache();
     this->is_directed_ = is_directed;
     gsp::matrix::free(this->weights_);
     gsp::matrix::allocate(this->weights_, this->numNodes(), this->numNodes());
     gsp::matrix::fillZero(this->weights_);
     while (auto it = generator.next()) {
-        if (it->weight == 0) continue;
-        gsp::matrix::setElement(this->weights_, it->source, it->target, it->weight);
+        if (it->weight() == 0) continue;
+        gsp::matrix::setElement(this->weights_, it->source(), it->target(), it->weight());
         if (!is_directed) {
-            const double w = gsp::matrix::getElement(this->weights_, it->target, it->source);
+            const double w = gsp::matrix::getElement(this->weights_, it->target(), it->source());
             if (w == 0) {
-                gsp::matrix::setElement(this->weights_, it->target, it->source, it->weight);
-            } else if (w != it->weight) {
+                gsp::matrix::setElement(this->weights_, it->target(), it->source(), it->weight());
+            } else if (w != it->weight()) {
                 gsp::matrix::free(this->weights_);
                 throw std::invalid_argument("Weights for undirected edges must be equal.");
             }
@@ -201,24 +201,16 @@ void gsp::Graph<Matrix>::invalidateCache() {
 }
 
 
-
-
-
 template <class Matrix>
-std::vector<gsp::Edge> gsp::Graph<Matrix>::edges(double thresh) const {
-    // Create a temporary generator to get all edges
-    auto gen = this->iterEdges(thresh);
-    gen.reset(); // Reset to beginning
-    std::vector<gsp::Edge> edges;
-    while (auto edge = gen.next()) {
-        edges.push_back(*edge);
-    }
-    return edges;
+const gsp::EdgeGenerator gsp::Graph<Matrix>::iterEdges(double thresh) const {
+    BaseStateEdgeGenerator* state = new gsp::StateGraph<Matrix>(const_cast<Matrix*>(&weights_), numNodes(), is_directed_, thresh);
+    return gsp::EdgeGenerator(std::shared_ptr<BaseStateEdgeGenerator>(state));
 }
 
 template <class Matrix>
-gsp::EdgeGenerator<Matrix> gsp::Graph<Matrix>::iterEdges(double thresh) const {
-    return gsp::EdgeGenerator<Matrix>(&this->weights_, this->numNodes(), this->is_directed_, thresh);
+gsp::EdgeGenerator gsp::Graph<Matrix>::iterEdges(double thresh) {
+    BaseStateEdgeGenerator* state = new gsp::StateGraph<Matrix>(&weights_, numNodes(), is_directed_, thresh);
+    return gsp::EdgeGenerator(std::shared_ptr<BaseStateEdgeGenerator>(state));
 }
 
 template <class Matrix>
@@ -402,7 +394,7 @@ gsp::densematrix& gsp::MatrixBox<gsp::densematrix>::normalizedLaplacian() {
     auto& cached_degrees = this->degrees();
 
     Eigen::VectorXd d_inv_sqrt = cached_degrees.unaryExpr(
-        [](double x){ return (x > 0.0) ? 1.0/std::sqrt(x) : 0.0; });
+        [](double x){ return (x > 0.0) ? 1.0 / std::sqrt(x) : 0.0; });
 
     const auto& cached_laplacian = this->laplacian();
 

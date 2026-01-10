@@ -6,43 +6,60 @@
 #define LIBGSP_EDGEGENERATOR_H
 #pragma once
 
-#include <Eigen/Dense>
-#include <Eigen/SparseCore>
-
 #include <vector>
 #include <optional>
+#include <memory>
 
-#include "libgsp/utils/Types.h"  // defines densematrix, sparsematrix, and includes Eigen
+#include <libgsp/BaseGraph.h>
 
 namespace gsp {
-
-
-class Edge; // forward: must expose source, target, weight
+    class EdgeGenerator;
+//    class ConstEdgeGenerator;
+    class BaseStateEdgeGenerator;
+} // namespace gsp
 
 // Single primary template; definitions specialized in .cpp
-template <class Matrix>
-class EdgeGenerator {
+class gsp::EdgeGenerator {
 public:
-    EdgeGenerator(const Matrix* weights, int num_nodes, bool is_directed, types::elem_t<Matrix> thresh);
-    EdgeGenerator(const EdgeGenerator&) = delete;
-    EdgeGenerator& operator=(const EdgeGenerator&) = delete;
+    explicit EdgeGenerator(std::shared_ptr<BaseStateEdgeGenerator> state);
     ~EdgeGenerator();
 
-    void reset();  // reset internal cursor (keeps current threshold)
-    std::optional<Edge> next();        // next edge or std::nullopt
+    void reset();
+    std::optional<gsp::Edge> next();
 
 private:
-    // common state (used by specializations)
-    const Matrix*         weights_     = nullptr;
-    int                   num_nodes_;
-    types::elem_t<Matrix> thresh_;
-    bool                  is_directed_;
-
-    struct State;
-    std::unique_ptr<State> state_;  // Using PIMPL pattern for state
+    std::shared_ptr<BaseStateEdgeGenerator> state_;
 };
 
-} // namespace gsp
+//class gsp::ConstEdgeGenerator {
+//public:
+//    explicit ConstEdgeGenerator(std::shared_ptr<BaseStateEdgeGenerator> state);
+//    ~ConstEdgeGenerator();
+//
+//    void reset();
+//    const std::optional<gsp::Edge> next();
+//
+//private:
+//    std::shared_ptr<BaseStateEdgeGenerator> state_;
+//};
+
+
+class gsp::BaseStateEdgeGenerator {
+public:
+    BaseStateEdgeGenerator();
+    virtual ~BaseStateEdgeGenerator();
+    virtual void reset() = 0;
+    virtual std::optional<gsp::Edge> next() = 0;
+    virtual void setWeight(double weight) = 0;
+    virtual std::shared_ptr<BaseStateEdgeGenerator> clone() const = 0;
+};
+
+
+
+
+
+
+
 
 
 

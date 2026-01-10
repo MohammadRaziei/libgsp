@@ -11,27 +11,35 @@
 #include <memory>
 
 #include "VertexGraph.h"
-#include "libgsp/iterators/EdgeGenerator.h"
 
 #define GSP_IS_DIRECTED_DEFAULT true
 
 
 
 namespace gsp {
-class Edge;
-class BaseGraph;
+    class EdgeGenerator;
+    class BaseStateEdgeGenerator;
+    class Edge;
+    class BaseGraph;
 }
 
 class gsp::Edge {
-    /// TODO: add setEdge
 public:
-    Edge(uint32_t source, uint32_t target, double weight=1.0, gsp::BaseGraph* graph = nullptr, void* ptr = nullptr) :
-          source(source), target(target), weight(weight), graph(graph), ptr(ptr) {}
-    uint32_t source, target;
-    double weight;
-    gsp::BaseGraph* graph;
-    void* ptr;
+    Edge(uint32_t source, uint32_t target, double weight=1.0,
+         std::shared_ptr<gsp::BaseStateEdgeGenerator> state = nullptr);
+
+    [[nodiscard]] double weight() const { return weight_; }
+    [[nodiscard]] const uint32_t source() const { return source_; }
+    [[nodiscard]] const uint32_t target() const { return target_; }
+
+    void setWeight(double weight);
+
+private:
+    const uint32_t source_, target_;
+    double weight_;
+    std::shared_ptr<gsp::BaseStateEdgeGenerator> state_;
 };
+
 
 class gsp::BaseGraph : public gsp::VertexGraph {
    public:
@@ -46,8 +54,14 @@ class gsp::BaseGraph : public gsp::VertexGraph {
 
     virtual void setEdges(const std::vector<gsp::Edge>& edges, bool is_directed = GSP_IS_DIRECTED_DEFAULT) = 0;
 
-    virtual std::vector<gsp::Edge> edges(double thresh = 0.0) const = 0;
+    virtual const gsp::EdgeGenerator iterEdges(double thresh = 0.0) const = 0;
+    virtual gsp::EdgeGenerator iterEdges(double thresh = 0.0) = 0;
+
+    virtual std::vector<gsp::Edge> edges(double thresh = 0.0) const;
 
 };
+
+#include "libgsp/iterators/EdgeGenerator.h"
+
 
 #endif  // LIBGSP_BASEGRAPH_H
