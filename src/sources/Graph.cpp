@@ -149,7 +149,7 @@ void gsp::Graph<Matrix>::setEdges(const std::vector<gsp::Edge>& edges, bool is_d
 }
 
 template <class Matrix>
-void gsp::Graph<Matrix>::setEdges(const gsp::ConstEdgeGenerator& generator, bool is_directed) {
+void gsp::Graph<Matrix>::setEdges(gsp::ConstEdgeGenerator& generator, bool is_directed) {
     invalidateCache();
     this->is_directed_ = is_directed;
     gsp::matrix::free(this->weights_);

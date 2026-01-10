@@ -14,7 +14,7 @@
 
 namespace gsp {
     class EdgeGenerator;
-//    class ConstEdgeGenerator;
+    class ConstEdgeGenerator;
     class BaseStateEdgeGenerator;
 } // namespace gsp
 
@@ -39,7 +39,7 @@ public:
     ~ConstEdgeGenerator();
 
     void reset();
-    const std::optional<const gsp::Edge> next() const;
+    const std::optional<const gsp::Edge> next();
 
 private:
     std::shared_ptr<BaseStateEdgeGenerator> state_;

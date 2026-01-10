@@ -58,7 +58,7 @@ class gsp::Graph : public gsp::BaseGraph {
     gsp::Graph<Matrix>& operator=(gsp::Graph<Matrix>&& other) noexcept;
 
     virtual void setEdges(const std::vector<gsp::Edge>& edges, bool is_directed = GSP_IS_DIRECTED_DEFAULT) override;
-    virtual void setEdges(const gsp::ConstEdgeGenerator& generator, bool is_directed = GSP_IS_DIRECTED_DEFAULT);
+    virtual void setEdges(gsp::ConstEdgeGenerator& generator, bool is_directed = GSP_IS_DIRECTED_DEFAULT);
     virtual void setWeights(const Matrix& matrix, bool is_directed = GSP_IS_DIRECTED_DEFAULT);
     virtual void setWeights(const std::vector<gsp::Edge>& edges, bool is_directed = GSP_IS_DIRECTED_DEFAULT);
 
@@ -86,11 +86,10 @@ class gsp::Graph : public gsp::BaseGraph {
                 logger_->warn("Warning: Graph is already {}!", type_);
                 return clone();
             }
-            Graph<Target> graph(dynamic_cast<const VertexGraph*>(this));
-            graph.setEdges(this->edges(thresh), this->is_directed_);
         }
         Graph<Target> graph(dynamic_cast<const VertexGraph*>(this));
-        graph.setEdges(this->iterEdges(thresh), this->is_directed_);
+        auto gen = this->iterEdges(thresh);
+        graph.setEdges(gen, this->is_directed_);
         return graph;
     }
     SparseGraph toSparse(double thresh = 0.0) const;
