@@ -8,62 +8,62 @@
 using namespace gsp;
 
 
-SignalMask::SignalMask(uint32_t size) : _logger(gsp::logging::getLogger("SignalMask")) {
+SignalMask::SignalMask(uint32_t size) : logger_(gsp::logging::getLogger("SignalMask")) {
     resize(size);
 }
 
 SignalMask::SignalMask(const std::initializer_list<uint8_t>& vec)
-    : _logger(gsp::logging::getLogger("SignalMask")) {
+    : logger_(gsp::logging::getLogger("SignalMask")) {
     setMask(Eigen::Map<const DenseMask>(vec.begin(), static_cast<uint32_t>(vec.size())));
 }
 
 SignalMask::SignalMask(uint32_t size, const std::initializer_list<std::pair<uint32_t, bool>>& mask)
-    : _logger(gsp::logging::getLogger("SignalMask")){
+    : logger_(gsp::logging::getLogger("SignalMask")){
     resize(size);
     for (const auto& [idx, value] : mask) {
         if (idx >= size) {
             std::string msg = fmt::format("Invalid index {} in initializer list", idx);
-            _logger->error(msg);
+            logger_->error(msg);
             throw std::out_of_range(msg);
         }
-        if (!value) _sparse_complement.coeffRef(idx) = static_cast<uint8_t>(1);
+        if (!value) sparse_complement_.coeffRef(idx) = static_cast<uint8_t>(1);
     }
 }
 
 
 void SignalMask::resize(uint32_t size) {
-    _size = size;
-    _sparse_complement.resize(size);
-    _sparse_complement.setZero();
+    size_ = size;
+    sparse_complement_.resize(size);
+    sparse_complement_.setZero();
     // Note: no need to prune now; vector is empty
 }
 
 void SignalMask::set(uint32_t idx, bool value) {
-    if (idx >= _size) {
+    if (idx >= size_) {
         std::string msg = fmt::format("Invalid index {}", idx);
-        _logger->error(msg);
+        logger_->error(msg);
         throw std::out_of_range(msg);
     }
 
     if (value) {
         // logical true -> default -> ensure complement at idx is 0
-        if (_sparse_complement.coeff(idx)) {
-            _sparse_complement.coeffRef(idx) = static_cast<uint8_t>(0);
+        if (sparse_complement_.coeff(idx)) {
+            sparse_complement_.coeffRef(idx) = static_cast<uint8_t>(0);
         }
     } else {
         // logical false -> store 1 in complement
-        _sparse_complement.coeffRef(idx) = static_cast<uint8_t>(1);
+        sparse_complement_.coeffRef(idx) = static_cast<uint8_t>(1);
     }
 }
 
 bool SignalMask::at(uint32_t idx) const {
-    if (idx >= _size) {
+    if (idx >= size_) {
         std::string msg = fmt::format("Invalid index {}", idx);
-        _logger->error(msg);
+        logger_->error(msg);
         throw std::out_of_range(msg);
     }
     // true iff not present (or zero) in complement
-    return _sparse_complement.coeff(idx) == static_cast<uint8_t>(0);
+    return sparse_complement_.coeff(idx) == static_cast<uint8_t>(0);
 }
 
 void SignalMask::setMask(const DenseMask& mask) {
@@ -75,7 +75,7 @@ void SignalMask::setMask(const DenseMask& mask) {
                                            .template cast<uint8_t>();
 
     // Build sparse directly from dense 0/1
-    _sparse_complement = complement.sparseView(0 /*reference*/, 1 /*epsilon*/);
+    sparse_complement_ = complement.sparseView(0 /*reference*/, 1 /*epsilon*/);
     // The epsilon=1 here is fine because entries are exactly 0 or 1 (nonzero threshold).
     // If you prefer the default, simply use: complement.sparseView();
 }
@@ -84,11 +84,11 @@ void SignalMask::setMask(const DenseMask& mask) {
 
 void SignalMask::setComplementMask(const SparseComplementMask& complement) {
     resize(static_cast<int>(complement.size()));
-    _sparse_complement = complement;  // shallow copy of sparse structure/content
+    sparse_complement_ = complement;  // shallow copy of sparse structure/content
 }
 
 uint32_t SignalMask::nnz() const {
-    return _size - _sparse_complement.cast<uint32_t>().sum();
+    return size_ - sparse_complement_.cast<uint32_t>().sum();
 }
 
 
@@ -101,13 +101,13 @@ SignalMask SignalMask::operator+(const SignalMask& other) const {
 SignalMask& SignalMask::operator+=(const SignalMask& other) {
     if (other.size() != size()) {
         const std::string msg = fmt::format("size mismatched");
-        _logger->error(msg);
+        logger_->error(msg);
         throw std::invalid_argument(msg);
     }
 
-    for (SparseComplementMask::InnerIterator it2(other._sparse_complement);
+    for (SparseComplementMask::InnerIterator it2(other.sparse_complement_);
          it2; ++it2) {
-            _sparse_complement.coeffRef(it2.index()) = static_cast<uint8_t>(1);
+        sparse_complement_.coeffRef(it2.index()) = static_cast<uint8_t>(1);
          }
     return *this;
 }
@@ -116,9 +116,9 @@ SignalMask& SignalMask::operator+=(const SignalMask& other) {
 std::string SignalMask::str() const {
     fmt::memory_buffer buf;
     fmt::format_to(std::back_inserter(buf), "[");
-    for (uint32_t i = 0; i < _size; ++i) {
+    for (uint32_t i = 0; i < size_; ++i) {
         fmt::format_to(std::back_inserter(buf), at(i) ? "1" : "n");
-        if (i + 1 < _size) {
+        if (i + 1 < size_) {
             fmt::format_to(std::back_inserter(buf), ", ");
         }
     }

@@ -32,11 +32,11 @@ int main() {
 
     int i = 0;
     for (const auto coord : sigcoords.vector()) {
-        logger->info("coord {}: {}, {}, {}", i++, coord->x, coord->y, coord->z);
+        logger->info("coord {}: {}, {}, {}", i++, coord->x(), coord->y(), coord->z());
     }
 
     const auto sigcoords_d = sigcoords.apply([](const gsp::Coord& coord)->double
-     { return std::sqrt(coord.x * coord.x + coord.y * coord.y + coord.z * coord.z); });
+     { return std::sqrt(coord.x() * coord.x() + coord.y() * coord.y() + coord.z() * coord.z()); });
     logger->info("sigcoords_d: {}", sigcoords_d.str());
 
     gsp::Signal<double> sigi2d;

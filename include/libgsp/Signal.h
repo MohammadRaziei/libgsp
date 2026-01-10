@@ -44,14 +44,14 @@ public:
 
     template <typename Scalar>
     SignalMask& imul(const Eigen::SparseMatrix<Scalar>& A) {
-        if (_size != static_cast<uint32_t>(A.cols())) {
+        if (size_ != static_cast<uint32_t>(A.cols())) {
             throw std::invalid_argument("SignalMask::imul_structure(sparse): size mismatch with A.cols()");
         }
 
         SparseComplementMask new_comp(A.rows());
 
         // Iterate only invalid inputs (1 in complement means false column)
-        for (SparseComplementMask::InnerIterator it(_sparse_complement); it; ++it) {
+        for (SparseComplementMask::InnerIterator it(sparse_complement_); it; ++it) {
             const int col = it.index();
             for (typename Eigen::SparseMatrix<Scalar>::InnerIterator jt(A, col); jt; ++jt) {
                 if (jt.value() != Scalar(0)) {
@@ -62,8 +62,8 @@ public:
         }
 
         new_comp.finalize();
-        _size = static_cast<uint32_t>(A.rows());
-        _sparse_complement = std::move(new_comp);
+        size_ = static_cast<uint32_t>(A.rows());
+        sparse_complement_ = std::move(new_comp);
         return *this;
     }
 
@@ -90,15 +90,15 @@ public:
     std::string str() const;
 
     // Getters
-    [[nodiscard]] const SparseComplementMask& complement() const { return _sparse_complement; }
-    [[nodiscard]] uint32_t size() const {  return _size; }
+    [[nodiscard]] const SparseComplementMask& complement() const { return sparse_complement_; }
+    [[nodiscard]] uint32_t size() const {  return size_; }
 
     [[nodiscard]] uint32_t nnz() const;
 
 private:
-    uint32_t _size{0};
-    SparseComplementMask _sparse_complement;
-    gsp::logging::Logger _logger;
+    uint32_t size_{0};
+    SparseComplementMask sparse_complement_;
+    gsp::logging::Logger logger_;
 };
 
 
@@ -110,110 +110,110 @@ public:
 
     // --- Constructors ---
     explicit Signal(int size = 0)
-        : _logger(gsp::logging::getLogger("Signal")),
-        _signal(size), _mask(size) {
-        _signal.setZero();
+        : logger_(gsp::logging::getLogger("Signal")),
+          signal_(size), mask_(size) {
+        signal_.setZero();
     }
 
     Signal(const VectorT& vec)
-        : _logger(gsp::logging::getLogger("Signal")),
-        _signal(vec), _mask(vec.size()) {}
+        : logger_(gsp::logging::getLogger("Signal")),
+          signal_(vec), mask_(vec.size()) {}
 
     Signal(const VectorT& vec, const SignalMask& mask)
-        : _logger(gsp::logging::getLogger("Signal")),
-        _signal(vec), _mask(mask) {
+        : logger_(gsp::logging::getLogger("Signal")),
+          signal_(vec), mask_(mask) {
             if (mask.size() != vec.size()) {
                 const std::string msg = fmt::format("Signal size mismatch: {} != {}", vec.size(), mask.size());
-                _logger->error(msg);
+                logger_->error(msg);
                 throw std::invalid_argument(msg);
             }
             applyMask();
         }
 
     Signal(const std::initializer_list<T>& vec)
-        : _logger(gsp::logging::getLogger("Signal")),
-         _signal(Eigen::Map<const VectorT>(vec.begin(), static_cast<uint32_t>(vec.size()))),
-        _mask(vec.size()) {}
+        : logger_(gsp::logging::getLogger("Signal")),
+          signal_(Eigen::Map<const VectorT>(vec.begin(), static_cast<uint32_t>(vec.size()))),
+          mask_(vec.size()) {}
 
     Signal(const std::initializer_list<T>& vec, const std::initializer_list<std::pair<uint32_t, bool>>& mask)
-       : _logger(gsp::logging::getLogger("Signal")),
-        _signal(Eigen::Map<const VectorT>(vec.begin(), static_cast<uint32_t>(vec.size()))),
-        _mask(static_cast<uint32_t>(vec.size()), mask) {
+       : logger_(gsp::logging::getLogger("Signal")),
+         signal_(Eigen::Map<const VectorT>(vec.begin(), static_cast<uint32_t>(vec.size()))),
+         mask_(static_cast<uint32_t>(vec.size()), mask) {
         applyMask();
     }
 
     Signal(const std::initializer_list<T>& vec, const std::initializer_list<uint8_t>& mask)
-        : _logger(gsp::logging::getLogger("Signal")),
-        _signal(Eigen::Map<const VectorT>(vec.begin(), static_cast<uint32_t>(vec.size()))),
-        _mask(mask) {
-        if (mask.size() != _mask.size()) {
+        : logger_(gsp::logging::getLogger("Signal")),
+          signal_(Eigen::Map<const VectorT>(vec.begin(), static_cast<uint32_t>(vec.size()))),
+          mask_(mask) {
+        if (mask.size() != mask_.size()) {
             const std::string msg = fmt::format("Signal size mismatch: {} != {}", vec.size(), mask.size());
-            _logger->error(msg);
+            logger_->error(msg);
             throw std::invalid_argument(msg);
         }
         applyMask();
     }
 
     Signal(const std::vector<T>& vec)
-        : _signal(Eigen::Map<const VectorT>(vec.data(), vec.size())), _mask(vec.size()) {}
+        : signal_(Eigen::Map<const VectorT>(vec.data(), vec.size())), mask_(vec.size()) {}
 
     Signal(const std::vector<std::optional<T>>& vec_opt) {
         resize(static_cast<int>(vec_opt.size()));
         for (int i = 0; i < size(); ++i) {
             if (vec_opt[i].has_value()) {
-                _signal(i) = *vec_opt[i];
+                signal_(i) = *vec_opt[i];
                 // _mask.set(i, true);
             } else {
-                _signal(i) = T{};
-                _mask.set(i, false);
+                signal_(i) = T{};
+                mask_.set(i, false);
             }
         }
     }
 
     // --- Core API ---
     void resize(int n) {
-        _signal.resize(n);
-        _signal.setZero();
-        _mask.resize(n);
+        signal_.resize(n);
+        signal_.setZero();
+        mask_.resize(n);
     }
 
-    int size() const { return static_cast<int>(_signal.size()); }
+    int size() const { return static_cast<int>(signal_.size()); }
 
     // mask API
     void setMask(SignalMask m) {
         if (m.size() != size()) {
             const std::string msg = fmt::format("setMask: size mismatch {} != {}", m.size(), size());
-            _logger->error(msg);
+            logger_->error(msg);
             throw std::invalid_argument(msg);
         }
-        _mask = std::move(m);
+        mask_ = std::move(m);
     }
 
     void setMask(uint32_t idx, bool value) {
-        _mask.set(idx, value);
+        mask_.set(idx, value);
     }
 
     void setComplementMask(const SignalMask::SparseComplementMask& m) {
-        _mask.setComplementMask(m);
+        mask_.setComplementMask(m);
     }
 
-    [[nodiscard]] const SignalMask& mask() const { return _mask; }
+    [[nodiscard]] const SignalMask& mask() const { return mask_; }
 
-    [[nodiscard]] bool mask(uint32_t idx) const { return _mask.at(idx); }
+    [[nodiscard]] bool mask(uint32_t idx) const { return mask_.at(idx); }
 
 
     // vector API
-    const VectorT& signal() const { return _signal; }
-    VectorT& signal() { return _signal; }
+    const VectorT& signal() const { return signal_; }
+    VectorT& signal() { return signal_; }
 
-    T signal(uint32_t idx) const { return _signal(idx); }
-    T& signal(uint32_t idx) { return _signal(idx); }
+    T signal(uint32_t idx) const { return signal_(idx); }
+    T& signal(uint32_t idx) { return signal_(idx); }
 
 
     std::vector<std::optional<T>> vector() const {
         std::vector<std::optional<T>> out(size());
         for (int i = 0; i < size(); ++i) {
-            out[i] = _mask.at(i) ? std::optional<T>(_signal(i)) : std::nullopt;
+            out[i] = mask_.at(i) ? std::optional<T>(signal_(i)) : std::nullopt;
         }
         return out;
     }
@@ -221,81 +221,81 @@ public:
     // element API
     Signal& set(int idx, const std::optional<T>& value) {
         if (value) {
-            _signal(idx) = *value;
-            _mask.set(idx, true);
+            signal_(idx) = *value;
+            mask_.set(idx, true);
         } else {
-            _mask.set(idx, false);
-            _signal(idx) = T{};
+            mask_.set(idx, false);
+            signal_(idx) = T{};
         }
         return *this;
     }
 
     std::optional<T> get(int idx) const {
-        return _mask.at(idx) ? std::optional<T>(_signal(idx)) : std::nullopt;
+        return mask_.at(idx) ? std::optional<T>(signal_(idx)) : std::nullopt;
     }
 
     Signal<T> mul(const Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic>& M) const {
-        return Signal<T>(M * _signal, _mask.mul(M));
+        return Signal<T>(M * signal_, mask_.mul(M));
     }
 
     // Out-of-place multiply (sparse)
     Signal<T> mul(const Eigen::SparseMatrix<T>& M) const {
-        return Signal<T>(M * _signal, _mask.mul(M));
+        return Signal<T>(M * signal_, mask_.mul(M));
     }
 
     // In-place multiply (dense)
     Signal<T>& imul(const Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic>& M) {
-        _signal = M * _signal;
-        _mask.imul(M);
+        signal_ = M * signal_;
+        mask_.imul(M);
         return applyMask();
     }
 
     // In-place multiply (sparse)
     Signal<T>& imul(const Eigen::SparseMatrix<T>& M) {
-        _signal = M * _signal;
-        _mask.imul(M);
+        signal_ = M * signal_;
+        mask_.imul(M);
         return applyMask();
     }
 
 
     Signal<T> operator*(const Signal<T>& other) const {
-        VectorT out(_signal.array() * other._signal.array());
-        return Signal<T>(out, _mask + other._mask);
+        VectorT out(signal_.array() * other.signal_.array());
+        return Signal<T>(out, mask_ + other.mask_);
     }
 
     Signal<T> operator+(const Signal<T>& other) const {
-        return Signal<T>(_signal + other._signal, _mask + other._mask);
+        return Signal<T>(signal_ + other.signal_, mask_ + other.mask_);
     }
 
     Signal<T> operator-(const Signal<T>& other) const {
-        return Signal<T>(_signal - other._signal, _mask + other._mask);
+        return Signal<T>(signal_ - other.signal_, mask_ + other.mask_);
     }
 
     Signal<T> operator/(const Signal<T>& other) const {
-        return Signal<T>(_signal / other._signal, _mask + other._mask);
+        return Signal<T>(signal_ / other.signal_, mask_ + other.mask_);
     }
 
     Signal<T>& operator*=(const Signal<T>& other) {
-        _signal *= other._signal;
-        _mask += other._mask;
+        signal_ *= other.signal_;
+        mask_ += other.mask_;
         return applyMask();
     }
 
     Signal<T>& operator+=(const Signal<T>& other) {
-        _signal += other._signal;
-        _mask += other._mask;
+        signal_ += other.signal_;
+        mask_ += other.mask_;
         return applyMask();
     }
 
     Signal<T>& operator-=(const Signal<T>& other) {
-        _signal -= other._signal;
-        _mask += other._mask;
+        signal_ -= other.signal_;
+        mask_ += other.mask_;
         return applyMask();
     }
 
     Signal<T>& operator/=(const Signal<T>& other) {
-        _signal /= other._signal;
-        _mask += other._mask;
+        signal_ /= other.signal_;
+        mask_ += other.mask_;
         return applyMask();
     }
 
@@ -310,19 +310,19 @@ public:
         using outT = typename std::invoke_result_t<Func, const T&>;
         Eigen::Matrix<outT, Eigen::Dynamic, 1> sig_out(size());
         for (int i = 0; i < size(); ++i) {
-            if (_mask.at(i)) {
-                sig_out(i) = func(_signal(i));
+            if (mask_.at(i)) {
+                sig_out(i) = func(signal_(i));
             }
         }
-        return Signal<outT>(sig_out, _mask);
+        return Signal<outT>(sig_out, mask_);
     }
 
     template <typename Func>
     Signal<T>& applyInplace(const Func& func) {
         static_assert(std::is_same_v<T, typename std::invoke_result_t<Func, const T&>>);
         for (int i = 0; i < size(); ++i) {
-            if (_mask.at(i)) {
-                _signal(i) = func(_signal(i));
+            if (mask_.at(i)) {
+                signal_(i) = func(signal_(i));
             }
         }
         return *this;
@@ -331,18 +331,18 @@ public:
     // applyMask masked-out elements (set them to zero)
     Signal<T>& applyMask() {
         for (int i = 0; i < size(); ++i) {
-            if (!_mask.at(i)) {
-                _signal(i) = T{};
+            if (!mask_.at(i)) {
+                signal_(i) = T{};
             }
         }
         return *this;
     }
 
     Signal<T> compressed() const {
-        Signal<T> out(_mask.nnz());
+        Signal<T> out(mask_.nnz());
         for (uint32_t i = 0, j = 0; i < size(); ++i) {
-            if (_mask.at(i)) {
-                out.set(j++, _signal(i));
+            if (mask_.at(i)) {
+                out.set(j++, signal_(i));
             }
         }
         return out;
@@ -353,7 +353,7 @@ public:
         fmt::memory_buffer buf;
         fmt::format_to(std::back_inserter(buf), "[");
         for (int i = 0; i < size(); ++i) {
-            fmt::format_to(std::back_inserter(buf), _mask.at(i) ? fmt::format("{}", _signal(i)) : "n");
+            fmt::format_to(std::back_inserter(buf), mask_.at(i) ? fmt::format("{}", signal_(i)) : "n");
             if (i + 1 < size()) fmt::format_to(std::back_inserter(buf), ", ");
         }
         fmt::format_to(std::back_inserter(buf), "]'");
@@ -361,9 +361,9 @@ public:
     }
 
 private:
-    VectorT _signal;
-    SignalMask _mask;
-    gsp::logging::Logger _logger;
+    VectorT signal_;
+    SignalMask mask_;
+    gsp::logging::Logger logger_;
 };
 
 template <typename T, typename Func>
