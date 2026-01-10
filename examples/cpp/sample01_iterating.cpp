@@ -17,8 +17,7 @@ uint32_t countNumNodes(gsp::BaseGraph& graph) {
     return count_nodes;
 }
 
-template<typename Matrix>
-uint32_t countNumEdges(gsp::Graph<Matrix>& graph) {
+uint32_t countNumEdges(const gsp::BaseGraph& graph) {
     auto logger = gsp::logging::getLogger("countNumEdges");
 
     uint32_t num_edges = 0;
