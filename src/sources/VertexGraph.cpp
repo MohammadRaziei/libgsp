@@ -254,22 +254,20 @@ gsp::VertexGraph gsp::VertexGraph::mul(const gsp::VertexGraph &other) const {
     const uint32_t num_nodes = num_nodes_ * other.num_nodes_;
     gsp::VertexGraph graph(num_nodes);
 
-    std::vector<std::string> names(num_nodes);
+    graph.names_.resize(num_nodes);
     for (uint32_t i = 0; i < num_nodes_; ++i) {
         for (uint32_t j = 0; j < other.num_nodes_; ++j) {
-            names[i * other.num_nodes_ + j] = name(i) + "," + other.name(j);
+            graph.names_[i * other.num_nodes_ + j] = name(i) + "," + other.name(j);
         }
     }
-    graph.setNames(names);
 
     if (coords_.rows() > 0 && other.coords_.rows() > 0) {
-        Eigen::MatrixXd coords(num_nodes_, 3);
+        graph.coords_.resize(num_nodes, 3);
         for (uint32_t i = 0; i < num_nodes_; ++i) {
             for (uint32_t j = 0; j < other.num_nodes_; ++j) {
-                coords.row(i * other.num_nodes_ + j) = coords_.row(i) + other.coords_.row(j);
+                graph.coords_.row(i * other.num_nodes_ + j) = coords_.row(i) + other.coords_.row(j);
             }
         }
-        graph.setCoords(coords);
     }
 
     return graph;
