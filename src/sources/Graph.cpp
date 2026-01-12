@@ -10,6 +10,8 @@
 #include "libgsp/utils/Matrix.h"
 #include "libgsp/iterators/StateGraph.h"
 
+#include <unsupported/Eigen/KroneckerProduct>
+
 template <class Matrix>
 class gsp::MatrixBox {
    public:
@@ -65,12 +67,21 @@ gsp::Graph<Matrix>::Graph(const gsp::Graph<Matrix> *other) noexcept :
 
 
 template<class Matrix>
-gsp::Graph<Matrix>::Graph(gsp::Graph<Matrix> &&other) noexcept
+gsp::Graph<Matrix>::Graph(gsp::Graph<Matrix>&& other) noexcept
     : BaseGraph(std::move(other)), weights_(std::move(other.weights_)),
       is_directed_(other.is_directed_), cache_(other.cache_),
       logger_(gsp::logging::getLogger(detType())) {
     // Reset the moved-from object's cache pointer
     other.cache_ = nullptr;
+    type_ = detType();
+}
+
+
+template<class Matrix>
+gsp::Graph<Matrix>::Graph(gsp::VertexGraph&& other) noexcept
+        : BaseGraph(std::move(other)),
+          logger_(gsp::logging::getLogger(detType())) {
+    // Reset the moved-from object's cache pointer
     type_ = detType();
 }
 
@@ -478,6 +489,67 @@ bool gsp::MatrixBox<Matrix>::isCalculated(const Matrix& m) {
 template <class Matrix>
 bool gsp::MatrixBox<Matrix>::isCalculated(const typename gsp::Graph<Matrix>::densevector& m) {
     return m.rows() == weights_->rows();
+}
+
+template <class Matrix>
+gsp::Graph<Matrix>& gsp::Graph<Matrix>::iadd(const gsp::Graph<Matrix>& other) {
+    if (numNodes() != other.numNodes()) {
+        std::string msg = fmt::format("Number of nodes has mismatched! ({} != {})", numNodes(), other.numNodes());
+        logger_->error(msg);
+        throw std::invalid_argument(msg);
+    }
+    gsp::VertexGraph::iadd(dynamic_cast<const gsp::VertexGraph&>(other));
+    is_directed_ |= other.is_directed_;
+    weights_ += other.weights_;
+    return *this;
+}
+
+template <class Matrix>
+gsp::Graph<Matrix>& gsp::Graph<Matrix>::operator+=(const gsp::Graph<Matrix>& other) {
+    return iadd(other);
+}
+
+template <class Matrix>
+gsp::Graph<Matrix> gsp::Graph<Matrix>::add(const gsp::Graph<Matrix>& other) const {
+    return std::move(gsp::Graph<Matrix>(this).iadd(other));
+}
+
+template <class Matrix>
+gsp::Graph<Matrix> gsp::Graph<Matrix>::operator+(const gsp::Graph<Matrix>& other) const {
+    return add(other);
+}
+
+template <class Matrix>
+gsp::Graph<Matrix> gsp::Graph<Matrix>::operator*(const gsp::Graph<Matrix>& other) const {
+    return mul(other);
+}
+
+//template <>
+//gsp::Graph<gsp::densematrix> gsp::Graph<gsp::densematrix>::kron(const gsp::Graph<gsp::densematrix>& other) const {
+//    gsp::Graph<gsp::densematrix> graph(std::move(gsp::VertexGraph::mul(other)));
+//    bool is_directed = is_directed_ || other.is_directed_;
+//    auto weights = Eigen::KroneckerProduct(weights_, other.weights_);
+//    graph.setWeights(weights, is_directed);
+//    return graph;
+//}
+
+template <class Matrix>
+gsp::Graph<Matrix> gsp::Graph<Matrix>::kron(const gsp::Graph<Matrix>& other) const {
+    gsp::Graph<Matrix> graph(std::move(gsp::VertexGraph::mul(other)));
+    bool is_directed = is_directed_ || other.is_directed_;
+    auto weights = gsp::matrix::kron(weights_, other.weights_);
+    graph.setWeights(weights, is_directed);
+    return graph;
+}
+
+
+template <class Matrix>
+gsp::Graph<Matrix> gsp::Graph<Matrix>::mul(const gsp::Graph<Matrix>& other) const {
+    gsp::Graph<Matrix> graph(std::move(gsp::VertexGraph::mul(other)));
+    bool is_directed = is_directed_ || other.is_directed_;
+    auto weights = gsp::matrix::kronSum(weights_, other.weights_);
+    graph.setWeights(weights, is_directed);
+    return graph;
 }
 
 

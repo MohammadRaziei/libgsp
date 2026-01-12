@@ -9,6 +9,7 @@
 #include <cstdint>
 #include <Eigen/Dense>
 #include <Eigen/SparseCore>
+#include <unsupported/Eigen/KroneckerProduct>
 
 #include "libgsp/utils/Types.h"
 
@@ -80,6 +81,37 @@ Scalar getElement(Eigen::Matrix<Scalar, Rows, Cols, Options, MR, MC>& m,
     return m(static_cast<Eigen::Index>(r),
              static_cast<Eigen::Index>(c));
 }
+
+
+template<typename Scalar, int Options, typename Index>
+Eigen::SparseMatrix<Scalar, Options, Index> kron(const Eigen::SparseMatrix<Scalar, Options, Index>& a,
+                                                 const Eigen::SparseMatrix<Scalar, Options, Index>& b) {
+    return Eigen::KroneckerProductSparse(a, b);
+}
+
+template<typename Scalar, int Rows, int Cols, int Options, int MR, int MC>
+Eigen::Matrix<Scalar, Rows, Cols, Options, MR, MC> kron(const Eigen::Matrix<Scalar, Rows, Cols, Options, MR, MC>& a,
+                                                        const Eigen::Matrix<Scalar, Rows, Cols, Options, MR, MC>& b) {
+    return Eigen::KroneckerProduct(a, b);
+}
+
+
+template<typename Scalar, int Options, typename Index>
+Eigen::SparseMatrix<Scalar, Options, Index> kronSum(const Eigen::SparseMatrix<Scalar, Options, Index>& a,
+                                                    const Eigen::SparseMatrix<Scalar, Options, Index>& b) {
+    const Eigen::MatrixX<Scalar> Ia = Eigen::MatrixX<Scalar>::Identity(a.rows(), a.rows());
+    const Eigen::MatrixX<Scalar> Ib = Eigen::MatrixX<Scalar>::Identity(b.rows(), b.rows());
+    return Eigen::KroneckerProductSparse(a, Ib) * Eigen::KroneckerProductSparse(Ia, b);
+}
+
+template<typename Scalar, int Rows, int Cols, int Options, int MR, int MC>
+Eigen::Matrix<Scalar, Rows, Cols, Options, MR, MC> kronSum(const Eigen::Matrix<Scalar, Rows, Cols, Options, MR, MC>& a,
+                                                           const Eigen::Matrix<Scalar, Rows, Cols, Options, MR, MC>& b) {
+    const Eigen::MatrixX<Scalar> Ia = Eigen::MatrixX<Scalar>::Identity(a.rows(), a.rows());
+    const Eigen::MatrixX<Scalar> Ib = Eigen::MatrixX<Scalar>::Identity(b.rows(), b.rows());
+    return Eigen::KroneckerProduct(a, Ib) * Eigen::KroneckerProduct(Ia, b);
+}
+
 } // namespace gsp::matrix
 
 

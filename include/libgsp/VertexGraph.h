@@ -112,6 +112,15 @@ public:
     void clearCoords();
 
 
+    // operators
+    gsp::VertexGraph& iadd(const gsp::VertexGraph& other);
+    gsp::VertexGraph& operator+=(const gsp::VertexGraph& other);
+    gsp::VertexGraph add(const gsp::VertexGraph& other) const;
+    gsp::VertexGraph operator+(const gsp::VertexGraph& other) const;
+    gsp::VertexGraph mul(const gsp::VertexGraph& other) const;
+    gsp::VertexGraph operator*(const gsp::VertexGraph& other) const;
+
+
 protected:
     std::string type_;
 

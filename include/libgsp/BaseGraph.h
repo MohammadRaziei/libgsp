@@ -59,6 +59,7 @@ class gsp::BaseGraph : public gsp::VertexGraph {
     BaseGraph(gsp::BaseGraph&& other) noexcept;
     explicit BaseGraph(const gsp::BaseGraph* other) noexcept;
     explicit BaseGraph(const gsp::VertexGraph* other) noexcept;
+    explicit BaseGraph(gsp::VertexGraph&& other) noexcept;
     virtual ~BaseGraph();
     void operator=(const gsp::BaseGraph& other) = delete;
     BaseGraph& operator=(gsp::BaseGraph&& other) noexcept;

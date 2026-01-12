@@ -23,23 +23,23 @@ namespace gsp {
 template <class Matrix, class T>
 class GraphSignal {
    public:
-    GraphSignal(gsp::Graph<Matrix>& graph, const gsp::Signal<T>& signal)
-        : _graph(&graph), _signal(signal), _logger(gsp::logging::getLogger("GraphSignal")) {
-        if (_graph->num_nodes != _signal.size()) {
-            const std::string msg = fmt::format("Signal size {} does not match graph size {}", _signal.size(), _graph->num_nodes);
-            _logger->error(msg);
+    GraphSignal(const gsp::Graph<Matrix>& graph, const gsp::Signal<T>& signal)
+        : graph_(&graph), signal_(signal), logger_(gsp::logging::getLogger("GraphSignal")) {
+        if (graph_->num_nodes != signal_.size()) {
+            const std::string msg = fmt::format("Signal size {} does not match graph size {}", signal_.size(), graph_->num_nodes);
+            logger_->error(msg);
             throw std::length_error(msg);
         }
     }
 
-    gsp::Graph<Matrix>& graph() const { return *_graph; }
-    gsp::Signal<T>& signal() { return _signal; }
+    gsp::Graph<Matrix>& graph() const { return *graph_; }
+    gsp::Signal<T>& signal() { return signal_; }
 
 
    private:
-    gsp::Graph<Matrix>* _graph;
-    gsp::Signal<T> _signal;
-    gsp::logging::Logger _logger;
+    const gsp::Graph<Matrix>* graph_;
+    gsp::Signal<T> signal_;
+    gsp::logging::Logger logger_;
 };
 } // namespace gsp
 

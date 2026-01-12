@@ -5,8 +5,17 @@
 #include "libgsp/VertexGraph.h"
 #include <cassert>
 
+#include "libgsp/utils/Logging.h"
+
+auto logger = gsp::logging::getLogger("VertexGraph");
+
 gsp::VertexGraph::VertexGraph(uint32_t num_nodes) : num_nodes_(num_nodes), type_("VertexGraph"),
     coords_(CoordMat::Zero(num_nodes, 3)) {}
+
+gsp::VertexGraph::VertexGraph(const gsp::VertexGraph *other) noexcept : num_nodes_(other->num_nodes_), type_(other->type_),
+                                                                        coords_(other->coords_), names_(other->names_) {
+//    logger->trace("Copy constructor of VertexGraph is called!!");
+}
 
 gsp::VertexGraph::VertexGraph(gsp::VertexGraph &&other) noexcept : num_nodes_(other.num_nodes_), type_(other.type_),
     coords_(std::move(other.coords_)), names_(std::move(other.names_)) {
@@ -21,9 +30,6 @@ gsp::VertexGraph& gsp::VertexGraph::operator=(gsp::VertexGraph&& other) noexcept
     return *this;
 }
 
-gsp::VertexGraph::VertexGraph(const gsp::VertexGraph *other) noexcept : num_nodes_(other->num_nodes_),
-                                    coords_(other->coords_), names_(other->names_) {
-}
 
 void gsp::VertexGraph::setNames(const std::vector<std::string>& names) {
     assert(names.size() == num_nodes_ && "names size mismatch");
@@ -52,6 +58,7 @@ void gsp::VertexGraph::setCoords(const std::vector<gsp::Coord>& src) {
 }
 
 gsp::VertexGraph::~VertexGraph() {
+
 }
 
 std::vector<gsp::Node> gsp::VertexGraph::nodes() const {
@@ -158,6 +165,7 @@ std::reverse_iterator<gsp::ConstVertexIterator> gsp::VertexGraph::crend() const 
     return std::reverse_iterator<ConstVertexIterator>(cbegin());
 }
 
+
 gsp::Coord& gsp::Coord::operator=(const gsp::Coord& other) noexcept {
     if (&other == this) {
         return *this;
@@ -212,3 +220,63 @@ gsp::Coord gsp::Coord::detach() const {
 bool gsp::Coord::isDetached() const {
     return graph_ == nullptr;
 }
+
+
+
+gsp::VertexGraph& gsp::VertexGraph::iadd(const gsp::VertexGraph& other) {
+    if (numNodes() != other.numNodes()) {
+        std::string msg = fmt::format("Number of nodes has mismatched! ({} != {})", numNodes(), other.numNodes());
+        logger->error(msg);
+        throw std::invalid_argument(msg);
+    }
+    if (names_.empty()) {
+        setNames(other.names_);
+    }
+    if (coords_.rows() == 0) {
+        coords_ = other.coords_;
+    }
+    return *this;
+}
+
+gsp::VertexGraph& gsp::VertexGraph::operator+=(const gsp::VertexGraph &other) {
+    return iadd(other);
+}
+
+gsp::VertexGraph gsp::VertexGraph::add(const gsp::VertexGraph& other) const {
+    return std::move(gsp::VertexGraph(this).iadd(other));
+}
+
+gsp::VertexGraph gsp::VertexGraph::operator+(const gsp::VertexGraph &other) const {
+    return add(other);
+}
+
+gsp::VertexGraph gsp::VertexGraph::mul(const gsp::VertexGraph &other) const {
+    const uint32_t num_nodes = num_nodes_ * other.num_nodes_;
+    gsp::VertexGraph graph(num_nodes);
+
+    std::vector<std::string> names(num_nodes);
+    for (uint32_t i = 0; i < num_nodes_; ++i) {
+        for (uint32_t j = 0; j < other.num_nodes_; ++j) {
+            names[i * other.num_nodes_ + j] = name(i) + "," + other.name(j);
+        }
+    }
+    graph.setNames(names);
+
+    if (coords_.rows() > 0 && other.coords_.rows() > 0) {
+        Eigen::MatrixXd coords(num_nodes_, 3);
+        for (uint32_t i = 0; i < num_nodes_; ++i) {
+            for (uint32_t j = 0; j < other.num_nodes_; ++j) {
+                coords.row(i * other.num_nodes_ + j) = coords_.row(i) + other.coords_.row(j);
+            }
+        }
+        graph.setCoords(coords);
+    }
+
+    return graph;
+}
+
+
+gsp::VertexGraph gsp::VertexGraph::operator*(const gsp::VertexGraph &other) const {
+    return mul(other);
+}
+

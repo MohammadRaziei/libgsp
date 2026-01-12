@@ -30,15 +30,6 @@ namespace gsp {
 
 
 
-//enum class gsp::ShiftType {
-//    Weights,
-//    Laplacian,
-//    NormalizedWeights,
-//    NormalizedLaplacian
-//};
-
-
-
 
 template <class Matrix>
 class gsp::Graph : public gsp::BaseGraph {
@@ -52,6 +43,8 @@ class gsp::Graph : public gsp::BaseGraph {
     Graph(gsp::Graph<Matrix>&& other) noexcept;
     explicit Graph(const gsp::Graph<Matrix>* other) noexcept;
     explicit Graph(const gsp::VertexGraph* other) noexcept;
+    explicit Graph(gsp::VertexGraph&& other) noexcept;
+
     virtual ~Graph();
 
     void operator=(const gsp::Graph<Matrix>& other) = delete;
@@ -97,7 +90,18 @@ class gsp::Graph : public gsp::BaseGraph {
 
     void invalidateCache();
 
-   protected:
+
+    // operators:
+    gsp::Graph<Matrix>& iadd(const gsp::Graph<Matrix>& other);
+    gsp::Graph<Matrix>& operator+=(const gsp::Graph<Matrix>& other);
+    gsp::Graph<Matrix> add(const gsp::Graph<Matrix>& other) const;
+    gsp::Graph<Matrix> operator+(const gsp::Graph<Matrix>& other) const;
+
+    gsp::Graph<Matrix> kron(const gsp::Graph<Matrix>& other) const;
+    gsp::Graph<Matrix> mul(const gsp::Graph<Matrix>& other) const;
+    gsp::Graph<Matrix> operator*(const gsp::Graph<Matrix>& other) const;
+
+protected:
     bool is_directed_;
     Matrix weights_;
 
@@ -109,6 +113,7 @@ private:
 
     gsp::CacheBox<Matrix>* cache_ = nullptr;
 };
+
 
 
 

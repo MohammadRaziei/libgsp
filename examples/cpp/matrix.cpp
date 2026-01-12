@@ -3,6 +3,7 @@
 #include <Eigen/Dense>
 #include <Eigen/SparseCore>
 #include <Spectra/SymEigsSolver.h>
+#include <unsupported/Eigen/KroneckerProduct>
 
 
 #include <iostream>
@@ -94,6 +95,10 @@ int main() {
          1,1,0,1,
          0,0,1,0;
 
+    Eigen::MatrixXd WW = Eigen::KroneckerProduct(W,W);
+    std::cout << "WW:\n" << WW << std::endl;
+
+
     tic;
     auto Ldense = computeNormalizedLaplacian(W);
     toc;
@@ -129,6 +134,12 @@ int main() {
 
 
     Eigen::SparseMatrix<double> Ws = W.sparseView();
+
+    Eigen::SparseMatrix<double> WWs = Eigen::KroneckerProductSparse(Ws,Ws);
+    std::cout << "WWs:\n" << WWs << std::endl;
+
+
+
     tic;
     auto Lsparse = computeNormalizedLaplacianSparse(Ws);
     toc;
