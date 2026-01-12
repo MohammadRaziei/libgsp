@@ -164,8 +164,8 @@ private:
     void updateCurrent() {
         if (index_ >= 0 && index_ < graph_->numNodes()) {
             current_.id = index_;
-            current_.coord = graph_->coord(index_);
-            current_.name = graph_->name(index_);
+            current_.coord = std::move(graph_->coord(index_));
+            current_.name = std::move(graph_->name(index_));
         }
     }
 };
@@ -325,8 +325,8 @@ private:
     void updateCurrent() const {
         if (index_ >= 0 && index_ < graph_->numNodes()) {
             current_.id = static_cast<uint32_t>(index_);
-            current_.coord = graph_->coord(static_cast<uint32_t>(index_));
-            current_.name = graph_->name(static_cast<uint32_t>(index_));
+            current_.coord = std::move(graph_->coord(static_cast<uint32_t>(index_)));
+            current_.name = std::move(graph_->name(static_cast<uint32_t>(index_)));
         }
     }
 };

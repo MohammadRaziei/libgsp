@@ -26,8 +26,10 @@ public:
     Coord() noexcept : x_(0), y_(0), z_(0), graph_(nullptr), idx_(0u) {}
     Coord(double x, double y, double z = 0, VertexGraph* graph = nullptr, uint32_t idx = 0u) noexcept :
         x_(x), y_(y), z_(z), graph_(graph), idx_(idx) {}
+    Coord(const gsp::Coord& other);
 
-    gsp::Coord& operator=(const gsp::Coord& other) noexcept;
+    gsp::Coord& operator=(const gsp::Coord& other);
+    gsp::Coord& operator=(gsp::Coord&& other);
     [[nodiscard]] double x() const noexcept {return x_;}
     [[nodiscard]] double y() const noexcept {return y_;}
     [[nodiscard]] double z() const noexcept {return z_;}
@@ -78,7 +80,7 @@ public:
     virtual void setNames(const std::vector<std::string>&);
     virtual gsp::Coord coord(uint32_t idx);
     virtual const gsp::Coord coord(uint32_t idx) const;
-    virtual const std::string name(uint32_t idx) const;
+    virtual std::string name(uint32_t idx) const;
 
     virtual std::vector<gsp::Node> nodes() const;
 
@@ -128,6 +130,7 @@ private:
     uint32_t num_nodes_;
     std::vector<std::string> names_; // Names of vertices
     CoordMat coords_; // size fixed elsewhere to (num_nodes x 3)
+    std::string prefix_default_name = "v";
 };
 
 #include "libgsp/iterators/VertexIterator.h"

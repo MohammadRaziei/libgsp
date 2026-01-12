@@ -4,13 +4,14 @@
 
 #include "libgsp/VertexGraph.h"
 #include <cassert>
+#include <iostream>
 
 #include "libgsp/utils/Logging.h"
 
 auto logger = gsp::logging::getLogger("VertexGraph");
 
 gsp::VertexGraph::VertexGraph(uint32_t num_nodes) : num_nodes_(num_nodes), type_("VertexGraph"),
-    coords_(CoordMat::Zero(num_nodes, 3)) {}
+    coords_() {}
 
 gsp::VertexGraph::VertexGraph(const gsp::VertexGraph *other) noexcept : num_nodes_(other->num_nodes_), type_(other->type_),
                                                                         coords_(other->coords_), names_(other->names_) {
@@ -71,23 +72,23 @@ std::vector<gsp::Node> gsp::VertexGraph::nodes() const {
  }
 
 
- const std::string gsp::VertexGraph::name(uint32_t idx) const{
-     return (!names_.empty() && idx < names_.size()) ? names_[idx] : "v"+std::to_string(idx);
+ std::string gsp::VertexGraph::name(uint32_t idx) const{
+     return (!names_.empty() && idx < names_.size()) ? names_[idx] : prefix_default_name+std::to_string(idx);
  }
 
-const gsp::Coord gsp::VertexGraph::coord(uint32_t idx) const{
+const gsp::Coord gsp::VertexGraph::coord(uint32_t idx) const {
     if (coords_.rows() > 0 && idx < static_cast<uint32_t>(coords_.rows())) {
-        return gsp::Coord(coords_(idx, 0), coords_(idx, 1), coords_(idx, 2), const_cast<VertexGraph*>(this), idx);
+        return {coords_(idx, 0), coords_(idx, 1), coords_(idx, 2), const_cast<VertexGraph*>(this), idx};
     } else {
-        return gsp::Coord(NAN, NAN, NAN, const_cast<VertexGraph*>(this), idx);
+        return {NAN, NAN, NAN, const_cast<VertexGraph*>(this), idx};
     }
 }
 
 gsp::Coord gsp::VertexGraph::coord(uint32_t idx) {
      if (coords_.rows() > 0 && idx < static_cast<uint32_t>(coords_.rows())) {
-         return gsp::Coord(coords_(idx, 0), coords_(idx, 1), coords_(idx, 2), const_cast<VertexGraph*>(this), idx);
+         return {coords_(idx, 0), coords_(idx, 1), coords_(idx, 2), this, idx};
      } else {
-         return gsp::Coord(NAN, NAN, NAN, const_cast<VertexGraph*>(this), idx);
+         return {NAN, NAN, NAN, this, idx};
      }
  }
 
@@ -97,6 +98,7 @@ void gsp::VertexGraph::setCoord(uint32_t idx, double x, double y, double z) {
     }
     if (coords_.rows() == 0) {
         coords_.resize(num_nodes_, 3);
+        coords_.setZero();
     }
     coords_(idx, 0) = x;
     coords_(idx, 1) = y;
@@ -113,6 +115,7 @@ void gsp::VertexGraph::setCoord(uint32_t row, uint32_t col, double value) {
     }
     if (coords_.rows() == 0) {
         coords_.resize(num_nodes_, 3);
+        coords_.setZero();
     }
     coords_(row, col) = value;
 }
@@ -166,13 +169,23 @@ std::reverse_iterator<gsp::ConstVertexIterator> gsp::VertexGraph::crend() const 
 }
 
 
-gsp::Coord& gsp::Coord::operator=(const gsp::Coord& other) noexcept {
+gsp::Coord& gsp::Coord::operator=(const gsp::Coord& other) {
     if (&other == this) {
         return *this;
     }
-    set(other, false);
+    set(other, other.graph_ != nullptr);
     return *this;
 }
+
+gsp::Coord& gsp::Coord::operator=(gsp::Coord&& other) {
+    if (&other == this) {
+        return *this;
+    }
+    set(other, true);
+    other.graph_ = nullptr;
+    return *this;
+}
+
 
 void gsp::Coord::set(double x, double y, double z) {
     x_ = x; y_ = y; z_ = z;
@@ -202,7 +215,7 @@ void gsp::Coord::setZ(double z) {
     }
 }
 
-void gsp::Coord::set(const gsp::Coord &other, bool ownership) {
+void gsp::Coord::set(const gsp::Coord& other, bool ownership) {
     if (&other == this) { return; }
     x_ = other.x_; y_ = other.y_; z_ = other.z_;
     if (ownership) {
@@ -221,7 +234,9 @@ bool gsp::Coord::isDetached() const {
     return graph_ == nullptr;
 }
 
-
+gsp::Coord::Coord(const gsp::Coord& other) : x_(other.x_), y_(other.y_), z_(other.z_),
+    graph_(other.graph_), idx_(other.idx_){
+}
 
 gsp::VertexGraph& gsp::VertexGraph::iadd(const gsp::VertexGraph& other) {
     if (numNodes() != other.numNodes()) {
