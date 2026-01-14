@@ -185,15 +185,16 @@ if (BUILD_EXAMPLES)
     target_link_libraries(example PUBLIC libgsp::libgsp)
 
     add_executable(matrix examples/cpp/matrix.cpp)
-    target_link_libraries(matrix PUBLIC eigen)
+    target_link_libraries(matrix PUBLIC libgsp::libgsp)
 
 
 
 
-    file(GLOB SAMPLES_SOURCES ${PROJECT_SOURCE_DIR}/examples/cpp/sample*)
+    file(GLOB SAMPLES_SOURCES ${PROJECT_SOURCE_DIR}/examples/cpp/sample*.cpp)
     foreach(SAMPLE_SOURCE IN LISTS SAMPLES_SOURCES)
         get_filename_component(SAMPLE_NAME ${SAMPLE_SOURCE} NAME)
-        string(REGEX REPLACE "(sample[0-9]+).*" "\\1" SAMPLE_NAME ${SAMPLE_NAME})
+        #        string(REGEX REPLACE "(sample[0-9]+).*" "\\1" SAMPLE_NAME ${SAMPLE_NAME})
+        string(REGEX REPLACE "(sample[0-9]+_.*)\\.cpp" "\\1" SAMPLE_NAME ${SAMPLE_NAME})
         add_executable(${SAMPLE_NAME} ${SAMPLE_SOURCE} )
         target_link_libraries(${SAMPLE_NAME} PRIVATE libgsp::libgsp)
     endforeach()
