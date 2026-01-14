@@ -12,6 +12,7 @@
 #include <cassert>
 
 #include "common.h"
+#include "libgsp/iterators/StateMatrixGraph.h"
 
 // ---- Dense: L_norm = D^{-1/2} (D - W) D^{-1/2} ----
 Eigen::MatrixXd computeNormalizedLaplacian(const Eigen::MatrixXd& W) {
@@ -95,6 +96,21 @@ int main() {
          1,1,0,1,
          0,0,1,0;
 
+    W.transposeInPlace();
+    gsp::StateMatrixGraph gen(&W, true, -INFINITY);
+    while (auto it = gen.next()) {
+        *it += 1;
+    }
+    std::cout << "W:\n" << W << std::endl;
+
+    gen.reset();
+    while (auto it = gen.next()) {
+        *it -= 1;
+    }
+
+    std::cout << "W:\n" << W << std::endl;
+
+
     Eigen::MatrixXd WW = Eigen::KroneckerProduct(W,W);
     std::cout << "WW:\n" << WW << std::endl;
 
@@ -133,7 +149,24 @@ int main() {
 
 
 
-    Eigen::SparseMatrix<double> Ws = W.sparseView();
+    gsp::sparsematrix Ws = W.sparseView();
+
+
+    Ws = Ws.transpose();
+    gsp::StateMatrixGraph gen2(&Ws, true, -INFINITY);
+    while (auto it = gen2.next()) {
+        *it += 1;
+    }
+    std::cout << "Ws:\n" << Ws << std::endl;
+
+    gen2.reset();
+    while (auto it = gen2.next()) {
+        *it -= 1;
+    }
+
+    std::cout << "Ws:\n" << Ws << std::endl;
+
+
 
     Eigen::SparseMatrix<double> WWs = Eigen::KroneckerProductSparse(Ws,Ws);
     std::cout << "WWs:\n" << WWs << std::endl;
