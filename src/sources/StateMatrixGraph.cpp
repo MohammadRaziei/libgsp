@@ -2,7 +2,7 @@
 // Created by Mohammad on 1/3/2026.
 //
 
-#include "libgsp/iterators/StateGraph.h"
+#include "libgsp/iterators/StateMatrixGraph.h"
 
 
 #include <Eigen/Dense>
@@ -13,10 +13,10 @@ namespace gsp {
 
 // Dense matrix state implementation
 template <>
-class StateGraph<gsp::densematrix>::State {
+class StateMatrixGraph<gsp::densematrix>::State {
 public:
     State(const gsp::densematrix*) { reset(); }
-    State(const gsp::StateGraph<gsp::densematrix>::State& other) :
+    State(const gsp::StateMatrixGraph<gsp::densematrix>::State& other) :
         row_(other.row_), col_(other.col_) {}
 
     void reset() { row_ = col_ = 0; }
@@ -25,12 +25,12 @@ public:
 
 // Sparse matrix state implementation
 template <>
-class StateGraph<gsp::sparsematrix>::State {
+class StateMatrixGraph<gsp::sparsematrix>::State {
 public:
     using InnerIt = gsp::sparsematrix::InnerIterator;
 
     explicit State(gsp::sparsematrix* W) : W(W) { reset(); }
-    State(const gsp::StateGraph<gsp::sparsematrix>::State& other) :
+    State(const gsp::StateMatrixGraph<gsp::sparsematrix>::State& other) :
         W(other.W), outer(other.outer), it(std::make_unique<InnerIt>(*other.it.get())) {}
 
     void reset() {
@@ -57,37 +57,37 @@ public:
 
 // Constructor with threshold
 template <class Matrix>
-StateGraph<Matrix>::StateGraph(Matrix* weights, uint32_t num_nodes, bool is_directed, double thresh)
+StateMatrixGraph<Matrix>::StateMatrixGraph(Matrix* weights, uint32_t num_nodes, bool is_directed, double thresh)
     : gsp::BaseStateEdgeGenerator(), weights_(weights), num_nodes_(num_nodes), is_directed_(is_directed), thresh_(thresh) {
         state_ = std::make_unique<State>(weights_);
     state_->reset();   // Reset the state
 }
 
 template <class Matrix>
-StateGraph<Matrix>::StateGraph(const StateGraph* other): gsp::BaseStateEdgeGenerator(),
-         weights_(other->weights_), num_nodes_(other->num_nodes_), is_directed_(other->is_directed_), thresh_(other->thresh_){
+StateMatrixGraph<Matrix>::StateMatrixGraph(const StateMatrixGraph* other): gsp::BaseStateEdgeGenerator(),
+                                                                           weights_(other->weights_), num_nodes_(other->num_nodes_), is_directed_(other->is_directed_), thresh_(other->thresh_){
     auto st = other->state_.get();
     state_ = std::make_unique<State>(*st);
 }
 
 // Destructor
 template <class Matrix>
-StateGraph<Matrix>::~StateGraph() = default;
+StateMatrixGraph<Matrix>::~StateMatrixGraph() = default;
 
 // Reset (keeps current threshold)
 template <class Matrix>
-void StateGraph<Matrix>::reset() {
+void StateMatrixGraph<Matrix>::reset() {
     state_->reset();
 }
 
 template <>
-void StateGraph<gsp::sparsematrix>::setWeight(double weight) {
+void StateMatrixGraph<gsp::sparsematrix>::setWeight(double weight) {
     auto* st = state_.get();
     st->it->valueRef() = weight;
 }
 
 template <>
-void StateGraph<gsp::densematrix>::setWeight(double weight) {
+void StateMatrixGraph<gsp::densematrix>::setWeight(double weight) {
     auto* st = state_.get();
     (*weights_)(st->row_, st->col_) = weight;
 }
@@ -95,7 +95,7 @@ void StateGraph<gsp::densematrix>::setWeight(double weight) {
 
 // Next edge for dense matrix
 template <>
-std::optional<Edge> StateGraph<densematrix>::next() {
+std::optional<Edge> StateMatrixGraph<densematrix>::next() {
     if (!weights_ || num_nodes_ <= 0 || !state_ || weights_->rows() == 0) return std::nullopt;
 
     while (state_->row_ < num_nodes_) {
@@ -121,7 +121,7 @@ std::optional<Edge> StateGraph<densematrix>::next() {
 
 // Next edge for sparse matrix
 template <>
-std::optional<Edge> StateGraph<sparsematrix>::next() {
+std::optional<Edge> StateMatrixGraph<sparsematrix>::next() {
     if (!weights_ || num_nodes_ <= 0 || !state_ || weights_->rows() == 0) return std::nullopt;
 
     auto* st = state_.get(); // convenience
@@ -159,13 +159,13 @@ std::optional<Edge> StateGraph<sparsematrix>::next() {
 
 
 template<class Matrix>
-std::shared_ptr<gsp::BaseStateEdgeGenerator> gsp::StateGraph<Matrix>::clone() const {
-    gsp::BaseStateEdgeGenerator* st = new gsp::StateGraph<Matrix>(this);
+std::shared_ptr<gsp::BaseStateEdgeGenerator> gsp::StateMatrixGraph<Matrix>::clone() const {
+    gsp::BaseStateEdgeGenerator* st = new gsp::StateMatrixGraph<Matrix>(this);
     return std::shared_ptr<gsp::BaseStateEdgeGenerator>(st);
 }
 
 // Explicit instantiations
-template class StateGraph<densematrix>;
-template class StateGraph<sparsematrix>;
+template class StateMatrixGraph<densematrix>;
+template class StateMatrixGraph<sparsematrix>;
 
 } // namespace gsp
