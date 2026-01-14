@@ -177,12 +177,12 @@ public:
         mask_.resize(n);
     }
 
-    int size() const { return static_cast<int>(signal_.size()); }
+    [[nodiscard]] uint32_t size() const { return static_cast<uint32_t>(signal_.size()); }
 
     // mask API
     void setMask(SignalMask m) {
         if (m.size() != size()) {
-            const std::string msg = fmt::format("setMask: size mismatch {} != {}", m.size(), size());
+            const std::string msg = fmt::format("setMask: size mismatch {} != {}", size(), m.size());
             logger_->error(msg);
             throw std::invalid_argument(msg);
         }
@@ -202,12 +202,44 @@ public:
     [[nodiscard]] bool mask(uint32_t idx) const { return mask_.at(idx); }
 
 
+    const double& operator[](uint32_t idx) const {
+        if (idx >= size()) {
+            throw std::out_of_range("idx is out of range");
+        }
+        return signal_[idx];
+    }
+
+    double& operator[](uint32_t idx) {
+        if (idx >= size()) {
+            throw std::out_of_range("idx is out of range");
+        }
+        return signal_[idx];
+    }
+
     // vector API
     const VectorT& signal() const { return signal_; }
     VectorT& signal() { return signal_; }
 
+
+
     T signal(uint32_t idx) const { return signal_(idx); }
     T& signal(uint32_t idx) { return signal_(idx); }
+
+
+    // Dereference operator
+    VectorT& operator*() {
+        return signal_;
+    }
+    const VectorT& operator*() const {
+        return signal_;
+    }
+    // Pointer operator
+    VectorT* operator->() {
+        return &signal_;
+    }
+    const VectorT* operator->() const {
+        return &signal_;
+    }
 
 
     std::vector<std::optional<T>> vector() const {
