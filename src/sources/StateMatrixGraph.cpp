@@ -57,8 +57,8 @@ public:
 
 // Constructor with threshold
 template <class Matrix>
-StateMatrixGraph<Matrix>::StateMatrixGraph(Matrix* weights, uint32_t num_nodes, bool is_directed, double thresh)
-    : gsp::BaseStateEdgeGenerator(), weights_(weights), num_nodes_(num_nodes), is_directed_(is_directed), thresh_(thresh) {
+StateMatrixGraph<Matrix>::StateMatrixGraph(Matrix* weights, bool is_directed, double thresh)
+    : gsp::BaseStateEdgeGenerator(), weights_(weights), num_nodes_(weights->rows()), is_directed_(is_directed), thresh_(thresh) {
         state_ = std::make_unique<State>(weights_);
     state_->reset();   // Reset the state
 }
