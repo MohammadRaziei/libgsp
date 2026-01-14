@@ -112,6 +112,17 @@ Eigen::Matrix<Scalar, Rows, Cols, Options, MR, MC> kronSum(const Eigen::Matrix<S
     return Eigen::KroneckerProduct(a, Ib) * Eigen::KroneckerProduct(Ia, b);
 }
 
+template<typename Scalar, int Options, typename Index>
+void transposeInplace(Eigen::SparseMatrix<Scalar, Options, Index>& mat) {
+    mat = mat.transpose();
+}
+
+template<typename Scalar, int Rows, int Cols, int Options, int MR, int MC>
+void transposeInplace(Eigen::Matrix<Scalar, Rows, Cols, Options, MR, MC>& mat) {
+    mat.transposeInPlace();
+}
+
+
 } // namespace gsp::matrix
 
 

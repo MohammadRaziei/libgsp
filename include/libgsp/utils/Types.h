@@ -14,6 +14,8 @@ namespace gsp {
 using densematrix = Eigen::MatrixXd;
 using sparsematrix = Eigen::SparseMatrix<double, Eigen::RowMajor>;
 
+template <typename Scalar>
+using densevector = typename Eigen::Matrix<Scalar, Eigen::Dynamic, 1, Eigen::ColMajor>;
 }
 
 namespace gsp::types {
@@ -86,7 +88,15 @@ struct is_eigen_sparse<Eigen::SparseMatrix<S, O, I>> : std::true_type {};
 
 template <typename T> struct is_eigen_dense : std::false_type {};
 template <typename S, int R, int C, int O, int MR, int MC>
-struct is_eigen_dense<Eigen::Matrix<S, R, C, O, MR, MC>> : std::true_type {};
+struct is_eigen_dense<Eigen::Matrix<S, R, C, O, MR, MC>> : std::true_type {
+    static const int options = O;
+    static const int max_rows = MR;
+    static const int max_cols = MC;
+};
+
+
+
+template <typename Matrix> using densevector_m = typename Eigen::Matrix<elem_t<Matrix>, Eigen::Dynamic, 1, Eigen::ColMajor>;
 
 
 } // namespace gsp::types

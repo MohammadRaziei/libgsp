@@ -34,7 +34,7 @@ namespace gsp {
 template <class Matrix>
 class gsp::Graph : public gsp::BaseGraph {
    public:
-    using densevector = typename Eigen::Matrix<gsp::types::elem_t<Matrix>, Eigen::Dynamic, 1, Eigen::ColMajor>;
+    using densevector = typename gsp::types::densevector_m<Matrix>;
     using value_type = Matrix;
 
    public:
@@ -64,6 +64,8 @@ class gsp::Graph : public gsp::BaseGraph {
     virtual const Matrix& weights() const;
     virtual const Matrix& laplacian();
     virtual const Matrix& normalizedLaplacian();
+    virtual const Matrix& normalizedWeight();
+    virtual const Matrix& asymmetricNormalizedWeight();
     virtual const densevector& degrees();
 
     // New method for edge iteration using EdgeGenerator
