@@ -122,6 +122,7 @@ public:
     gsp::VertexGraph mul(const gsp::VertexGraph& other) const;
     gsp::VertexGraph operator*(const gsp::VertexGraph& other) const;
 
+    std::string default_name_format = "v{}";
 
 protected:
     std::string type_;
@@ -130,7 +131,6 @@ private:
     uint32_t num_nodes_;
     std::vector<std::string> names_; // Names of vertices
     CoordMat coords_; // size fixed elsewhere to (num_nodes x 3)
-    std::string prefix_default_name = "v";
 };
 
 #include "libgsp/iterators/VertexIterator.h"

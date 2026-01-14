@@ -73,7 +73,8 @@ std::vector<gsp::Node> gsp::VertexGraph::nodes() const {
 
 
  std::string gsp::VertexGraph::name(uint32_t idx) const{
-     return (!names_.empty() && idx < names_.size()) ? names_[idx] : prefix_default_name+std::to_string(idx);
+     return (!names_.empty() && idx < names_.size()) ? names_[idx] :
+     fmt::format(default_name_format, idx, idx, idx, idx, idx, idx, idx, idx);
  }
 
 const gsp::Coord gsp::VertexGraph::coord(uint32_t idx) const {
