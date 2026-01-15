@@ -6,6 +6,8 @@
 #define LIBGSP_PAGERANK_H
 
 #include <complex>
+
+//#include <Eigen/>
 #include <Spectra/GenEigsSolver.h>
 #include <Spectra/MatOp/SparseGenMatProd.h>
 
@@ -130,20 +132,21 @@ template <class Matrix>
 class PageRankPowerMethod : public PageRankBase<Matrix> {
 public:
     explicit PageRankPowerMethod(Graph<Matrix>& graph, double p=0.85) : PageRankBase<Matrix>(graph, p, "PageRankPowerMethod") {
-
     }
-    virtual typename gsp::Graph<Matrix>::densevector run() override {
-        return {};
+    virtual gsp::types::densevector_m<Matrix> run() override {
 
-//        x = rand
-//                e = inf
-//                while e > eps {
-//                    y = matrix * x
-//                    y = y / norm(y)
-//                    e = err(x, y)
-//                    x=y
-//                }
+        gsp::types::densevector_m<Matrix> x { Eigen::MatrixXd::Random(this->num_nodes_, 1) }, y;
+        double err = INFINITY;
+        while (err > eps) {
+            y = this->matrix_ * x;
+            y /= y.norm();
+            err = (y-x).norm();
+            x = y;
+        }
+
+        return x;
     }
+    double eps = 1e-10;
 };
 
 }

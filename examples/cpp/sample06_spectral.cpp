@@ -42,6 +42,9 @@ int main() {
     testPagerankAlgorithms<gsp::PageRankSpectra<gsp::densematrix>>(dense_graph, 1);
     testPagerankAlgorithms<gsp::PageRankSpectra<gsp::sparsematrix>>(sparse_graph, 1);
 
+    testPagerankAlgorithms<gsp::PageRankPowerMethod<gsp::densematrix>>(dense_graph, 1);
+    testPagerankAlgorithms<gsp::PageRankPowerMethod<gsp::sparsematrix>>(sparse_graph, 1);
+
 
     return 0;
 }
