@@ -17,14 +17,7 @@ typedef std::vector<std::string> StringList;
 #define toc \
     stoc;   \
     TicTocTimerObj.elapsed(true, __LINE__, __FUNCTION__)
-#define stictoc TicTocTimerObj.elapsed() const char* line = nullptr, const char* function = nullptr)
-#define stictocer(unit, is_print)                                        \
-    TicTocTimerObj.elapsed<std::chrono::unit>(is_print, #unit, __LINE__, \
-                                              __FUNCTION__)
-#define tictocer(unit)                                               \
-    stoc;                                                            \
-    TicTocTimerObj.elapsed<std::chrono::unit>(true, #unit, __LINE__, \
-                                              __FUNCTION__)
+#define tictoc TicTocTimerObj.elapsed()
 
 struct TicTocTimer {
     typedef std::chrono::high_resolution_clock chrono_clock;

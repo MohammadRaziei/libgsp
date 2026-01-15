@@ -6,8 +6,8 @@
 #define LIBGSP_PAGERANK_H
 
 #include <complex>
-#include <Spectra/SymEigsSolver.h>
 #include <Spectra/GenEigsSolver.h>
+#include <Spectra/MatOp/SparseGenMatProd.h>
 
 #include "libgsp/Graph.h"
 #include "libgsp/iterators/StateMatrixGraph.h"
@@ -21,6 +21,8 @@ template <class Matrix>
 class PageRankBase {
 public:
     explicit PageRankBase(Graph<Matrix>& graph, double p) : PageRankBase(graph, p, "PageRankBase") {}
+
+    [[nodiscard]] std::string method() {return method_;}
 
     virtual gsp::types::densevector_m<Matrix> run() {
         gsp::types::densevector_m<Matrix> eigs;
@@ -74,18 +76,24 @@ private:
 
 
 
-
-template <typename S, int R, int C, int O, int MR, int MC>
-class PageRankSpectra : public PageRankBase<Eigen::Matrix<S,R,C,O,MR,MC>> {
+template <typename Matrix>
+class PageRankSpectra : public PageRankBase<Matrix> {
 public:
 
-    explicit PageRankSpectra(Graph<Eigen::Matrix<S,R,C,O,MR,MC>>& graph, double p, int ncov) :
-            PageRankBase<Eigen::Matrix<S,R,C,O,MR,MC>>(graph, p, "PageRankSpectra"),
-            op_(this->matrix_), solver_(op_, 1, ncov) {
-        solver_.init();
+    using MatProd = std::conditional_t<types::is_eigen_dense<Matrix>::value,
+        Spectra::DenseGenMatProd<typename types::is_eigen_dense<Matrix>::scalar, types::is_eigen_dense<Matrix>::options>,
+            std::conditional_t<types::is_eigen_sparse<Matrix>::value,
+                Spectra::SparseGenMatProd<typename types::is_eigen_sparse<Matrix>::scalar, types::is_eigen_sparse<Matrix>::options>,
+                    void>>;
+
+    explicit PageRankSpectra(Graph<Matrix>& graph, double p, int ncov) :
+            PageRankBase<Matrix>(graph, p, "PageRankSpectra"),
+            op_(this->matrix_), ncov_(ncov)  {
+        solver_ = std::make_shared<Spectra::GenEigsSolver<MatProd>>(op_, 1, ncov_);
+        solver_->init();
     }
 
-    explicit PageRankSpectra(Graph<Eigen::Matrix<S,R,C,O,MR,MC>>& graph, double p=0.85) : PageRankSpectra(graph, p, 3) {
+    explicit PageRankSpectra(Graph<Matrix>& graph, double p=0.85) : PageRankSpectra(graph, p, 3) {
 ///             Parameter that controls the convergence speed of the algorithm.
 ///             Typically a larger `ncv` means faster convergence, but it may
 ///             also result in greater memory use and more matrix operations
@@ -93,28 +101,27 @@ public:
 ///             and is advised to take \f$ncv \ge 2\cdot nev + 1\f$.
     }
 
-    virtual gsp::densevector<S> run() override {
-        gsp::densevector<S> eigs;
+    virtual gsp::types::densevector_m<Matrix> run() override {
+        gsp::types::densevector_m<Matrix> eigs;
         int8_t sign = 0;
-        auto todouble = [&sign](const std::complex<S> &x) -> S {
-            const S y = std::real(x);
+        auto todouble = [&sign](const std::complex<gsp::types::elem_t<Matrix>> &x) {
+            const gsp::types::elem_t<Matrix> y = std::real(x);
             if (sign == 0) { sign = y >= 0 ? 1 : -1; }
             return sign > 0 ? y : -y;
         };
 
-        solver_.compute(Spectra::SortRule::LargestReal);
+        solver_->compute(Spectra::SortRule::LargestReal);
 
-        if(solver_.info() == Spectra::CompInfo::Successful) {
-            eigs = solver_.eigenvectors().unaryExpr(todouble);
+        if(solver_->info() == Spectra::CompInfo::Successful) {
+            eigs = solver_->eigenvectors().unaryExpr(todouble);
         }
         return eigs;
     }
 
 protected:
-    Spectra::DenseGenMatProd<S> op_;
-    Spectra::GenEigsSolver<Spectra::DenseGenMatProd<S,O>> solver_;
+    MatProd op_;
+    std::shared_ptr<Spectra::GenEigsSolver<MatProd>> solver_;
     int ncov_;
-
 };
 
 
