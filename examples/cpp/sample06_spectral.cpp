@@ -10,9 +10,9 @@
 
 auto logger = gsp::logging::getLoggerByPath(__FILE__);
 
-template <class PageRankAlg, typename Matrix>
-void testPagerankAlgorithms(gsp::Graph<Matrix>& graph, double p) {
-    stic; PageRankAlg pr(graph, p); stoc;
+template <typename Matrix>
+void testPagerankAlgorithms(gsp::Graph<Matrix>& graph, double p, typename gsp::PageRankMethod method) {
+    stic; gsp::PageRank pr(graph, p, method); stoc;
     auto elapsed1 = tictoc;
 
     stic; auto pagerank = pr.run(); stoc;
@@ -36,14 +36,15 @@ int main() {
     logger->info("graph W: \n{}", fmt::streamed(dense_graph.weights()));
     gsp::SparseGraph sparse_graph = dense_graph.toSparse();
 
-    testPagerankAlgorithms<gsp::PageRankBase<gsp::densematrix>>(dense_graph, 1);
-    testPagerankAlgorithms<gsp::PageRankBase<gsp::sparsematrix>>(sparse_graph, 1);
+    testPagerankAlgorithms(dense_graph, 1, gsp::PageRankMethod::Base);
+    testPagerankAlgorithms(sparse_graph, 1, gsp::PageRankMethod::Base);
 
-    testPagerankAlgorithms<gsp::PageRankSpectra<gsp::densematrix>>(dense_graph, 1);
-    testPagerankAlgorithms<gsp::PageRankSpectra<gsp::sparsematrix>>(sparse_graph, 1);
+    testPagerankAlgorithms(dense_graph, 1, gsp::PageRankMethod::Spectra);
+    testPagerankAlgorithms(sparse_graph, 1, gsp::PageRankMethod::Spectra);
 
-    testPagerankAlgorithms<gsp::PageRankPowerMethod<gsp::densematrix>>(dense_graph, 1);
-    testPagerankAlgorithms<gsp::PageRankPowerMethod<gsp::sparsematrix>>(sparse_graph, 1);
+    testPagerankAlgorithms(dense_graph, 1, gsp::PageRankMethod::PowerMethod);
+    testPagerankAlgorithms(sparse_graph, 1, gsp::PageRankMethod::PowerMethod);
+
 
 
     return 0;

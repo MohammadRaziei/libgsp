@@ -24,7 +24,7 @@ class PageRankBase {
 public:
     explicit PageRankBase(Graph<Matrix>& graph, double p) : PageRankBase(graph, p, "PageRankBase") {}
 
-    [[nodiscard]] std::string method() {return method_;}
+    [[nodiscard]] std::string method() const { return method_; }
 
     virtual gsp::types::densevector_m<Matrix> run() {
         gsp::types::densevector_m<Matrix> eigs;
@@ -75,6 +75,26 @@ private:
     double p_ = 0.85;
 };
 
+template <class Matrix>
+class PageRankPowerMethod : public PageRankBase<Matrix> {
+public:
+    explicit PageRankPowerMethod(Graph<Matrix>& graph, double p=0.85) : PageRankBase<Matrix>(graph, p, "PageRankPowerMethod") {
+    }
+    virtual gsp::types::densevector_m<Matrix> run() override {
+
+        gsp::types::densevector_m<Matrix> x { Eigen::MatrixXd::Random(this->num_nodes_, 1) }, y;
+        double err = INFINITY;
+        while (err > eps) {
+            y = this->matrix_ * x;
+            y /= y.norm();
+            err = (y-x).norm();
+            x = y;
+        }
+
+        return x;
+    }
+    double eps = 1e-10;
+};
 
 
 
@@ -127,28 +147,32 @@ protected:
 };
 
 
-
-template <class Matrix>
-class PageRankPowerMethod : public PageRankBase<Matrix> {
-public:
-    explicit PageRankPowerMethod(Graph<Matrix>& graph, double p=0.85) : PageRankBase<Matrix>(graph, p, "PageRankPowerMethod") {
-    }
-    virtual gsp::types::densevector_m<Matrix> run() override {
-
-        gsp::types::densevector_m<Matrix> x { Eigen::MatrixXd::Random(this->num_nodes_, 1) }, y;
-        double err = INFINITY;
-        while (err > eps) {
-            y = this->matrix_ * x;
-            y /= y.norm();
-            err = (y-x).norm();
-            x = y;
-        }
-
-        return x;
-    }
-    double eps = 1e-10;
+enum class PageRankMethod {
+    Base=0,
+    PowerMethod,
+    Spectra,
 };
+template <class Matrix>
+class PageRank {
+public:
+    explicit PageRank(Graph<Matrix>& graph, double p=0.85, PageRankMethod method = PageRankMethod::PowerMethod) {
+        PageRankBase<Matrix>* pr = nullptr;
+        switch (method) {
+            case PageRankMethod::Base: pr = new PageRankBase<Matrix>(graph, p); break;
+            case PageRankMethod::PowerMethod: pr = new PageRankPowerMethod<Matrix>(graph, p); break;
+            case PageRankMethod::Spectra: pr = new PageRankSpectra<Matrix>(graph, p); break;
+        }
+        page_rank_method_ = std::move(std::shared_ptr<PageRankBase<Matrix>>(pr));
+    }
+    gsp::types::densevector_m<Matrix> run() {
+        return page_rank_method_->run();
+    }
 
+    [[nodiscard]] std::string method() const { return page_rank_method_->method(); }
+
+private:
+    std::shared_ptr<PageRankBase<Matrix>> page_rank_method_;
+};
 }
 
 #endif //LIBGSP_PAGERANK_H
