@@ -30,9 +30,9 @@ bool gsp::Edge::isDetached() const {
 
 gsp::BaseGraph::BaseGraph(uint32_t num_nodes) : VertexGraph(num_nodes) {}
 gsp::BaseGraph::~BaseGraph() {}
-gsp::BaseGraph::BaseGraph(gsp::BaseGraph&& other) noexcept : VertexGraph(std::move(other)) {}
+gsp::BaseGraph::BaseGraph(gsp::BaseGraph&& other) noexcept : VertexGraph(std::move(other)), is_directed_(other.is_directed_) {}
 gsp::BaseGraph::BaseGraph(const gsp::BaseGraph *other) noexcept :
-    gsp::VertexGraph(dynamic_cast<const gsp::VertexGraph*>(other)) {}
+    gsp::VertexGraph(dynamic_cast<const gsp::VertexGraph*>(other)), is_directed_(other->is_directed_) {}
 gsp::BaseGraph::BaseGraph(const gsp::VertexGraph *other) noexcept :
    gsp::VertexGraph(other) {}
 gsp::BaseGraph::BaseGraph(gsp::VertexGraph &&other) noexcept :
@@ -55,3 +55,13 @@ std::vector<gsp::Edge> gsp::BaseGraph::edges(double thresh) const {
     }
     return edges;
 }
+
+
+bool gsp::BaseGraph::isDirected() const {
+    return this->is_directed_;
+}
+
+void gsp::BaseGraph::setIsDirectedUnsafe(bool is_directed) {
+    this->is_directed_ = is_directed;
+}
+

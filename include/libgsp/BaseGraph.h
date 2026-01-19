@@ -71,6 +71,11 @@ class gsp::BaseGraph : public gsp::VertexGraph {
 
     virtual std::vector<gsp::Edge> edges(double thresh = 0.0) const;
 
+    bool isDirected() const;
+    void setIsDirectedUnsafe(bool);
+
+protected:
+    bool is_directed_ = GSP_IS_DIRECTED_DEFAULT;
 };
 
 #include "libgsp/iterators/EdgeGenerator.h"

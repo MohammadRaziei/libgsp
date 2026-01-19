@@ -52,9 +52,8 @@ class gsp::CacheBox {
 
 
 template <class Matrix>
-gsp::Graph<Matrix>::Graph(uint32_t num_nodes):
-      BaseGraph(num_nodes), is_directed_(GSP_IS_DIRECTED_DEFAULT),
-      logger_(gsp::logging::getLogger(detType())) {
+gsp::Graph<Matrix>::Graph(uint32_t num_nodes, bool is_directed):
+      BaseGraph(num_nodes), logger_(gsp::logging::getLogger(detType())) {
     type_ = detType();
 }
 
@@ -62,8 +61,7 @@ gsp::Graph<Matrix>::Graph(uint32_t num_nodes):
 template<class Matrix>
 gsp::Graph<Matrix>::Graph(const gsp::Graph<Matrix> *other) noexcept :
     gsp::BaseGraph(dynamic_cast<const BaseGraph*>(other)),
-    is_directed_(other->is_directed_), weights_(other->weights_),
-    logger_(gsp::logging::getLogger(detType())) {
+    weights_(other->weights_), logger_(gsp::logging::getLogger(detType())) {
     type_ = detType();
 }
 
@@ -71,8 +69,7 @@ gsp::Graph<Matrix>::Graph(const gsp::Graph<Matrix> *other) noexcept :
 template<class Matrix>
 gsp::Graph<Matrix>::Graph(gsp::Graph<Matrix>&& other) noexcept
     : BaseGraph(std::move(other)), weights_(std::move(other.weights_)),
-      is_directed_(other.is_directed_), cache_(other.cache_),
-      logger_(gsp::logging::getLogger(detType())) {
+      cache_(other.cache_), logger_(gsp::logging::getLogger(detType())) {
     // Reset the moved-from object's cache pointer
     other.cache_ = nullptr;
     type_ = detType();
@@ -182,19 +179,6 @@ void gsp::Graph<Matrix>::setEdges(gsp::ConstEdgeGenerator& generator, bool is_di
         }
     }
 }
-
-
-
-template <class Matrix>
-bool gsp::Graph<Matrix>::isDirected() const {
-    return this->is_directed_;
-}
-
-template <class Matrix>
-void gsp::Graph<Matrix>::setIsDirectedUnsafe(bool is_directed) {
-    this->is_directed_ = is_directed;
-}
-
 
 
 

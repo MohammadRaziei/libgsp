@@ -16,8 +16,6 @@
 
 
 namespace gsp {
-//    enum class ShiftType;
-
     template<class Matrix> class MatrixBox;
     template<class Matrix> class CacheBox;
 
@@ -25,10 +23,7 @@ namespace gsp {
     template <class Matrix> class Graph;
     using SparseGraph = Graph<sparsematrix>;
     using DenseGraph = Graph<densematrix>;
-
 }
-
-
 
 
 template <class Matrix>
@@ -38,7 +33,7 @@ class gsp::Graph : public gsp::BaseGraph {
     using value_type = Matrix;
 
    public:
-    explicit Graph(uint32_t num_nodes);
+    explicit Graph(uint32_t num_nodes, bool is_directed = GSP_IS_DIRECTED_DEFAULT);
     Graph(const gsp::Graph<Matrix>& other) = delete;
     Graph(gsp::Graph<Matrix>&& other) noexcept;
     explicit Graph(const gsp::Graph<Matrix>* other) noexcept;
@@ -56,10 +51,6 @@ class gsp::Graph : public gsp::BaseGraph {
     virtual void setWeights(const std::vector<gsp::Edge>& edges, bool is_directed = GSP_IS_DIRECTED_DEFAULT);
 
     virtual void validateWeights(const Matrix&);
-
-
-    bool isDirected() const;
-    void setIsDirectedUnsafe(bool);
 
     virtual const Matrix& weights() const;
     virtual const Matrix& laplacian();
@@ -92,7 +83,6 @@ class gsp::Graph : public gsp::BaseGraph {
 
     void invalidateCache();
 
-
     // operators:
     gsp::Graph<Matrix>& iadd(const gsp::Graph<Matrix>& other);
     gsp::Graph<Matrix>& operator+=(const gsp::Graph<Matrix>& other);
@@ -104,9 +94,7 @@ class gsp::Graph : public gsp::BaseGraph {
     gsp::Graph<Matrix> operator*(const gsp::Graph<Matrix>& other) const;
 
 protected:
-    bool is_directed_;
     Matrix weights_;
-
     gsp::logging::Logger logger_;
 
 private:
