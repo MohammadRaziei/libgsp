@@ -6,6 +6,7 @@
 #define LIBGSP_PAGERANK_H
 
 #include <complex>
+#include <limits>
 
 //#include <Eigen/>
 #include <Spectra/GenEigsSolver.h>
@@ -81,19 +82,26 @@ public:
     explicit PageRankPowerMethod(Graph<Matrix>& graph, double p=0.85) : PageRankBase<Matrix>(graph, p, "PageRankPowerMethod") {
     }
     virtual gsp::types::densevector_m<Matrix> run() override {
-
         gsp::types::densevector_m<Matrix> x { Eigen::MatrixXd::Random(this->num_nodes_, 1) }, y;
-        double err = INFINITY;
-        while (err > eps) {
+        error = INFINITY;
+        iter_count = 0;
+
+        while (error > eps && iter_count < max_number_iter) {
+            ++iter_count;
             y = this->matrix_ * x;
             y /= y.norm();
-            err = (y-x).norm();
+            error = (y-x).norm();
             x = y;
         }
+        this->logger_->debug("stop after {} iteration with error: {}", iter_count, error);
 
         return x;
     }
     double eps = 1e-10;
+    uint32_t max_number_iter = std::numeric_limits<uint32_t>::max();
+
+    double error = INFINITY;
+    uint32_t iter_count = 0;
 };
 
 
