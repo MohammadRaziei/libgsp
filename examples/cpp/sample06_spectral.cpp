@@ -7,6 +7,7 @@
 #include "libgsp/utils/Logging.h"
 #include "libgsp/Graph.h"
 #include "libgsp/spectral/PageRank.h"
+#include "libgsp/spectral/GraphFourier.h"
 
 auto logger = gsp::logging::getLoggerByPath(__FILE__);
 
@@ -24,6 +25,7 @@ void testPagerankAlgorithms(gsp::Graph<Matrix>& graph, double p, typename gsp::P
 }
 
 int main() {
+    gsp::logging::basicConfig(gsp::logging::level::trace);
     logger->info("Sample 06 - spectral examples");
 
     std::vector<gsp::Edge>  edges      = {{0, 0},{0,1, 3},{0,2},{1,2},{2,3}};
