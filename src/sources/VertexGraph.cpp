@@ -8,18 +8,23 @@
 
 #include "libgsp/utils/Logging.h"
 
+uint32_t gsp::VertexGraph::num_graphs_ = 0;
+
+
 auto logger = gsp::logging::getLogger("VertexGraph");
 
-gsp::VertexGraph::VertexGraph(uint32_t num_nodes) : num_nodes_(num_nodes), type_("VertexGraph"),
-    coords_() {}
+gsp::VertexGraph::VertexGraph(uint32_t num_nodes) : num_nodes_(num_nodes), type_("VertexGraph"), id_(num_graphs_++),
+    coords_() {
+}
 
 gsp::VertexGraph::VertexGraph(const gsp::VertexGraph *other) noexcept : num_nodes_(other->num_nodes_), type_(other->type_),
-                                                                        coords_(other->coords_), names_(other->names_) {
+                                                                        coords_(other->coords_), names_(other->names_),
+                                                                        id_(num_graphs_++) {
 //    logger->trace("Copy constructor of VertexGraph is called!!");
 }
 
 gsp::VertexGraph::VertexGraph(gsp::VertexGraph &&other) noexcept : num_nodes_(other.num_nodes_), type_(other.type_),
-    coords_(std::move(other.coords_)), names_(std::move(other.names_)) {
+    coords_(std::move(other.coords_)), names_(std::move(other.names_)), id_(other.id_) {
 }
 
 gsp::VertexGraph& gsp::VertexGraph::operator=(gsp::VertexGraph&& other) noexcept {
@@ -27,6 +32,7 @@ gsp::VertexGraph& gsp::VertexGraph::operator=(gsp::VertexGraph&& other) noexcept
         num_nodes_ = other.num_nodes_;
         coords_ = std::move(other.coords_);
         names_ = std::move(other.names_);
+        id_ = other.id_;
     }
     return *this;
 }
@@ -59,7 +65,7 @@ void gsp::VertexGraph::setCoords(const std::vector<gsp::Coord>& src) {
 }
 
 gsp::VertexGraph::~VertexGraph() {
-
+    --num_graphs_;
 }
 
 std::vector<gsp::Node> gsp::VertexGraph::nodes() const {

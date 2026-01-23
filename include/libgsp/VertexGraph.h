@@ -62,16 +62,19 @@ struct gsp::Node {
 class gsp::VertexGraph {
 public:
     using CoordMat = Eigen::Matrix<double, Eigen::Dynamic, 3, Eigen::RowMajor>;
+    static uint32_t numGraphs() { return num_graphs_; }
 
     explicit VertexGraph(uint32_t);
     VertexGraph(const gsp::VertexGraph& other) = delete;
     VertexGraph(gsp::VertexGraph&& other) noexcept;
     explicit VertexGraph(const gsp::VertexGraph* other) noexcept;
+    virtual ~VertexGraph();
 
     gsp::VertexGraph& operator=(const gsp::VertexGraph& other) = delete;
     gsp::VertexGraph& operator=(gsp::VertexGraph&& other) noexcept;
 
-    virtual ~VertexGraph();
+    [[nodiscard]] uint32_t id() const noexcept { return id_; }
+
     virtual void setCoords(const Eigen::MatrixXd& coords);
     virtual void setCoords(const std::vector<gsp::Coord>& coords);
     virtual void setCoord(uint32_t idx, const gsp::Coord& coord);
@@ -128,7 +131,10 @@ protected:
     std::string type_;
 
 private:
+    static uint32_t num_graphs_;
+
     uint32_t num_nodes_;
+    uint32_t id_;
     std::vector<std::string> names_; // Names of vertices
     CoordMat coords_; // size fixed elsewhere to (num_nodes x 3)
 };
