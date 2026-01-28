@@ -164,13 +164,17 @@ template <class Matrix>
 class PageRank {
 public:
     explicit PageRank(Graph<Matrix>& graph, double p=0.85, PageRankMethod method = PageRankMethod::PowerMethod) {
-        PageRankBase<Matrix>* pr = nullptr;
         switch (method) {
-            case PageRankMethod::Base: pr = new PageRankBase<Matrix>(graph, p); break;
-            case PageRankMethod::PowerMethod: pr = new PageRankPowerMethod<Matrix>(graph, p); break;
-            case PageRankMethod::Spectra: pr = new PageRankSpectra<Matrix>(graph, p); break;
+            case PageRankMethod::Base:
+                page_rank_method_ = std::make_shared<PageRankBase<Matrix>>(graph, p);
+                break;
+            case PageRankMethod::PowerMethod:
+                page_rank_method_ = std::make_shared<PageRankPowerMethod<Matrix>>(graph, p);
+                break;
+            case PageRankMethod::Spectra:
+                page_rank_method_ = std::make_shared<PageRankSpectra<Matrix>>(graph, p);
+                break;
         }
-        page_rank_method_ = std::move(std::shared_ptr<PageRankBase<Matrix>>(pr));
     }
     gsp::types::densevector_m<Matrix> run() {
         return page_rank_method_->run();
