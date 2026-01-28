@@ -11,8 +11,6 @@
 uint32_t gsp::VertexGraph::num_graphs_ = 0;
 
 
-auto logger = gsp::logging::getLogger("VertexGraph");
-
 gsp::VertexGraph::VertexGraph(uint32_t num_nodes) : num_nodes_(num_nodes), type_("VertexGraph"), id_(num_graphs_++),
     coords_() {
 }
@@ -248,6 +246,7 @@ gsp::Coord::Coord(const gsp::Coord& other) : x_(other.x_), y_(other.y_), z_(othe
 gsp::VertexGraph& gsp::VertexGraph::iadd(const gsp::VertexGraph& other) {
     if (numNodes() != other.numNodes()) {
         std::string msg = fmt::format("Number of nodes has mismatched! ({} != {})", numNodes(), other.numNodes());
+        auto logger = gsp::logging::getLogger("VertexGraph");
         logger->error(msg);
         throw std::invalid_argument(msg);
     }
