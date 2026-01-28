@@ -77,12 +77,14 @@ std::vector<gsp::Node> gsp::VertexGraph::nodes() const {
 
 
  std::string gsp::VertexGraph::name(uint32_t idx) const{
-     return (!names_.empty() && idx < names_.size()) ? names_[idx] :
-     fmt::format(default_name_format, idx, idx, idx, idx, idx, idx, idx, idx);
+    if (names_.size() > 0 && idx >= names_.size()) throw std::out_of_range("out of the range of names");
+     return (!names_.empty()) ? names_[idx] :
+        fmt::format(default_name_format, idx, idx, idx, idx, idx, idx, idx, idx);
  }
 
 const gsp::Coord gsp::VertexGraph::coord(uint32_t idx) const {
-    if (coords_.rows() > 0 && idx < static_cast<uint32_t>(coords_.rows())) {
+    if (coords_.rows() > 0) {
+        if (idx >= coords_.rows()) throw std::out_of_range("out of the range of coords");
         return {coords_(idx, 0), coords_(idx, 1), coords_(idx, 2), const_cast<VertexGraph*>(this), idx};
     } else {
         return {NAN, NAN, NAN, const_cast<VertexGraph*>(this), idx};
@@ -90,8 +92,9 @@ const gsp::Coord gsp::VertexGraph::coord(uint32_t idx) const {
 }
 
 gsp::Coord gsp::VertexGraph::coord(uint32_t idx) {
-     if (coords_.rows() > 0 && idx < static_cast<uint32_t>(coords_.rows())) {
-         return {coords_(idx, 0), coords_(idx, 1), coords_(idx, 2), this, idx};
+    if (coords_.rows() > 0) {
+        if (idx >= coords_.rows()) throw std::out_of_range("out of the range of coords");
+        return {coords_(idx, 0), coords_(idx, 1), coords_(idx, 2), this, idx};
      } else {
          return {NAN, NAN, NAN, this, idx};
      }
