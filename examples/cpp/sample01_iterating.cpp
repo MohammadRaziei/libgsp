@@ -65,6 +65,13 @@ int main() {
 
     countNumEdges(graph);
 
+
+    logger->info("Testing reversed iterator functionality:");
+    for (auto it = graph.rbegin(); it != graph.rend(); ++it) {
+        logger->info("reversed: Node {}: {} @ ({:.5g},{:.5g},{:.5g})", it->id, it->name,
+                     it->coord.x(), it->coord.y(), it->coord.z());
+    }
+
     // Test the new iterator functionality
     logger->info("Testing new iterator functionality:");
 

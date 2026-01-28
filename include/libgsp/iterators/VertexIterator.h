@@ -7,328 +7,224 @@
 
 #include "libgsp/VertexGraph.h"
 
-// Forward declaration
-namespace gsp {
-    class VertexGraph;
-} // namespace gsp
 
 namespace gsp {
+namespace detail {
 
-class ConstVertexIterator {
+template <class GraphT>
+class TemplateVertexIterator {
 public:
-    using iterator_category = std::random_access_iterator_tag;  // Changed to random access
-    using value_type = Node;
-    using difference_type = std::ptrdiff_t;
-    using pointer = const Node*;
-    using reference = const Node&;
+    using iterator_category = std::random_access_iterator_tag;
+    using value_type        = Node;
+    using difference_type   = std::ptrdiff_t;
 
-    explicit ConstVertexIterator(const VertexGraph* graph, uint32_t index = 0)
-        : graph_(graph), index_(index), current_(index, graph->coord(index), graph->name(index)) {
+    static constexpr bool kIsConstGraph = std::is_const_v<GraphT>;
+
+    using pointer   = std::conditional_t<kIsConstGraph, const Node*, Node*>;
+    using reference = std::conditional_t<kIsConstGraph, const Node&, Node&>;
+
+    TemplateVertexIterator() = default;
+
+    explicit TemplateVertexIterator(GraphT* graph, uint32_t index = 0)
+        : graph_(graph), index_(static_cast<int64_t>(index)) {
+        updateCurrent();
     }
 
-    // Dereference operator
+
+    // Dereference operator (non-const) - only for non-const GraphT
+    template <class T = GraphT, std::enable_if_t<!std::is_const_v<T>, int> = 0>
+    reference operator*() {
+        ensureValidForDeref();
+        return *current_; // Node&
+    }
+
+// Dereference operator (const) - works for both, returns reference type
     reference operator*() const {
-        if (index_ < 0 || static_cast<uint32_t>(index_) >= graph_->numNodes()) {
-            throw std::out_of_range("ConstVertexIterator out of range");
-        }
-        return current_;
+        ensureValidForDeref();
+        return *current_; // const Node& when GraphT is const
     }
 
-    // Pointer operator
+// Pointer operator (non-const) - only for non-const GraphT
+    template <class T = GraphT, std::enable_if_t<!std::is_const_v<T>, int> = 0>
+    pointer operator->() {
+        ensureValidForDeref();
+        return std::addressof(*current_); // Node*
+    }
+
+// Pointer operator (const)
     pointer operator->() const {
-        if (index_ < 0 || static_cast<uint32_t>(index_) >= graph_->numNodes()) {
-            throw std::out_of_range("ConstVertexIterator out of range");
-        }
-        return &current_;
+        ensureValidForDeref();
+        return std::addressof(*current_); // const Node* when GraphT is const
     }
 
     // Pre-increment
-    ConstVertexIterator& operator++() {
-        if (++index_ < static_cast<int32_t>(graph_->numNodes())) {
-            updateCurrent();
-        }
+    TemplateVertexIterator& operator++() {
+        ++index_;
+        updateCurrent();
         return *this;
     }
 
     // Post-increment
-    ConstVertexIterator operator++(int) {
-        ConstVertexIterator tmp = *this;
+    TemplateVertexIterator operator++(int) {
+        TemplateVertexIterator tmp = *this;
         ++(*this);
         return tmp;
     }
 
-    // Pre-decrement (for bidirectional iterator)
-    ConstVertexIterator& operator--() {
-        if (--index_ >= 0) {
-            updateCurrent();
-        }
+    // Pre-decrement
+    TemplateVertexIterator& operator--() {
+        --index_;
+        updateCurrent();
         return *this;
     }
 
-    // Post-decrement (for bidirectional iterator)
-    ConstVertexIterator operator--(int) {
-        ConstVertexIterator tmp = *this;
+    // Post-decrement
+    TemplateVertexIterator operator--(int) {
+        TemplateVertexIterator tmp = *this;
         --(*this);
         return tmp;
     }
 
     // Arithmetic operators
-    ConstVertexIterator& operator+=(difference_type n) {
-        index_ += n;
-        if (index_ >= 0 && index_ < graph_->numNodes()) {
-            updateCurrent();
-        }
+    TemplateVertexIterator& operator+=(difference_type n) {
+        index_ += static_cast<int64_t>(n);
+        updateCurrent();
         return *this;
     }
 
-    ConstVertexIterator& operator-=(difference_type n) {
-        index_ -= n;
-        if (index_ >= 0 && index_ < graph_->numNodes()) {
-            updateCurrent();
-        }
+    TemplateVertexIterator& operator-=(difference_type n) {
+        index_ -= static_cast<int64_t>(n);
+        updateCurrent();
         return *this;
     }
 
-    ConstVertexIterator operator+(difference_type n) const {
-        ConstVertexIterator tmp = *this;
+    TemplateVertexIterator operator+(difference_type n) const {
+        TemplateVertexIterator tmp = *this;
         tmp += n;
         return tmp;
     }
 
-    ConstVertexIterator operator-(difference_type n) const {
-        ConstVertexIterator tmp = *this;
+    TemplateVertexIterator operator-(difference_type n) const {
+        TemplateVertexIterator tmp = *this;
         tmp -= n;
         return tmp;
     }
 
-    difference_type operator-(const ConstVertexIterator& other) const {
-        if (graph_ != other.graph_) {
-            throw std::invalid_argument("Cannot subtract iterators from different graphs");
-        }
-        return index_ - other.index_;
+    // Iterator difference
+    difference_type operator-(const TemplateVertexIterator& other) const {
+        ensureSameGraph(other);
+        return static_cast<difference_type>(index_ - other.index_);
     }
 
-    // Subscript operator
+    // Subscript operator (returns a value, like your original)
     value_type operator[](difference_type n) const {
-        // Create a temporary iterator at the target position and return its value
-        difference_type new_index = index_ + n;
-        if (new_index < 0 || new_index >= static_cast<difference_type>(graph_->numNodes())) {
-            throw std::out_of_range("ConstVertexIterator subscript out of range");
+        ensureGraph();
+        const int64_t new_index = index_ + static_cast<int64_t>(n);
+        const int64_t nn = numNodesSigned();
+
+        if (new_index < 0 || new_index >= nn) {
+            throw std::out_of_range("TemplateVertexIterator subscript out of range");
         }
-        // Create a temporary node at the target position
-        return value_type(new_index, graph_->coord(new_index), graph_->name(new_index));
+
+        const uint32_t ui = static_cast<uint32_t>(new_index);
+        return value_type(ui, graph_->coord(ui), graph_->name(ui));
     }
 
-    // Comparison operators
-    bool operator==(const ConstVertexIterator& other) const {
+    // Comparisons
+    bool operator==(const TemplateVertexIterator& other) const {
         return graph_ == other.graph_ && index_ == other.index_;
     }
+    bool operator!=(const TemplateVertexIterator& other) const { return !(*this == other); }
 
-    bool operator!=(const ConstVertexIterator& other) const {
-        return !(*this == other);
-    }
-
-    bool operator<(const ConstVertexIterator& other) const {
-        if (graph_ != other.graph_) {
-            throw std::invalid_argument("Cannot compare iterators from different graphs");
-        }
+    bool operator<(const TemplateVertexIterator& other) const {
+        ensureSameGraph(other);
         return index_ < other.index_;
     }
-
-    bool operator<=(const ConstVertexIterator& other) const {
-        if (graph_ != other.graph_) {
-            throw std::invalid_argument("Cannot compare iterators from different graphs");
-        }
+    bool operator<=(const TemplateVertexIterator& other) const {
+        ensureSameGraph(other);
         return index_ <= other.index_;
     }
-
-    bool operator>(const ConstVertexIterator& other) const {
-        if (graph_ != other.graph_) {
-            throw std::invalid_argument("Cannot compare iterators from different graphs");
-        }
+    bool operator>(const TemplateVertexIterator& other) const {
+        ensureSameGraph(other);
         return index_ > other.index_;
     }
-
-    bool operator>=(const ConstVertexIterator& other) const {
-        if (graph_ != other.graph_) {
-            throw std::invalid_argument("Cannot compare iterators from different graphs");
-        }
+    bool operator>=(const TemplateVertexIterator& other) const {
+        ensureSameGraph(other);
         return index_ >= other.index_;
     }
 
+    // Conversion: non-const iterator -> const iterator
+    template <class T = GraphT, std::enable_if_t<!std::is_const_v<T>, int> = 0>
+    operator TemplateVertexIterator<const std::remove_const_t<GraphT>>() const {
+        using ConstGraph = const std::remove_const_t<GraphT>;
+        return TemplateVertexIterator<ConstGraph>(graph_, static_cast<uint32_t>(index_));
+    }
+
 private:
-    const VertexGraph* graph_;
-    int64_t index_;
-    value_type current_;
+    GraphT* graph_ = nullptr;
+    int64_t index_ = 0;
+    std::optional<value_type> current_;
+
+    void ensureGraph() const {
+        if (!graph_) {
+            throw std::logic_error("TemplateVertexIterator has null graph pointer");
+        }
+    }
+
+    int64_t numNodesSigned() const {
+        // Convert once to signed to do safe range checks with index_
+        return static_cast<int64_t>(graph_->numNodes());
+    }
+
+    void ensureSameGraph(const TemplateVertexIterator& other) const {
+        if (graph_ != other.graph_) {
+            throw std::invalid_argument("Cannot operate on iterators from different graphs");
+        }
+    }
+
+    void ensureValidForDeref() const {
+        ensureGraph();
+        if (!current_.has_value()) {
+            throw std::out_of_range("TemplateVertexIterator out of range");
+        }
+    }
 
     void updateCurrent() {
-        if (index_ >= 0 && index_ < graph_->numNodes()) {
-            current_.id = index_;
-            current_.coord = std::move(graph_->coord(index_));
-            current_.name = std::move(graph_->name(index_));
+        if (!graph_) {
+            current_.reset();
+            return;
+        }
+
+        const int64_t nn = numNodesSigned();
+        if (index_ < 0 || index_ >= nn) {
+            current_.reset();
+            return;
+        }
+
+        const uint32_t ui = static_cast<uint32_t>(index_);
+        if (!current_) {
+            current_.emplace(ui, graph_->coord(ui), graph_->name(ui));
+        } else {
+            current_->id    = ui;
+            current_->coord = graph_->coord(ui);
+            current_->name  = graph_->name(ui);
         }
     }
 };
 
-class VertexIterator {
+} // namespace detail
+
+
+class VertexIterator : public detail::TemplateVertexIterator<VertexGraph> {
+    using Base = detail::TemplateVertexIterator<VertexGraph>;
 public:
-    using iterator_category = std::random_access_iterator_tag;  // Changed to random access
-    using value_type = Node;
-    using difference_type = std::ptrdiff_t;
-    using pointer = Node*;
-    using reference = Node&;
+    using Base::Base; // Inherit constructors
+};
 
-    explicit VertexIterator(VertexGraph* graph, uint32_t index = 0)
-        : graph_(graph), index_(index), current_(index, graph->coord(index), graph->name(index)) {
-    }
-
-    // Dereference operator
-    reference operator*() const {
-        if (index_ < 0 || static_cast<uint32_t>(index_) >= graph_->numNodes()) {
-            throw std::out_of_range("VertexIterator out of range");
-        }
-        return const_cast<reference>(current_);
-    }
-
-    // Pointer operator
-    pointer operator->() const {
-        if (index_ < 0 || static_cast<uint32_t>(index_) >= graph_->numNodes()) {
-            throw std::out_of_range("VertexIterator out of range");
-        }
-        return const_cast<pointer>(&current_);
-    }
-
-    // Pre-increment
-    VertexIterator& operator++() {
-        if (++index_ < static_cast<int32_t>(graph_->numNodes())) {
-            updateCurrent();
-        }
-        return *this;
-    }
-
-    // Post-increment
-    VertexIterator operator++(int) {
-        VertexIterator tmp = *this;
-        ++(*this);
-        return tmp;
-    }
-
-    // Pre-decrement (for bidirectional iterator)
-    VertexIterator& operator--() {
-        if (--index_ >= 0) {
-            updateCurrent();
-        }
-        return *this;
-    }
-
-    // Post-decrement (for bidirectional iterator)
-    VertexIterator operator--(int) {
-        VertexIterator tmp = *this;
-        --(*this);
-        return tmp;
-    }
-
-    // Arithmetic operators
-    VertexIterator& operator+=(difference_type n) {
-        index_ += n;
-        if (index_ >= 0 && index_ < graph_->numNodes()) {
-            updateCurrent();
-        }
-        return *this;
-    }
-
-    VertexIterator& operator-=(difference_type n) {
-        index_ -= n;
-        if (index_ >= 0 && index_ < graph_->numNodes()) {
-            updateCurrent();
-        }
-        return *this;
-    }
-
-    VertexIterator operator+(difference_type n) const {
-        VertexIterator tmp = *this;
-        tmp += n;
-        return tmp;
-    }
-
-    VertexIterator operator-(difference_type n) const {
-        VertexIterator tmp = *this;
-        tmp -= n;
-        return tmp;
-    }
-
-    difference_type operator-(const VertexIterator& other) const {
-        if (graph_ != other.graph_) {
-            throw std::invalid_argument("Cannot subtract iterators from different graphs");
-        }
-        return index_ - other.index_;
-    }
-
-    // Subscript operator
-    value_type operator[](difference_type n) const {
-        // Create a temporary iterator at the target position and return its value
-        difference_type new_index = index_ + n;
-        if (new_index < 0 || new_index >= static_cast<difference_type>(graph_->numNodes())) {
-            throw std::out_of_range("VertexIterator subscript out of range");
-        }
-        // Create a temporary node at the target position
-        return value_type(new_index, graph_->coord(new_index), graph_->name(new_index));
-    }
-
-    // Comparison operators
-    bool operator==(const VertexIterator& other) const {
-        return graph_ == other.graph_ && index_ == other.index_;
-    }
-
-    bool operator!=(const VertexIterator& other) const {
-        return !(*this == other);
-    }
-
-    bool operator<(const VertexIterator& other) const {
-        if (graph_ != other.graph_) {
-            throw std::invalid_argument("Cannot compare iterators from different graphs");
-        }
-        return index_ < other.index_;
-    }
-
-    bool operator<=(const VertexIterator& other) const {
-        if (graph_ != other.graph_) {
-            throw std::invalid_argument("Cannot compare iterators from different graphs");
-        }
-        return index_ <= other.index_;
-    }
-
-    bool operator>(const VertexIterator& other) const {
-        if (graph_ != other.graph_) {
-            throw std::invalid_argument("Cannot compare iterators from different graphs");
-        }
-        return index_ > other.index_;
-    }
-
-    bool operator>=(const VertexIterator& other) const {
-        if (graph_ != other.graph_) {
-            throw std::invalid_argument("Cannot compare iterators from different graphs");
-        }
-        return index_ >= other.index_;
-    }
-
-    // Conversion from VertexIterator to ConstVertexIterator
-    operator ConstVertexIterator() const {
-        return ConstVertexIterator(graph_, static_cast<uint32_t>(index_));
-    }
-
-private:
-    VertexGraph* graph_;
-    int64_t index_;
-    mutable value_type current_;  // mutable to allow updates in const methods
-
-    void updateCurrent() const {
-        if (index_ >= 0 && index_ < graph_->numNodes()) {
-            current_.id = static_cast<uint32_t>(index_);
-            current_.coord = std::move(graph_->coord(static_cast<uint32_t>(index_)));
-            current_.name = std::move(graph_->name(static_cast<uint32_t>(index_)));
-        }
-    }
+class ConstVertexIterator : public detail::TemplateVertexIterator<const VertexGraph> {
+    using Base = detail::TemplateVertexIterator<const VertexGraph>;
+public:
+    using Base::Base;
 };
 
 } // namespace gsp
