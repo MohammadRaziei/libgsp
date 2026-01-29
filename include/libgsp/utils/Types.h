@@ -128,4 +128,17 @@ using float_of =
             std::conditional_t<(sizeof(T) <= sizeof(double)), double, long double>>>;
 } // namespace gsp::types
 
+
+template <typename T>
+struct is_floating_point
+    : std::bool_constant<
+          std::is_floating_point_v<T> ||
+          std::is_same_v<std::remove_cv_t<T>, Eigen::half>
+      > {};
+
+template <typename T>
+inline constexpr bool is_floating_point_v = is_floating_point<T>::value;
+
+
+
 #endif  // LIBGSP_TYPES_H
