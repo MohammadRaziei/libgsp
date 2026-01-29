@@ -69,6 +69,7 @@ template <typename S, int R, int C, int O, int MR, int MC>
 struct is_eigen_dense<Eigen::Matrix<S, R, C, O, MR, MC>> : std::true_type {
     using scalar = S;
     static const int options = O;
+    static const int rows = R, cols = C;
     static const int max_rows = MR;
     static const int max_cols = MC;
 };
@@ -126,7 +127,6 @@ using float_of =
         std::conditional_t<
             (sizeof(T) <= sizeof(float)), float,
             std::conditional_t<(sizeof(T) <= sizeof(double)), double, long double>>>;
-} // namespace gsp::types
 
 
 template <typename T>
@@ -138,6 +138,54 @@ struct is_floating_point
 
 template <typename T>
 inline constexpr bool is_floating_point_v = is_floating_point<T>::value;
+
+
+
+
+template <class Matrix>
+using matrix_float_t =
+    std::conditional_t<
+            is_eigen_sparse<std::remove_cv_t<std::remove_reference_t<Matrix>>>::value,
+            Eigen::SparseMatrix<
+                    float_of<elem_t<Matrix>>,
+                    std::remove_cv_t<std::remove_reference_t<Matrix>>::Options,
+                    typename std::remove_cv_t<std::remove_reference_t<Matrix>>::StorageIndex
+            >,
+            std::conditional_t<
+                    is_eigen_dense<std::remove_cv_t<std::remove_reference_t<Matrix>>>::value,
+                    Eigen::Matrix<
+                            float_of<elem_t<Matrix>>,
+                            std::remove_cv_t<std::remove_reference_t<Matrix>>::RowsAtCompileTime,
+                            std::remove_cv_t<std::remove_reference_t<Matrix>>::ColsAtCompileTime,
+                            std::remove_cv_t<std::remove_reference_t<Matrix>>::Options,
+                            std::remove_cv_t<std::remove_reference_t<Matrix>>::MaxRowsAtCompileTime,
+                            std::remove_cv_t<std::remove_reference_t<Matrix>>::MaxColsAtCompileTime
+                    >,
+                    void
+            >
+    >;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+} // namespace gsp::types
+
+
+
+
+
+
+
 
 
 

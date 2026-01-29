@@ -1,5 +1,6 @@
 //
 // Created by Mohammad on 7/20/2025.
+// (Generic scalar support; ONLY normalized_* are computed/stored in matrix_float_t)
 //
 
 #ifndef LIBGSP_GRAPH_H
@@ -9,35 +10,47 @@
 #include <vector>
 #include <cstdint>
 #include <memory>
-#include <ciso646>
 #include <type_traits>
+#include <optional>
+#include <stdexcept>
 
+#include <Eigen/Core>
+#include <Eigen/SparseCore>
 
 #include "BaseGraph.h"
 #include "libgsp/utils/Types.h"
 #include "libgsp/utils/Logging.h"
 
-
 namespace gsp {
-    namespace detail {
-        template<class Matrix> class MatrixBox;
-        template<class Matrix> class CacheBox;
-    }
-
-    class BaseGraph;
-    template <class Matrix> class Graph;
-    using SparseGraph = Graph<sparsematrix>;
-    using DenseGraph = Graph<densematrix>;
+namespace detail {
+    template <class Matrix> class MatrixBox;
+    template <class Matrix> class CacheBox;
 }
 
+class BaseGraph;
+template <class Matrix> class Graph;
+
+// NOTE: These aliases may still point to your default double types from Types.h,
+// but Graph itself is now generic for any Eigen dense/sparse scalar.
+using SparseGraph = Graph<sparsematrix>;
+using DenseGraph  = Graph<densematrix>;
+
+} // namespace gsp
+
+// ============================================================
+// gsp::Graph
+// ============================================================
 
 template <class Matrix>
 class gsp::Graph : public gsp::BaseGraph {
-   public:
+public:
     using densevector = typename gsp::types::densevector_m<Matrix>;
-    using value_type = Matrix;
+    using value_type  = Matrix;
 
-   public:
+    // Normalized outputs are computed/stored in float_of<elem_t<Matrix>>
+    using normalized_matrix = gsp::types::matrix_float_t<Matrix>;
+
+public:
     explicit Graph(uint32_t num_nodes, bool is_directed = GSP_IS_DIRECTED_DEFAULT);
     Graph(const gsp::Graph<Matrix>& other) = delete;
     Graph(gsp::Graph<Matrix>&& other) noexcept;
@@ -45,35 +58,43 @@ class gsp::Graph : public gsp::BaseGraph {
     explicit Graph(const gsp::VertexGraph* other) noexcept;
     explicit Graph(gsp::VertexGraph&& other) noexcept;
 
-    virtual ~Graph();
+    ~Graph() override;
 
     void operator=(const gsp::Graph<Matrix>& other) = delete;
     gsp::Graph<Matrix>& operator=(gsp::Graph<Matrix>&& other) noexcept;
 
-    virtual void setEdges(const std::vector<gsp::Edge>& edges, bool is_directed = GSP_IS_DIRECTED_DEFAULT) override;
-    virtual void setEdges(gsp::ConstEdgeGenerator& generator, bool is_directed = GSP_IS_DIRECTED_DEFAULT);
-    virtual void setWeights(const Matrix& matrix, bool is_directed = GSP_IS_DIRECTED_DEFAULT);
-    virtual void setWeights(const std::vector<gsp::Edge>& edges, bool is_directed = GSP_IS_DIRECTED_DEFAULT);
+    void setEdges(const std::vector<gsp::Edge>& edges,
+                  bool is_directed = GSP_IS_DIRECTED_DEFAULT) override;
+
+    void setEdges(gsp::ConstEdgeGenerator& generator,
+                  bool is_directed = GSP_IS_DIRECTED_DEFAULT);
+
+    void setWeights(const Matrix& matrix, bool is_directed = GSP_IS_DIRECTED_DEFAULT);
+    void setWeights(const std::vector<gsp::Edge>& edges, bool is_directed = GSP_IS_DIRECTED_DEFAULT);
 
     virtual void validateWeights(const Matrix&);
 
-    virtual const Matrix& weights() const;
-    virtual const Matrix& laplacian();
-    virtual const Matrix& normalizedLaplacian();
-    virtual const Matrix& normalizedWeight();
-    virtual const Matrix& asymmetricNormalizedWeight();
-    virtual const densevector& degrees();
+    const Matrix& weights() const;
+    const Matrix& laplacian();
 
-    // New method for edge iteration using EdgeGenerator
-    virtual gsp::ConstEdgeGenerator iterEdges(double thresh = 0.0) const override;
-    virtual gsp::EdgeGenerator iterEdges(double thresh = 0.0) override;
-    // Clone method to create a deep copy of the graph (value-based, preserves concrete type)
+    // ONLY these are float_of-based (matrix_float_t)
+    const normalized_matrix& normalizedLaplacian();
+    const normalized_matrix& normalizedWeight();
+    const normalized_matrix& asymmetricNormalizedWeight();
+
+    const densevector& degrees();
+
+    // Edge iteration
+    gsp::ConstEdgeGenerator iterEdges(double thresh = 0.0) const override;
+    gsp::EdgeGenerator iterEdges(double thresh = 0.0) override;
+
+    // Deep copy (preserves concrete Graph<Matrix>)
     gsp::Graph<Matrix> clone() const;
-    // Graph conversion methods
 
-    template<class Target> gsp::Graph<Target> to(double thresh = 0.0) const {
+    template <class Target>
+    gsp::Graph<Target> to(double thresh = 0.0) const {
         if constexpr (std::is_same_v<Matrix, Target>) {
-            if (thresh == 0) {
+            if (thresh == 0.0) {
                 logger_->warn("Warning: Graph is already {}!", type_);
                 return clone();
             }
@@ -83,8 +104,9 @@ class gsp::Graph : public gsp::BaseGraph {
         graph.setEdges(gen, this->is_directed_);
         return graph;
     }
+
     SparseGraph toSparse(double thresh = 0.0) const;
-    DenseGraph toDense(double thresh = 0.0) const;
+    DenseGraph  toDense(double thresh = 0.0) const;
 
     void invalidateCache();
 
@@ -106,25 +128,37 @@ private:
     gsp::detail::CacheBox<Matrix>* cache();
     std::string detType() const;
 
-    gsp::detail::CacheBox<Matrix>* cache_ = nullptr;
+    std::unique_ptr<gsp::detail::CacheBox<Matrix>> cache_;
 };
 
-
-
-
-
-
-
-
-/////// IMPLEMENTATIONS:
-
+// ============================================================
+// Implementations
+// ============================================================
 
 #include "libgsp/utils/Matrix.h"
 #include "libgsp/iterators/StateMatrixGraph.h"
 
+namespace gsp::detail {
+
+// ============================================================
+// MatrixBox: caches derived matrices/vectors.
+// - laplacian_ and degrees_ stay in original Matrix / densevector types.
+// - normalized_* caches are matrix_float_t<Matrix>.
+// ============================================================
+
+template <typename Matrix, typename Weights>
+static bool isMatrixBoxCalculated(const Matrix& m, Weights* weights) {
+    return weights && (m.rows() == weights->rows()) && (m.cols() > 0);
+}
+
 template <class Matrix>
-class gsp::detail::MatrixBox {
+class MatrixBox {
 public:
+    using scalar_type = gsp::types::elem_t<Matrix>;
+    using float_type  = gsp::types::float_of<scalar_type>;
+    using float_matrix = gsp::types::matrix_float_t<Matrix>;
+    using densevector  = typename gsp::Graph<Matrix>::densevector;
+
     MatrixBox() = default;
     MatrixBox(const MatrixBox&) = delete;
     MatrixBox& operator=(const MatrixBox&) = delete;
@@ -133,113 +167,111 @@ public:
     ~MatrixBox();
 
     void reset();
-
-    void setWeights(Matrix* weights);
+    void setWeights(const Matrix* weights);
 
     const Matrix& weights() const;
-    Matrix& normalizedWeight();
-    Matrix& laplacian();
-    Matrix& normalizedLaplacian();
-    Matrix& asymmetricNormalizedWeight();
-    typename gsp::Graph<Matrix>::densevector& degrees();
-private:
-    bool isCalculated(const Matrix&);
-    bool isCalculated(const typename gsp::Graph<Matrix>::densevector&);
 
-    const Matrix* weights_;
-    Matrix laplacian_, normalized_weights_, normalized_laplacian_, asymmetric_normalized_weight_;
-    typename gsp::Graph<Matrix>::densevector _degrees;
+    // Base (kept in Matrix)
+    Matrix& laplacian();
+    densevector& degrees();
+
+    // Normalized (computed/stored in float_matrix)
+    float_matrix& normalizedWeight();
+    float_matrix& normalizedLaplacian();
+    float_matrix& asymmetricNormalizedWeight();
+
+private:
+    const Matrix* weights_ = nullptr;
+
+    // Base caches (original types)
+    Matrix laplacian_;
+    densevector degrees_;
+
+    // Normalized caches (float_of-based)
+    float_matrix normalized_weights_;
+    float_matrix normalized_laplacian_;
+    float_matrix asymmetric_normalized_weight_;
 };
 
-
 template <class Matrix>
-class gsp::detail::CacheBox {
+class CacheBox {
 public:
-    CacheBox(gsp::Graph<Matrix>* graph);
+    explicit CacheBox(gsp::Graph<Matrix>* graph);
 
     gsp::detail::MatrixBox<Matrix> matrix_;
 };
 
+} // namespace gsp::detail
+
+// ---------------- Graph ----------------
 
 template <class Matrix>
-gsp::Graph<Matrix>::Graph(uint32_t num_nodes, bool is_directed):
-        BaseGraph(num_nodes), logger_(gsp::logging::getLogger(detType())) {
+gsp::Graph<Matrix>::Graph(uint32_t num_nodes, bool is_directed)
+    : BaseGraph(num_nodes),
+      logger_(gsp::logging::getLogger(detType())) {
+    type_ = detType();
+    is_directed_ = is_directed;
+}
+
+template <class Matrix>
+gsp::Graph<Matrix>::Graph(const gsp::Graph<Matrix>* other) noexcept
+    : gsp::BaseGraph(dynamic_cast<const BaseGraph*>(other)),
+      weights_(other->weights_),
+      logger_(gsp::logging::getLogger(detType())) {
     type_ = detType();
 }
 
-
-template<class Matrix>
-gsp::Graph<Matrix>::Graph(const gsp::Graph<Matrix> *other) noexcept :
-        gsp::BaseGraph(dynamic_cast<const BaseGraph*>(other)),
-        weights_(other->weights_), logger_(gsp::logging::getLogger(detType())) {
-    type_ = detType();
-}
-
-
-template<class Matrix>
+template <class Matrix>
 gsp::Graph<Matrix>::Graph(gsp::Graph<Matrix>&& other) noexcept
-        : BaseGraph(std::move(other)), weights_(std::move(other.weights_)),
-          cache_(other.cache_), logger_(gsp::logging::getLogger(detType())) {
-    // Reset the moved-from object's cache pointer
-    other.cache_ = nullptr;
+    : BaseGraph(std::move(other)),
+      weights_(std::move(other.weights_)),
+      logger_(gsp::logging::getLogger(detType())),
+      cache_(std::move(other.cache_)) {
     type_ = detType();
 }
 
-
-template<class Matrix>
+template <class Matrix>
 gsp::Graph<Matrix>::Graph(gsp::VertexGraph&& other) noexcept
-        : BaseGraph(std::move(other)),
-          logger_(gsp::logging::getLogger(detType())) {
-    // Reset the moved-from object's cache pointer
+    : BaseGraph(std::move(other)),
+      logger_(gsp::logging::getLogger(detType())) {
     type_ = detType();
 }
 
-
-template<class Matrix>
-gsp::Graph<Matrix>::Graph(const gsp::VertexGraph *other) noexcept: gsp::BaseGraph(other),
-                                                                   logger_(gsp::logging::getLogger(detType())) {
+template <class Matrix>
+gsp::Graph<Matrix>::Graph(const gsp::VertexGraph* other) noexcept
+    : gsp::BaseGraph(other),
+      logger_(gsp::logging::getLogger(detType())) {
     type_ = detType();
 }
 
-template<class Matrix>
+template <class Matrix>
 std::string gsp::Graph<Matrix>::detType() const {
-    if constexpr (gsp::types::is_eigen_sparse<Matrix>::value) {
+    if constexpr (gsp::types::is_eigen_sparse<std::remove_cv_t<std::remove_reference_t<Matrix>>>::value) {
         return "SparseGraph";
-    } else if constexpr  (gsp::types::is_eigen_dense<Matrix>::value)  {
+    } else if constexpr (gsp::types::is_eigen_dense<std::remove_cv_t<std::remove_reference_t<Matrix>>>::value) {
         return "DenseGraph";
-    } else {
-        return "UnknownGraph";
     }
+    return "UnknownGraph";
 }
 
-template<class Matrix>
-gsp::Graph<Matrix>& gsp::Graph<Matrix>::operator=(gsp::Graph<Matrix> &&other) noexcept {
+template <class Matrix>
+gsp::Graph<Matrix>& gsp::Graph<Matrix>::operator=(gsp::Graph<Matrix>&& other) noexcept {
     if (this == &other) return *this;
 
-    // Call base class move assignment operator
     BaseGraph::operator=(std::move(other));
-
-    // Move the matrix
     weights_ = std::move(other.weights_);
-
-    // Move other members
     is_directed_ = other.is_directed_;
-
-    // Move the cache
-    delete cache_;  // Clean up existing cache
-    cache_ = other.cache_;
-    other.cache_ = nullptr;  // Reset moved-from object's cache pointer
+    cache_ = std::move(other.cache_);
 
     return *this;
 }
 
 template <class Matrix>
-void gsp::Graph<Matrix>::setWeights(const Matrix& matrix, bool is_directed){
+void gsp::Graph<Matrix>::setWeights(const Matrix& matrix, bool is_directed) {
     invalidateCache();
-    this->weights_ = matrix;
-    this->is_directed_ = is_directed;
+    weights_ = matrix;
+    is_directed_ = is_directed;
 }
-
 
 template <class Matrix>
 void gsp::Graph<Matrix>::setWeights(const std::vector<gsp::Edge>& edges, bool is_directed) {
@@ -249,19 +281,23 @@ void gsp::Graph<Matrix>::setWeights(const std::vector<gsp::Edge>& edges, bool is
 template <class Matrix>
 void gsp::Graph<Matrix>::setEdges(const std::vector<gsp::Edge>& edges, bool is_directed) {
     invalidateCache();
-    this->is_directed_ = is_directed;
-    gsp::matrix::free(this->weights_);
-    gsp::matrix::allocate(this->weights_, this->numNodes(), this->numNodes());
-    gsp::matrix::fillZero(this->weights_);
+    is_directed_ = is_directed;
+
+    gsp::matrix::free(weights_);
+    gsp::matrix::allocate(weights_, this->numNodes(), this->numNodes());
+    gsp::matrix::fillZero(weights_);
+
     for (auto it = edges.begin(); it < edges.end(); ++it) {
-        if (it->weight() == 0) continue;
-        gsp::matrix::setElement(this->weights_, it->source(), it->target(), it->weight());
+        if (it->weight() == 0.0) continue;
+
+        gsp::matrix::setElement(weights_, it->source(), it->target(), it->weight());
+
         if (!is_directed) {
-            const double w = gsp::matrix::getElement(this->weights_, it->target(), it->source());
-            if (w == 0) {
-                gsp::matrix::setElement(this->weights_, it->target(), it->source(), it->weight());
-            } else if (w != it->weight()) {
-                gsp::matrix::free(this->weights_);
+            const double w_back = gsp::matrix::getElement(weights_, it->target(), it->source());
+            if (w_back == 0.0) {
+                gsp::matrix::setElement(weights_, it->target(), it->source(), it->weight());
+            } else if (w_back != it->weight()) {
+                gsp::matrix::free(weights_);
                 throw std::invalid_argument("Weights for undirected edges must be equal.");
             }
         }
@@ -271,46 +307,60 @@ void gsp::Graph<Matrix>::setEdges(const std::vector<gsp::Edge>& edges, bool is_d
 template <class Matrix>
 void gsp::Graph<Matrix>::setEdges(gsp::ConstEdgeGenerator& generator, bool is_directed) {
     invalidateCache();
-    this->is_directed_ = is_directed;
-    gsp::matrix::free(this->weights_);
-    gsp::matrix::allocate(this->weights_, this->numNodes(), this->numNodes());
-    gsp::matrix::fillZero(this->weights_);
+    is_directed_ = is_directed;
+
+    gsp::matrix::free(weights_);
+    gsp::matrix::allocate(weights_, this->numNodes(), this->numNodes());
+    gsp::matrix::fillZero(weights_);
+
     while (auto it = generator.next()) {
-        if (it->weight() == 0) continue;
-        gsp::matrix::setElement(this->weights_, it->source(), it->target(), it->weight());
+        if (it->weight() == 0.0) continue;
+
+        gsp::matrix::setElement(weights_, it->source(), it->target(), it->weight());
+
         if (!is_directed) {
-            const double w = gsp::matrix::getElement(this->weights_, it->target(), it->source());
-            if (w == 0) {
-                gsp::matrix::setElement(this->weights_, it->target(), it->source(), it->weight());
-            } else if (w != it->weight()) {
-                gsp::matrix::free(this->weights_);
+            const double w_back = gsp::matrix::getElement(weights_, it->target(), it->source());
+            if (w_back == 0.0) {
+                gsp::matrix::setElement(weights_, it->target(), it->source(), it->weight());
+            } else if (w_back != it->weight()) {
+                gsp::matrix::free(weights_);
                 throw std::invalid_argument("Weights for undirected edges must be equal.");
             }
         }
     }
 }
 
-
-
 template <class Matrix>
 void gsp::Graph<Matrix>::validateWeights(const Matrix&) {}
 
 template <class Matrix>
 gsp::Graph<Matrix>::~Graph() {
-    gsp::matrix::free(this->weights_);
+    gsp::matrix::free(weights_);
     invalidateCache();
 }
 
 template <class Matrix>
 void gsp::Graph<Matrix>::invalidateCache() {
-    delete this->cache_;
-    this->cache_ = nullptr;
+    cache_.reset();
 }
 
+template <class Matrix>
+const Matrix& gsp::Graph<Matrix>::weights() const {
+    return weights_;
+}
+
+template <class Matrix>
+gsp::detail::CacheBox<Matrix>* gsp::Graph<Matrix>::cache() {
+    if (!cache_) {
+        cache_ = std::make_unique<gsp::detail::CacheBox<Matrix>>(this);
+    }
+    return cache_.get();
+}
 
 template <class Matrix>
 gsp::ConstEdgeGenerator gsp::Graph<Matrix>::iterEdges(double thresh) const {
-    auto state = std::make_shared<gsp::StateMatrixGraph<Matrix>>(const_cast<Matrix*>(&weights_), is_directed_, thresh);
+    auto state = std::make_shared<gsp::StateMatrixGraph<Matrix>>(
+        const_cast<Matrix*>(&weights_), is_directed_, thresh);
     return gsp::ConstEdgeGenerator(std::shared_ptr<BaseStateEdgeGenerator>(state));
 }
 
@@ -325,334 +375,243 @@ gsp::Graph<Matrix> gsp::Graph<Matrix>::clone() const {
     return gsp::Graph<Matrix>(this);
 }
 
-// Implementation of toSparse method
 template <class Matrix>
 gsp::SparseGraph gsp::Graph<Matrix>::toSparse(double thresh) const {
     return to<gsp::sparsematrix>(thresh);
 }
 
-// Implementation of toDense method
-template <typename Matrix>
+template <class Matrix>
 gsp::DenseGraph gsp::Graph<Matrix>::toDense(double thresh) const {
     return to<gsp::densematrix>(thresh);
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+// ---- cache-backed getters ----
 
 template <class Matrix>
-gsp::detail::MatrixBox<Matrix>::MatrixBox(const Matrix* matrix) : weights_(matrix) {
+const typename gsp::Graph<Matrix>::densevector& gsp::Graph<Matrix>::degrees() {
+    return cache()->matrix_.degrees();
 }
+
+template <class Matrix>
+const Matrix& gsp::Graph<Matrix>::laplacian() {
+    return cache()->matrix_.laplacian();
+}
+
+template <class Matrix>
+const typename gsp::Graph<Matrix>::normalized_matrix& gsp::Graph<Matrix>::normalizedWeight() {
+    return cache()->matrix_.normalizedWeight();
+}
+
+template <class Matrix>
+const typename gsp::Graph<Matrix>::normalized_matrix& gsp::Graph<Matrix>::normalizedLaplacian() {
+    return cache()->matrix_.normalizedLaplacian();
+}
+
+template <class Matrix>
+const typename gsp::Graph<Matrix>::normalized_matrix& gsp::Graph<Matrix>::asymmetricNormalizedWeight() {
+    return cache()->matrix_.asymmetricNormalizedWeight();
+}
+
+// ---------------- MatrixBox / CacheBox ----------------
+
+template <class Matrix>
+gsp::detail::MatrixBox<Matrix>::MatrixBox(const Matrix* matrix) : weights_(matrix) {}
 
 template <class Matrix>
 gsp::detail::MatrixBox<Matrix>::~MatrixBox() {
     reset();
 }
 
-
 template <class Matrix>
 void gsp::detail::MatrixBox<Matrix>::reset() {
-    this->weights_ = nullptr;
-    gsp::matrix::free(this->laplacian_);
-    gsp::matrix::free(this->normalized_laplacian_);
-    gsp::matrix::free(this->normalized_weights_);
+    weights_ = nullptr;
+
+    gsp::matrix::free(laplacian_);
+    degrees_.resize(0);
+
+    // normalized_* are Eigen objects too, reuse your helper to free
+    gsp::matrix::free(normalized_weights_);
+    gsp::matrix::free(normalized_laplacian_);
+    gsp::matrix::free(asymmetric_normalized_weight_);
 }
 
 template <class Matrix>
-void gsp::detail::MatrixBox<Matrix>::setWeights(Matrix* matrix) {
+void gsp::detail::MatrixBox<Matrix>::setWeights(const Matrix* matrix) {
     reset();
-    this->weights_ = matrix;
+    weights_ = matrix;
 }
 
 template <class Matrix>
 const Matrix& gsp::detail::MatrixBox<Matrix>::weights() const {
-    return *(this->weights_);
+    return *weights_;
 }
 
 template <class Matrix>
-const Matrix& gsp::Graph<Matrix>::weights() const {
-    return this->weights_;
-}
+gsp::detail::CacheBox<Matrix>::CacheBox(gsp::Graph<Matrix>* graph)
+    : matrix_(&graph->weights()) {}
+
+
+// ---- degrees (kept in original densevector<Matrix>) ----
 
 template <class Matrix>
-gsp::detail::CacheBox<Matrix>* gsp::Graph<Matrix>::cache() {
-    if (not cache_) {
-        cache_ = new gsp::detail::CacheBox<Matrix>(this);
-    }
-    return cache_;
+typename gsp::detail::MatrixBox<Matrix>::densevector&
+gsp::detail::MatrixBox<Matrix>::degrees() {
+    if (isMatrixBoxCalculated(degrees_, weights_)) return degrees_;
+
+    // NOTE: This keeps the original scalar. If scalar is integer, degrees_ will be integer.
+    // Normalized methods will cast degrees_ to float_type as needed.
+    degrees_ = (*weights_) * densevector::Ones(weights_->cols());
+    return degrees_;
 }
 
+// ---- laplacian (kept in original Matrix) ----
 
-template <>
-gsp::densematrix& gsp::detail::MatrixBox<gsp::densematrix>::laplacian() {
-    if (isCalculated(this->laplacian_)) {
-        return this->laplacian_;
-    }
-    // degree[i] = sum_j W(i,j)
-    auto& cached_degrees = this->degrees();
+template <class Matrix>
+Matrix& gsp::detail::MatrixBox<Matrix>::laplacian() {
+    if (isMatrixBoxCalculated(laplacian_, weights_)) return laplacian_;
 
-    // L = D - W (dense, no extra temporaries)
-    laplacian_ = -*weights_;
-    laplacian_.diagonal().array() += cached_degrees.array();
+    if (!weights_) throw std::runtime_error("MatrixBox::laplacian(): weights_ is null");
 
-    return laplacian_;
-}
+    auto& deg = degrees();
 
-template <>
-gsp::sparsematrix& gsp::detail::MatrixBox<gsp::sparsematrix>::laplacian() {
-    if (isCalculated(this->laplacian_)) {
-        return this->laplacian_; // already computed
-    }
+    if constexpr (gsp::types::is_eigen_dense<std::remove_cv_t<std::remove_reference_t<Matrix>>>::value) {
+        // L = D - W
+        laplacian_ = -(*weights_);
+        laplacian_.diagonal().array() += deg.array();
+        return laplacian_;
+    } else if constexpr (gsp::types::is_eigen_sparse<std::remove_cv_t<std::remove_reference_t<Matrix>>>::value) {
+        // Build L = D - W (triplets)
+        using triplet_t = Eigen::Triplet<scalar_type>;
 
-    const auto n = static_cast<int>(weights_->rows());
+        const int n = static_cast<int>(weights_->rows());
+        std::vector<triplet_t> triplets;
+        triplets.reserve(static_cast<size_t>(weights_->nonZeros()) + static_cast<size_t>(n));
 
-    // degree[i] = sum_j W(i,j)
-    auto& cached_degrees = this->degrees();
-
-    // Build L = D - W using triplets
-    std::vector<Eigen::Triplet<double>> triplets;
-    triplets.reserve(static_cast<size_t>(weights_->nonZeros()) + n);
-
-    // Off-diagonal: -W(i,j)
-    for (int k = 0; k < weights_->outerSize(); ++k) {
-        for (typename gsp::sparsematrix::InnerIterator it(*weights_, k); it; ++it) {
-            if (it.row() != it.col()) {
-                triplets.emplace_back(it.row(), it.col(), -it.value());
+        for (int k = 0; k < weights_->outerSize(); ++k) {
+            for (typename std::remove_reference_t<Matrix>::InnerIterator it(*weights_, k); it; ++it) {
+                if (it.row() != it.col()) {
+                    triplets.emplace_back(it.row(), it.col(), static_cast<scalar_type>(-it.value()));
+                }
             }
         }
-    }
-    // Diagonal: degree[i] - W(i,i)  (keeps self-loop logic correct)
-    for (int i = 0; i < n; ++i) {
-        triplets.emplace_back(i, i, cached_degrees[i] - weights_->coeff(i, i));
-    }
 
-    laplacian_.resize(n, n);
-    laplacian_.setFromTriplets(triplets.begin(), triplets.end());
-    laplacian_.makeCompressed();
-
-    return laplacian_;
-}
-
-
-template <>
-gsp::densematrix& gsp::detail::MatrixBox<gsp::densematrix>::asymmetricNormalizedWeight() {
-    if (isCalculated(this->asymmetric_normalized_weight_)) {
-        return this->asymmetric_normalized_weight_; // already computed
-    }
-    auto& cached_degrees = this->degrees();
-
-
-    Eigen::VectorXd d_inv = cached_degrees.unaryExpr(
-            [](double x){ return (x > 0.0) ? 1.0/x : 0.0; });
-
-
-    this->asymmetric_normalized_weight_ = this->weights_->array().colwise() * d_inv.array();  // left  scaling (rows)
-
-    return asymmetric_normalized_weight_;
-}
-
-
-template <>
-gsp::sparsematrix& gsp::detail::MatrixBox<gsp::sparsematrix>::asymmetricNormalizedWeight() {
-    if (isCalculated(this->asymmetric_normalized_weight_)) {
-        return this->asymmetric_normalized_weight_; // already computed
-    }
-
-    auto& cached_degrees = this->degrees();
-
-    Eigen::VectorXd d_inv = cached_degrees.unaryExpr(
-            [](double x){ return (x > 0.0) ? 1.0/x : 0.0; });
-
-    this->asymmetric_normalized_weight_ = *weights_;
-
-    using SparseT = std::remove_reference_t<decltype(asymmetric_normalized_weight_)>;
-
-    for (int k = 0; k < this->asymmetric_normalized_weight_.outerSize(); ++k) {
-        for (SparseT::InnerIterator it(asymmetric_normalized_weight_, k); it; ++it) {
-            it.valueRef() *= d_inv[it.row()];
+        for (int i = 0; i < n; ++i) {
+            const scalar_type diag =
+                static_cast<scalar_type>(deg[i]) - static_cast<scalar_type>(weights_->coeff(i, i));
+            triplets.emplace_back(i, i, diag);
         }
-    }
 
-    return asymmetric_normalized_weight_;
+        laplacian_.resize(n, n);
+        laplacian_.setFromTriplets(triplets.begin(), triplets.end());
+        laplacian_.makeCompressed();
+        return laplacian_;
+    } else {
+        static_assert(sizeof(Matrix) == 0, "MatrixBox<Matrix>::laplacian(): Matrix must be Eigen dense or sparse.");
+    }
 }
 
+// ---- normalizedWeight (float_matrix) ----
 
+template <class Matrix>
+typename gsp::detail::MatrixBox<Matrix>::float_matrix&
+gsp::detail::MatrixBox<Matrix>::normalizedWeight() {
+    if (isMatrixBoxCalculated(normalized_weights_, weights_)) return normalized_weights_;
+    if (!weights_) throw std::runtime_error("MatrixBox::normalizedWeight(): weights_ is null");
 
-template <>
-gsp::densematrix& gsp::detail::MatrixBox<gsp::densematrix>::normalizedWeight() {
-    if (isCalculated(this->normalized_weights_)) {
-        return this->normalized_weights_; // already computed
-    }
-    auto& cached_degrees = this->degrees();
+    // d^{-1/2}
+    Eigen::Matrix<float_type, Eigen::Dynamic, 1> d_inv_sqrt =
+        degrees().template cast<float_type>().unaryExpr([](float_type x) -> float_type {
+            return (x > float_type(0)) ? (float_type(1) / std::sqrt(x)) : float_type(0);
+        });
 
+    if constexpr (gsp::types::is_eigen_dense<std::remove_cv_t<std::remove_reference_t<Matrix>>>::value) {
+        // D^{-1/2} W D^{-1/2}
+        normalized_weights_ = weights_->template cast<float_type>();
+        normalized_weights_ = normalized_weights_.array().rowwise() * d_inv_sqrt.transpose().array();
+        normalized_weights_ = normalized_weights_.array().colwise() * d_inv_sqrt.array();
+        return normalized_weights_;
+    } else if constexpr (gsp::types::is_eigen_sparse<std::remove_cv_t<std::remove_reference_t<Matrix>>>::value) {
+        normalized_weights_ = weights_->template cast<float_type>();
 
-    Eigen::VectorXd d_inv_sqrt = cached_degrees.unaryExpr(
-            [](double x){ return (x > 0.0) ? 1.0/std::sqrt(x) : 0.0; });
-
-
-    this->normalized_weights_ = weights_->array().rowwise() * d_inv_sqrt.transpose().array(); // right scaling (columns)
-    this->normalized_weights_ = this->normalized_weights_.array().colwise() * d_inv_sqrt.array();  // left  scaling (rows)
-
-    return normalized_weights_;
-}
-
-
-template <>
-gsp::sparsematrix& gsp::detail::MatrixBox<gsp::sparsematrix>::normalizedWeight() {
-    if (isCalculated(this->normalized_weights_)) {
-        return this->normalized_weights_; // already computed
-    }
-
-    auto& cached_degrees = this->degrees();
-
-    Eigen::VectorXd d_inv_sqrt = cached_degrees.unaryExpr(
-            [](double x){ return (x > 0.0) ? 1.0/std::sqrt(x) : 0.0; });
-
-    this->normalized_weights_ = *weights_;
-
-    using SparseT = std::remove_reference_t<decltype(normalized_weights_)>;
-
-    for (int k = 0; k < this->normalized_weights_.outerSize(); ++k) {
-        for (SparseT::InnerIterator it(normalized_weights_, k); it; ++it) {
-            it.valueRef() *= d_inv_sqrt[it.row()] * d_inv_sqrt[it.col()];
+        for (int k = 0; k < normalized_weights_.outerSize(); ++k) {
+            for (typename float_matrix::InnerIterator it(normalized_weights_, k); it; ++it) {
+                it.valueRef() *= d_inv_sqrt[it.row()] * d_inv_sqrt[it.col()];
+            }
         }
+        return normalized_weights_;
+    } else {
+        static_assert(sizeof(Matrix) == 0, "MatrixBox<Matrix>::normalizedWeight(): Matrix must be Eigen dense or sparse.");
     }
-
-    return normalized_weights_;
 }
 
+// ---- asymmetricNormalizedWeight (float_matrix) ----
 
+template <class Matrix>
+typename gsp::detail::MatrixBox<Matrix>::float_matrix&
+gsp::detail::MatrixBox<Matrix>::asymmetricNormalizedWeight() {
+    if (isMatrixBoxCalculated(asymmetric_normalized_weight_, weights_)) return asymmetric_normalized_weight_;
+    if (!weights_) throw std::runtime_error("MatrixBox::asymmetricNormalizedWeight(): weights_ is null");
 
+    // d^{-1}
+    Eigen::Matrix<float_type, Eigen::Dynamic, 1> d_inv =
+        degrees().template cast<float_type>().unaryExpr([](float_type x) -> float_type {
+            return (x > float_type(0)) ? (float_type(1) / x) : float_type(0);
+        });
 
-template <>
-gsp::densematrix& gsp::detail::MatrixBox<gsp::densematrix>::normalizedLaplacian() {
-    if (isCalculated(this->normalized_laplacian_)) {
-        return this->normalized_laplacian_;
-    }
+    if constexpr (gsp::types::is_eigen_dense<std::remove_cv_t<std::remove_reference_t<Matrix>>>::value) {
+        // D^{-1} W  (left scaling by d_inv on rows)
+        asymmetric_normalized_weight_ = weights_->template cast<float_type>();
+        asymmetric_normalized_weight_ = asymmetric_normalized_weight_.array().colwise() * d_inv.array();
+        return asymmetric_normalized_weight_;
+    } else if constexpr (gsp::types::is_eigen_sparse<std::remove_cv_t<std::remove_reference_t<Matrix>>>::value) {
+        asymmetric_normalized_weight_ = weights_->template cast<float_type>();
 
-    auto& cached_degrees = this->degrees();
-
-    Eigen::VectorXd d_inv_sqrt = cached_degrees.unaryExpr(
-            [](double x){ return (x > 0.0) ? 1.0 / std::sqrt(x) : 0.0; });
-
-    const auto& cached_laplacian = this->laplacian();
-
-    this->normalized_laplacian_ = cached_laplacian.array().rowwise() * d_inv_sqrt.transpose().array(); // right scaling (columns)
-    this->normalized_laplacian_ = this->normalized_laplacian_.array().colwise() * d_inv_sqrt.array();  // left  scaling (rows)
-
-
-
-    return laplacian_;
-}
-
-template <>
-gsp::sparsematrix& gsp::detail::MatrixBox<gsp::sparsematrix>::normalizedLaplacian() {
-    if (isCalculated(this->normalized_laplacian_)) {
-        return this->normalized_laplacian_; // already computed
-    }
-
-    const auto n = static_cast<int>(weights_->rows());
-
-    auto& cached_degrees = this->degrees();
-
-    Eigen::VectorXd d_inv_sqrt = cached_degrees.unaryExpr(
-            [](double x){ return (x > 0.0) ? 1.0/std::sqrt(x) : 0.0; });
-
-    auto& cached_laplacian = this->laplacian();
-
-    this->normalized_laplacian_.swap(cached_laplacian);
-
-    using SparseT = std::remove_reference_t<decltype(normalized_laplacian_)>;
-
-    for (int k = 0; k < this->normalized_laplacian_.outerSize(); ++k) {
-        for (SparseT::InnerIterator it(normalized_laplacian_, k); it; ++it) {
-            it.valueRef() *= d_inv_sqrt[it.row()] * d_inv_sqrt[it.col()];
+        for (int k = 0; k < asymmetric_normalized_weight_.outerSize(); ++k) {
+            for (typename float_matrix::InnerIterator it(asymmetric_normalized_weight_, k); it; ++it) {
+                it.valueRef() *= d_inv[it.row()];
+            }
         }
+        return asymmetric_normalized_weight_;
+    } else {
+        static_assert(sizeof(Matrix) == 0, "MatrixBox<Matrix>::asymmetricNormalizedWeight(): Matrix must be Eigen dense or sparse.");
     }
-
-    return normalized_laplacian_;
 }
 
-template <class Matrix>
-const typename gsp::Graph<Matrix>::densevector& gsp::Graph<Matrix>::degrees() {
-    return this->cache()->matrix_.degrees();
-}
-
-
+// ---- normalizedLaplacian (float_matrix) ----
 
 template <class Matrix>
-const Matrix& gsp::Graph<Matrix>::laplacian() {
-    return this->cache()->matrix_.laplacian();
+typename gsp::detail::MatrixBox<Matrix>::float_matrix&
+gsp::detail::MatrixBox<Matrix>::normalizedLaplacian() {
+    if (isMatrixBoxCalculated(normalized_laplacian_, weights_)) return normalized_laplacian_;
+    if (!weights_) throw std::runtime_error("MatrixBox::normalizedLaplacian(): weights_ is null");
 
-}
+    // d^{-1/2}
+    Eigen::Matrix<float_type, Eigen::Dynamic, 1> d_inv_sqrt =
+        degrees().template cast<float_type>().unaryExpr([](float_type x) -> float_type {
+            return (x > float_type(0)) ? (float_type(1) / std::sqrt(x)) : float_type(0);
+        });
 
-template <class Matrix>
-const Matrix& gsp::Graph<Matrix>::normalizedLaplacian() {
-    return this->cache()->matrix_.normalizedLaplacian();
+    if constexpr (gsp::types::is_eigen_dense<std::remove_cv_t<std::remove_reference_t<Matrix>>>::value) {
+        // D^{-1/2} L D^{-1/2}
+        normalized_laplacian_ = laplacian().template cast<float_type>();
+        normalized_laplacian_ = normalized_laplacian_.array().rowwise() * d_inv_sqrt.transpose().array();
+        normalized_laplacian_ = normalized_laplacian_.array().colwise() * d_inv_sqrt.array();
+        return normalized_laplacian_;
+    } else if constexpr (gsp::types::is_eigen_sparse<std::remove_cv_t<std::remove_reference_t<Matrix>>>::value) {
+        normalized_laplacian_ = laplacian().template cast<float_type>();
 
-}
-
-template <class Matrix>
-const Matrix& gsp::Graph<Matrix>::normalizedWeight() {
-    return this->cache()->matrix_.normalizedWeight();
-
-}
-
-template <class Matrix>
-const Matrix& gsp::Graph<Matrix>::asymmetricNormalizedWeight() {
-    return this->cache()->matrix_.asymmetricNormalizedWeight();
-
-}
-
-
-template <class Matrix>
-typename gsp::Graph<Matrix>::densevector& gsp::detail::MatrixBox<Matrix>::degrees() {
-    if (isCalculated(this->_degrees)) {
-        return _degrees;
+        for (int k = 0; k < normalized_laplacian_.outerSize(); ++k) {
+            for (typename float_matrix::InnerIterator it(normalized_laplacian_, k); it; ++it) {
+                it.valueRef() *= d_inv_sqrt[it.row()] * d_inv_sqrt[it.col()];
+            }
+        }
+        return normalized_laplacian_;
+    } else {
+        static_assert(sizeof(Matrix) == 0, "MatrixBox<Matrix>::normalizedLaplacian(): Matrix must be Eigen dense or sparse.");
     }
-    _degrees = *weights_ * gsp::Graph<Matrix>::densevector::Ones(weights_->cols());
-    return _degrees;
 }
 
-
-
-template <class Matrix>
-gsp::detail::CacheBox<Matrix>::CacheBox(gsp::Graph<Matrix>* graph) : matrix_(&graph->weights()) {
-
-}
-
-
-template <class Matrix>
-bool gsp::detail::MatrixBox<Matrix>::isCalculated(const Matrix& m) {
-    return m.rows() == weights_->rows();
-}
-template <class Matrix>
-bool gsp::detail::MatrixBox<Matrix>::isCalculated(const typename gsp::Graph<Matrix>::densevector& m) {
-    return m.rows() == weights_->rows();
-}
-
-
-
-
-
-
-
-
-
-
-
+// ---------------- operators ----------------
 
 template <class Matrix>
 gsp::Graph<Matrix>& gsp::Graph<Matrix>::iadd(const gsp::Graph<Matrix>& other) {
@@ -664,6 +623,7 @@ gsp::Graph<Matrix>& gsp::Graph<Matrix>::iadd(const gsp::Graph<Matrix>& other) {
     gsp::VertexGraph::iadd(dynamic_cast<const gsp::VertexGraph&>(other));
     is_directed_ |= other.is_directed_;
     weights_ += other.weights_;
+    invalidateCache();
     return *this;
 }
 
@@ -674,7 +634,9 @@ gsp::Graph<Matrix>& gsp::Graph<Matrix>::operator+=(const gsp::Graph<Matrix>& oth
 
 template <class Matrix>
 gsp::Graph<Matrix> gsp::Graph<Matrix>::add(const gsp::Graph<Matrix>& other) const {
-    return std::move(gsp::Graph<Matrix>(this).iadd(other));
+    gsp::Graph<Matrix> out(this);
+    out.iadd(other);
+    return out;
 }
 
 template <class Matrix>
@@ -687,53 +649,22 @@ gsp::Graph<Matrix> gsp::Graph<Matrix>::operator*(const gsp::Graph<Matrix>& other
     return mul(other);
 }
 
-
 template <class Matrix>
 gsp::Graph<Matrix> gsp::Graph<Matrix>::kron(const gsp::Graph<Matrix>& other) const {
     gsp::Graph<Matrix> graph(std::move(gsp::VertexGraph::mul(other)));
     bool is_directed = is_directed_ || other.is_directed_;
-    auto weights = gsp::matrix::kron(weights_, other.weights_);
-    graph.setWeights(weights, is_directed);
+    auto w = gsp::matrix::kron(weights_, other.weights_);
+    graph.setWeights(w, is_directed);
     return graph;
 }
-
 
 template <class Matrix>
 gsp::Graph<Matrix> gsp::Graph<Matrix>::mul(const gsp::Graph<Matrix>& other) const {
     gsp::Graph<Matrix> graph(std::move(gsp::VertexGraph::mul(other)));
     bool is_directed = is_directed_ || other.is_directed_;
-    auto weights = gsp::matrix::kronSum(weights_, other.weights_);
-    graph.setWeights(weights, is_directed);
+    auto w = gsp::matrix::kronSum(weights_, other.weights_);
+    graph.setWeights(w, is_directed);
     return graph;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 #endif  // LIBGSP_GRAPH_H
