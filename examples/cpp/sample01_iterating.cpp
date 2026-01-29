@@ -5,11 +5,12 @@
 #include "libgsp/Graph.h"
 #include "libgsp/utils/Logging.h"
 
-uint32_t countNumNodes(gsp::BaseGraph& graph) {
+uint32_t countNumNodes(const gsp::BaseGraph& graph) {
     auto logger = gsp::logging::getLogger("countNumNodes");
     logger->info("graph type: {}", graph.type());
     uint32_t count_nodes = 0;
     for (auto it = graph.begin(); it != graph.end(); ++it) {
+//        it->coord.setX(10);
         logger->info("Node {}: {} @ ({:.5g},{:.5g},{:.5g})", it->id, it->name, it->coord.x(), it->coord.y(), it->coord.z());
         ++count_nodes;
     }
