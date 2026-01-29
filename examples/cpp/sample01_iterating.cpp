@@ -289,7 +289,7 @@ int main() {
 
         logger->info("Dense graph converted back with threshold 0.4 has {} edges:", dense_edges_thresh.size());
         for (const auto& edge : dense_edges_thresh) {
-            logger->info("  Edge: {} -> {} with weight {:.5svg}", edge.source(), edge.target(), edge.weight());
+            logger->info("  Edge: {} -> {} with weight {:.5g}", edge.source(), edge.target(), edge.weight());
         }
 
         // Verify that only edges with weight > 0.4 are present
