@@ -11,11 +11,19 @@
 #include <Eigen/SparseCore>
 
 namespace gsp {
-using densematrix = Eigen::MatrixXd;
-using sparsematrix = Eigen::SparseMatrix<double, Eigen::RowMajor>;
 
 template <typename Scalar>
-using densevector = typename Eigen::Matrix<Scalar, Eigen::Dynamic, 1, Eigen::ColMajor>;
+using densematrix_t = Eigen::MatrixX<Scalar>;
+template <typename Scalar>
+using sparsematrix_t = Eigen::SparseMatrix<Scalar, Eigen::RowMajor>;
+
+using densematrix = densematrix_t<double>;
+using sparsematrix = sparsematrix_t<double>;
+
+template <typename Scalar>
+using densevector_t = typename Eigen::Matrix<Scalar, Eigen::Dynamic, 1, Eigen::ColMajor>;
+
+using half_t = Eigen::half;
 }
 
 namespace gsp::types {
@@ -111,6 +119,13 @@ using vector_t = typename vector_of<std::remove_cv_t<std::remove_reference_t<Mat
 template <typename Matrix> using densevector_m = typename Eigen::Matrix<elem_t<Matrix>, Eigen::Dynamic, 1, Eigen::ColMajor>;
 
 
+template <typename T>
+using float_of =
+    std::conditional_t<
+        (sizeof(T) <= sizeof(half_t)), half_t,
+        std::conditional_t<
+            (sizeof(T) <= sizeof(float)), float,
+            std::conditional_t<(sizeof(T) <= sizeof(double)), double, long double>>>;
 } // namespace gsp::types
 
 #endif  // LIBGSP_TYPES_H

@@ -12,6 +12,9 @@
 
 #include <Eigen/Eigen>
 
+#include "libgsp/utils/Logging.h"
+
+
 // Forward declarations for iterators
 namespace gsp {
     class VertexIterator;
@@ -127,8 +130,13 @@ public:
 
     std::string default_name_format = "v{}";
 
+
+
+
+
 protected:
     std::string type_;
+    gsp::logging::Logger logger;
 
 private:
     static uint32_t num_graphs_;
