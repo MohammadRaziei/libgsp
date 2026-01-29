@@ -6,11 +6,11 @@
 
 
 gsp::Edge::Edge(uint32_t source, uint32_t target, double weight,
-        std::shared_ptr<gsp::BaseStateEdgeGenerator> state) :
+        std::shared_ptr<gsp::BaseMiniState> state) :
     source_(source), target_(target), weight_(weight), state_(state) {}
 
 void gsp::Edge::setWeight(double weight) {
-    if (state_) state_->setWeight(weight);
+    if (state_) state_->setValue(weight);
     weight_ = weight;
 }
 

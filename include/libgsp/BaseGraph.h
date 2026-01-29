@@ -19,7 +19,7 @@
 namespace gsp {
     class EdgeGenerator;
     class ConstEdgeGenerator;
-    class BaseStateEdgeGenerator;
+    struct BaseMiniState;
     class Edge;
     class BaseGraph;
 }
@@ -27,7 +27,7 @@ namespace gsp {
 class gsp::Edge {
 public:
     Edge(uint32_t source, uint32_t target, double weight = 1.0,
-         std::shared_ptr<gsp::BaseStateEdgeGenerator> state = nullptr);
+         std::shared_ptr<gsp::BaseMiniState> state = nullptr);
     Edge& operator=(const gsp::Edge& other) = delete;
 
     Edge& operator=(double weight);
@@ -48,7 +48,7 @@ public:
 private:
     const uint32_t source_, target_;
     double weight_;
-    std::shared_ptr<gsp::BaseStateEdgeGenerator> state_;
+    std::shared_ptr<gsp::BaseMiniState> state_;
 };
 
 

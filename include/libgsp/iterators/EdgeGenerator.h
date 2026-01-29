@@ -16,6 +16,7 @@ namespace gsp {
     class EdgeGenerator;
     class ConstEdgeGenerator;
     class BaseStateEdgeGenerator;
+    struct BaseMiniState;
 } // namespace gsp
 
 // Single primary template; definitions specialized in .cpp
@@ -52,10 +53,17 @@ public:
     virtual ~BaseStateEdgeGenerator();
     virtual void reset() = 0;
     virtual std::optional<gsp::Edge> next() = 0;
-    virtual void setWeight(double weight) = 0;
-    virtual std::shared_ptr<BaseStateEdgeGenerator> clone() const = 0;
 };
 
+struct gsp::BaseMiniState {
+    virtual ~BaseMiniState() = default;
+
+    // Read the "current selected" weight (typically the last emitted edge).
+    virtual double value() const = 0;
+
+    // Write back to the "current selected" weight (typically the last emitted edge).
+    virtual void setValue(double v) = 0;
+};
 
 
 
