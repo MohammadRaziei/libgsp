@@ -1,5 +1,10 @@
 //
-// Created by mohammad on 1/10/26.
+// gsp::StateMatrixGraph — generic Eigen dense/sparse edge generator
+// - Works with Eigen::Matrix<Scalar,...> and Eigen::SparseMatrix<Scalar,...>
+// - Prototypes first, implementations below
+// - Member variables are snake_case
+// - thresh_ stays double
+// - Uses gsp::types::{elem_t,is_eigen_dense,is_eigen_sparse,float_of}
 //
 
 #ifndef LIBGSP_STATEMATRIXGRAPH_H
@@ -9,205 +14,279 @@
 #include "libgsp/iterators/EdgeGenerator.h"
 #include "libgsp/utils/Types.h"
 
-#include <Eigen/Dense>
+#include <Eigen/Core>
 #include <Eigen/SparseCore>
 
 #include <cmath>
+#include <cstdint>
 #include <memory>
 #include <optional>
+#include <type_traits>
 
 namespace gsp {
-    template <class Matrix> class StateMatrixGraph;
-}
 
 template <class Matrix>
-class gsp::StateMatrixGraph : public gsp::BaseStateEdgeGenerator {
+class StateMatrixGraph final : public gsp::BaseStateEdgeGenerator {
 public:
-    StateMatrixGraph(Matrix* weight, bool is_directed, double thresh);
-    StateMatrixGraph(const StateMatrixGraph& other) = delete;
-    StateMatrixGraph(const StateMatrixGraph* other);
+    using matrix_type = Matrix;
+    using scalar_type = gsp::types::elem_t<Matrix>;
+    using float_type  = gsp::types::float_of<scalar_type>;
+
+    StateMatrixGraph(Matrix* weights, bool is_directed, double thresh);
+    StateMatrixGraph(const StateMatrixGraph&) = delete;
     StateMatrixGraph& operator=(const StateMatrixGraph&) = delete;
-    ~StateMatrixGraph();
+    ~StateMatrixGraph() override = default;
 
-    virtual void reset() override;
-    virtual std::optional<gsp::Edge> next() override;
-    virtual std::shared_ptr<gsp::BaseStateEdgeGenerator> clone() const override;
-    virtual void setWeight(double weight);
-
+    void reset() override;
+    std::optional<gsp::Edge> next() override;
+    std::shared_ptr<gsp::BaseStateEdgeGenerator> clone() const override;
+    void setWeight(double weight) override;
 
 private:
-        // common state (used by specializations)
-        Matrix* weights_ = nullptr;
-        uint32_t num_nodes_;
-        double thresh_;
-        bool is_directed_;
+    // ---- matrix category ----
+    static constexpr bool is_dense_ =
+        gsp::types::is_eigen_dense<std::remove_cv_t<std::remove_reference_t<Matrix>>>::value;
 
-        class State;
-        std::unique_ptr<State> state_;  // Using PIMPL pattern for state
+    static constexpr bool is_sparse_ =
+        gsp::types::is_eigen_sparse<std::remove_cv_t<std::remove_reference_t<Matrix>>>::value;
+
+    static_assert(is_dense_ || is_sparse_,
+                  "StateMatrixGraph<Matrix>: Matrix must be an Eigen dense Matrix or Eigen SparseMatrix.");
+
+    // ---- state ----
+    struct dense_state {
+        uint32_t row = 0;
+        uint32_t col = 0;
+        uint32_t last_row = 0; // last emitted edge position (for setWeight)
+        uint32_t last_col = 0;
+    };
+
+    struct sparse_state {
+        using sparse_matrix  = std::remove_cv_t<std::remove_reference_t<Matrix>>;
+        using inner_iterator = typename sparse_matrix::InnerIterator;
+
+        Matrix* weights = nullptr;
+        uint32_t outer = 0;
+
+        // Current iterator for current outer (RowMajor: row)
+        std::optional<inner_iterator> it;
+
+        // Last emitted iterator (for setWeight)
+        std::optional<inner_iterator> last_it;
+    };
+
+    using state_t = std::conditional_t<is_dense_, dense_state, sparse_state>;
+
+    // ---- data members (snake_case) ----
+    Matrix*  weights_     = nullptr;
+    uint32_t num_nodes_   = 0;
+    double   thresh_      = 0.0;
+    bool     is_directed_ = false;
+    state_t  state_;
+
+private:
+    // ---- helpers ----
+    // Dense
+    void reset_dense_();
+    std::optional<gsp::Edge> next_dense_();
+
+    // Sparse
+    void reset_sparse_();
+    void advance_to_next_nonempty_outer_();
+    std::optional<gsp::Edge> next_sparse_();
 };
-
-
-
-namespace gsp {
-
-// Dense matrix state implementation
-template <>
-class StateMatrixGraph<gsp::densematrix>::State {
-public:
-    State(const gsp::densematrix*) { reset(); }
-    State(const gsp::StateMatrixGraph<gsp::densematrix>::State& other) :
-        row_(other.row_), col_(other.col_) {}
-
-    void reset() { row_ = col_ = 0; }
-    uint32_t row_, col_;
-};
-
-// Sparse matrix state implementation
-template <>
-class StateMatrixGraph<gsp::sparsematrix>::State {
-public:
-    using InnerIt = gsp::sparsematrix::InnerIterator;
-
-    explicit State(gsp::sparsematrix* W) : W(W) { reset(); }
-    State(const gsp::StateMatrixGraph<gsp::sparsematrix>::State& other) :
-        W(other.W), outer(other.outer), it(std::make_unique<InnerIt>(*other.it.get())) {}
-
-    void reset() {
-        outer = 0;
-        it.reset();
-        // jump to first non-empty row
-        advance_to_next_nonempty_row();
-    }
-
-    void advance_to_next_nonempty_row() {
-        if (!W) return;
-        const int outerSize = W->outerSize(); // == rows for RowMajor
-        while (outer < outerSize) {
-            it = std::make_unique<InnerIt>(*W, outer);
-            if (*it) break;   // row has at least one nnz
-            ++outer;          // try next row
-        }
-    }
-
-    sparsematrix* W = nullptr;
-    uint32_t outer = 0;                          // current row
-    std::unique_ptr<InnerIt> it;            // iterator within current row
-};
-
-// Constructor with threshold
-template <class Matrix>
-StateMatrixGraph<Matrix>::StateMatrixGraph(Matrix* weights, bool is_directed, double thresh)
-    : gsp::BaseStateEdgeGenerator(), weights_(weights), num_nodes_(weights->rows()), is_directed_(is_directed), thresh_(thresh) {
-        state_ = std::make_unique<State>(weights_);
-    state_->reset();   // Reset the state
-}
-
-template <class Matrix>
-StateMatrixGraph<Matrix>::StateMatrixGraph(const StateMatrixGraph* other): gsp::BaseStateEdgeGenerator(),
-                                                                           weights_(other->weights_), num_nodes_(other->num_nodes_), is_directed_(other->is_directed_), thresh_(other->thresh_){
-    auto st = other->state_.get();
-    state_ = std::make_unique<State>(*st);
-}
-
-// Destructor
-template <class Matrix>
-StateMatrixGraph<Matrix>::~StateMatrixGraph() = default;
-
-// Reset (keeps current threshold)
-template <class Matrix>
-void StateMatrixGraph<Matrix>::reset() {
-    state_->reset();
-}
-
-template <>
-void StateMatrixGraph<gsp::sparsematrix>::setWeight(double weight) {
-    auto* st = state_.get();
-    st->it->valueRef() = weight;
-}
-
-template <>
-void StateMatrixGraph<gsp::densematrix>::setWeight(double weight) {
-    auto* st = state_.get();
-    (*weights_)(st->row_, st->col_) = weight;
-}
-
-
-// Next edge for dense matrix
-template <>
-std::optional<Edge> StateMatrixGraph<densematrix>::next() {
-    if (!weights_ || num_nodes_ <= 0 || !state_ || weights_->rows() == 0) return std::nullopt;
-
-    while (state_->row_ < num_nodes_) {
-        // for undirected we emit only upper triangle: col starts at row
-        while (state_->col_ < num_nodes_) {
-            const uint32_t col = state_->col_;
-            const double w = (*weights_)(state_->row_, col);
-
-            if (std::abs(w) <= thresh_) {
-                ++state_->col_;
-                continue;
-            }
-            auto cloned = clone();
-            ++state_->col_;
-
-            return gsp::Edge(state_->row_, col, w, cloned);
-        }
-        ++state_->row_;
-        state_->col_ = (is_directed_) ? 0 : state_->row_; // reset for next row
-    }
-    return std::nullopt;
-}
-
-// Next edge for sparse matrix
-template <>
-std::optional<Edge> StateMatrixGraph<sparsematrix>::next() {
-    if (!weights_ || num_nodes_ <= 0 || !state_ || weights_->rows() == 0) return std::nullopt;
-
-    auto* st = state_.get(); // convenience
-
-    while (st->W && st->outer < st->W->outerSize()) {
-        if (!st->it) st->advance_to_next_nonempty_row();
-        if (!st->it || !(*st->it)) {
-            // this row exhausted -> move to next row
-            ++st->outer;
-            st->it.reset();
-            st->advance_to_next_nonempty_row();
-            continue;
-        }
-
-        // snapshot current entry, advance iterator state BEFORE checks
-        const Eigen::Index r = st->it->row();
-        const Eigen::Index c = st->it->col();
-        const double       w = st->it->value();
-
-        // undirected: keep only upper triangle (i <= j)
-        if ((!is_directed_ && r > c) || (std::abs(w) <= static_cast<double>(thresh_))) {
-            ++(*st->it);
-            continue;
-        }
-        auto cloned = clone();
-        ++(*st->it);
-
-        return gsp::Edge(static_cast<uint32_t>(r),
-                    static_cast<uint32_t>(c),
-                    w, cloned);
-    }
-
-    return std::nullopt;
-}
-
-
-template<class Matrix>
-std::shared_ptr<gsp::BaseStateEdgeGenerator> gsp::StateMatrixGraph<Matrix>::clone() const {
-    gsp::BaseStateEdgeGenerator* st = new gsp::StateMatrixGraph<Matrix>(this);
-    return std::shared_ptr<gsp::BaseStateEdgeGenerator>(st);
-}
-
-// Explicit instantiations
-template class StateMatrixGraph<densematrix>;
-template class StateMatrixGraph<sparsematrix>;
 
 } // namespace gsp
 
+// ============================
+// Implementations
+// ============================
 
-#endif 
+namespace gsp {
+
+template <class Matrix>
+StateMatrixGraph<Matrix>::StateMatrixGraph(Matrix* weights, bool is_directed, double thresh)
+    : weights_(weights),
+      num_nodes_(weights ? static_cast<uint32_t>(weights->rows()) : 0),
+      thresh_(thresh),
+      is_directed_(is_directed),
+      state_{} {
+    reset();
+}
+
+template <class Matrix>
+void StateMatrixGraph<Matrix>::reset() {
+    if constexpr (is_dense_) {
+        reset_dense_();
+    } else {
+        reset_sparse_();
+    }
+}
+
+template <class Matrix>
+std::optional<gsp::Edge> StateMatrixGraph<Matrix>::next() {
+    if (!weights_ || num_nodes_ == 0 || weights_->rows() == 0) return std::nullopt;
+
+    if constexpr (is_dense_) {
+        return next_dense_();
+    } else {
+        return next_sparse_();
+    }
+}
+
+template <class Matrix>
+std::shared_ptr<gsp::BaseStateEdgeGenerator> StateMatrixGraph<Matrix>::clone() const {
+    // NOTE: clone shares weights pointer and copies iteration state
+    auto p = std::make_shared<StateMatrixGraph<Matrix>>(weights_, is_directed_, thresh_);
+    p->num_nodes_ = num_nodes_;
+    p->state_ = state_;
+    return std::static_pointer_cast<gsp::BaseStateEdgeGenerator>(p);
+}
+
+template <class Matrix>
+void StateMatrixGraph<Matrix>::setWeight(double weight) {
+    if (!weights_) return;
+
+    if constexpr (is_dense_) {
+        (*weights_)(static_cast<Eigen::Index>(state_.last_row),
+                    static_cast<Eigen::Index>(state_.last_col)) =
+            static_cast<scalar_type>(static_cast<float_type>(weight));
+    } else {
+        if (state_.last_it) {
+            state_.last_it->valueRef() =
+                static_cast<scalar_type>(static_cast<float_type>(weight));
+        }
+    }
+}
+
+// --------------------------
+// Dense implementation
+// --------------------------
+
+template <class Matrix>
+void StateMatrixGraph<Matrix>::reset_dense_() {
+    state_.row = 0;
+    state_.col = is_directed_ ? 0u : 0u;
+    state_.last_row = 0;
+    state_.last_col = 0;
+}
+
+template <class Matrix>
+std::optional<gsp::Edge> StateMatrixGraph<Matrix>::next_dense_() {
+    while (state_.row < num_nodes_) {
+        while (state_.col < num_nodes_) {
+            const uint32_t r = state_.row;
+            const uint32_t c = state_.col;
+
+            const scalar_type w = (*weights_)(static_cast<Eigen::Index>(r),
+                                             static_cast<Eigen::Index>(c));
+
+            // Threshold check (promote to float_of<scalar> then compare in double space)
+            if (std::abs(static_cast<double>(w)) <= thresh_) {
+                ++state_.col;
+                continue;
+            }
+
+            // Undirected: keep only upper triangle
+            if (!is_directed_ && r > c) {
+                ++state_.col;
+                continue;
+            }
+
+            // Record last emitted position for setWeight()
+            state_.last_row = r;
+            state_.last_col = c;
+
+            auto cloned = clone();
+            ++state_.col;
+
+            return gsp::Edge(r, c, static_cast<double>(static_cast<float_type>(w)), cloned);
+        }
+
+        ++state_.row;
+        state_.col = is_directed_ ? 0u : state_.row;
+    }
+
+    return std::nullopt;
+}
+
+// --------------------------
+// Sparse implementation
+// --------------------------
+
+template <class Matrix>
+void StateMatrixGraph<Matrix>::reset_sparse_() {
+    state_.weights = weights_;
+    state_.outer = 0;
+    state_.it.reset();
+    state_.last_it.reset();
+    advance_to_next_nonempty_outer_();
+}
+
+template <class Matrix>
+void StateMatrixGraph<Matrix>::advance_to_next_nonempty_outer_() {
+    static_assert(is_sparse_, "advance_to_next_nonempty_outer_ only valid for sparse matrices.");
+    if (!state_.weights) return;
+
+    const int outer_size = state_.weights->outerSize(); // RowMajor: rows
+    while (static_cast<int>(state_.outer) < outer_size) {
+        state_.it.emplace(*state_.weights, static_cast<int>(state_.outer));
+        if (*state_.it) return; // found non-empty outer
+        state_.it.reset();
+        ++state_.outer;
+    }
+}
+
+template <class Matrix>
+std::optional<gsp::Edge> StateMatrixGraph<Matrix>::next_sparse_() {
+    static_assert(is_sparse_, "next_sparse_ only valid for sparse matrices.");
+    if (!state_.weights) return std::nullopt;
+
+    while (static_cast<int>(state_.outer) < state_.weights->outerSize()) {
+        if (!state_.it) {
+            advance_to_next_nonempty_outer_();
+            if (!state_.it) return std::nullopt;
+        }
+
+        if (!(*state_.it)) {
+            // current outer exhausted
+            state_.it.reset();
+            ++state_.outer;
+            continue;
+        }
+
+        // Keep a copy pointing to current element for last_it/setWeight
+        auto cur = *state_.it;
+
+        // Advance the live iterator now
+        ++(*state_.it);
+
+        const Eigen::Index r = cur.row();
+        const Eigen::Index c = cur.col();
+        const scalar_type  w = cur.value();
+
+        // Undirected: keep only upper triangle
+        if (!is_directed_ && r > c) {
+            continue;
+        }
+
+        // Threshold check
+        if (std::abs(static_cast<double>(w)) <= thresh_) {
+            continue;
+        }
+
+        state_.last_it = cur;
+        auto cloned = clone();
+
+        return gsp::Edge(static_cast<uint32_t>(r),
+                         static_cast<uint32_t>(c),
+                         static_cast<double>(static_cast<float_type>(w)),
+                         cloned);
+    }
+
+    return std::nullopt;
+}
+
+} // namespace gsp
+
+#endif // LIBGSP_STATEMATRIXGRAPH_H
