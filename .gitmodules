@@ -58,3 +58,6 @@
 [submodule "src/third_party/bin2text"]
 	path = src/third_party/bin2text
 	url = https://github.com/mohammadraziei/bin2text.git
+[submodule "src/third_party/matplotlib-cpp"]
+	path = src/third_party/matplotlib-cpp
+	url = https://github.com/lava/matplotlib-cpp
