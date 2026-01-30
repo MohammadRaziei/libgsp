@@ -1,0 +1,18 @@
+compilation_database_dir: "@UML_COMPILATION_DATABASE_DIR@"
+output_directory: "@UML_OUTPUT_DIR@"
+
+diagrams:
+  core_class:
+    type: class
+
+    # IMPORTANT: This glob must match at least one TU that exists in compile_commands.json
+    glob:
+      - "@UML_TU@"
+
+    include:
+      namespaces:
+        - gsp
+
+    exclude:
+      namespaces:
+        - gsp::types

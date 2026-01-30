@@ -205,3 +205,50 @@ if(BUILD_TESTING)
     message(STATUS "Building tests")
     include(GSPTests)
 endif()
+
+
+
+# ---- UML options ----
+option(ENABLE_UML "Enable UML generation target" ON)
+
+set(UML_GENERATOR "plantuml" CACHE STRING "UML generator backend (e.g. plantuml, mermaid). Note: depends on clang-uml version.")
+set(UML_DIAGRAM "core_class" CACHE STRING "Diagram name in .clang-uml to generate")
+
+# This must be a translation unit that exists in compile_commands.json
+set(UML_TU "${CMAKE_SOURCE_DIR}/examples/cpp/sample01_iterating.cpp" CACHE FILEPATH "Translation unit used for UML generation")
+
+if(ENABLE_UML)
+    find_program(CLANG_UML_EXECUTABLE NAMES clang-uml REQUIRED)
+
+    # Make sure compile_commands.json is produced by CMake generators that support it
+    set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
+    set(UML_CONFIG_TEMPLATE "${CMAKE_SOURCE_DIR}/cmake/utils/clang-uml.in.yaml")
+    set(UML_CONFIG_OUT      "${CMAKE_BINARY_DIR}/.clang-uml")
+    set(UML_OUTPUT_DIR      "${CMAKE_BINARY_DIR}/diagrams")
+
+    # Values substituted into the template
+    set(UML_COMPILATION_DATABASE_DIR "${CMAKE_BINARY_DIR}")
+
+    configure_file("${UML_CONFIG_TEMPLATE}" "${UML_CONFIG_OUT}" @ONLY)
+
+    # Optional: ensure output directory exists
+    file(MAKE_DIRECTORY "${UML_OUTPUT_DIR}")
+
+    # ---- Target: uml ----
+    add_custom_target(uml
+            COMMAND "${CLANG_UML_EXECUTABLE}"
+            -c "${UML_CONFIG_OUT}"
+            -n "${UML_DIAGRAM}"
+            # NOTE: Some clang-uml versions accept -g/--generator, others prefer config-only.
+            # If your version doesn't support this flag, remove the next two args.
+            -g "${UML_GENERATOR}"
+            WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+            COMMENT "Generating UML (${UML_DIAGRAM}) into ${UML_OUTPUT_DIR}"
+            VERBATIM
+    )
+
+    # Good practice: uml should run after code is configured/built at least once
+    # If you have a dummy TU target for header-only libs, you can add dependency like:
+    # add_dependencies(uml clang_uml_dummy)
+endif()
