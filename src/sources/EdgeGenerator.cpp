@@ -19,3 +19,11 @@ const std::optional<const gsp::Edge> gsp::ConstEdgeGenerator::next() { return st
 
 gsp::BaseStateEdgeGenerator::BaseStateEdgeGenerator() {}
 gsp::BaseStateEdgeGenerator::~BaseStateEdgeGenerator() {}
+
+gsp::ConstEdgeGenerator& gsp::ConstEdgeGenerator::operator=(const gsp::EdgeGenerator& other) {
+    state_ = other.state_;
+    return *this;
+}
+gsp::ConstEdgeGenerator::ConstEdgeGenerator(const gsp::EdgeGenerator& other)
+        : state_(other.state_) {}
+

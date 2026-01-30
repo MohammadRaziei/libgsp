@@ -21,29 +21,35 @@ namespace gsp {
 
 // Single primary template; definitions specialized in .cpp
 class gsp::EdgeGenerator {
+    friend class gsp::ConstEdgeGenerator;
+
 public:
-    explicit EdgeGenerator(std::shared_ptr<BaseStateEdgeGenerator> state);
+    explicit EdgeGenerator(std::shared_ptr<gsp::BaseStateEdgeGenerator> state);
     ~EdgeGenerator();
 
     void reset();
     std::optional<gsp::Edge> next();
-//    const std::optional<const gsp::Edge> next() const;
-
 
 private:
-    std::shared_ptr<BaseStateEdgeGenerator> state_;
+    std::shared_ptr<gsp::BaseStateEdgeGenerator> state_;
 };
 
 class gsp::ConstEdgeGenerator {
 public:
     explicit ConstEdgeGenerator(std::shared_ptr<BaseStateEdgeGenerator> state);
+    // Conversion from EdgeGenerator -> ConstEdgeGenerator
+    ConstEdgeGenerator(const gsp::EdgeGenerator& other);
+
     ~ConstEdgeGenerator();
 
     void reset();
-    const std::optional<const gsp::Edge> next();
+    const std::optional<const gsp::Edge> next(); // const-edge semantics via class type
+
+    // Assignment from EdgeGenerator -> ConstEdgeGenerator
+    ConstEdgeGenerator& operator=(const gsp::EdgeGenerator& other);
 
 private:
-    std::shared_ptr<BaseStateEdgeGenerator> state_;
+    std::shared_ptr<gsp::BaseStateEdgeGenerator> state_;
 };
 
 
@@ -57,10 +63,8 @@ public:
 
 struct gsp::BaseMiniState {
     virtual ~BaseMiniState() = default;
-
     // Read the "current selected" weight (typically the last emitted edge).
     virtual double value() const = 0;
-
     // Write back to the "current selected" weight (typically the last emitted edge).
     virtual void setValue(double v) = 0;
 };

@@ -25,8 +25,8 @@ public:
 
     TemplateVertexIterator() = default;
 
-    explicit TemplateVertexIterator(GraphT* graph, uint32_t index = 0)
-        : graph_(graph), index_(static_cast<int64_t>(index)) {
+    explicit TemplateVertexIterator(GraphT* graph, int64_t index = 0)
+        : graph_(graph), index_(index) {
         updateCurrent();
     }
 
@@ -160,7 +160,10 @@ public:
         return TemplateVertexIterator<ConstGraph>(graph_, static_cast<uint32_t>(index_));
     }
 
-private:
+    const GraphT* graph() const { return graph_; }
+    int64_t index() const { return index_; }
+
+protected:
     GraphT* graph_ = nullptr;
     int64_t index_ = 0;
     std::optional<value_type> current_;
@@ -225,6 +228,19 @@ class ConstVertexIterator : public detail::TemplateVertexIterator<const VertexGr
     using Base = detail::TemplateVertexIterator<const VertexGraph>;
 public:
     using Base::Base;
+
+    // Conversion ctor: VertexIterator -> ConstVertexIterator
+    ConstVertexIterator(const gsp::VertexIterator& other)
+            : Base(other.graph(), other.index()) {
+    }
+
+    // Assignment: VertexIterator -> ConstVertexIterator
+    ConstVertexIterator& operator=(const gsp::VertexIterator& other) {
+        this->graph_ = other.graph();
+        this->index_ = other.index();
+        this->updateCurrent();
+        return *this;
+    }
 };
 
 } // namespace gsp
