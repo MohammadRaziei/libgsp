@@ -16,3 +16,4 @@ diagrams:
     exclude:
       namespaces:
         - gsp::types
+        - gsp::loggings

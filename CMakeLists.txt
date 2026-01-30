@@ -10,7 +10,7 @@ message(STATUS "Project: ${PROJECT_NAME}@v${PROJECT_VERSION}")
 include(Startup)
 
 
-option(BUILD_PYTHON_BINDINGS "export python module" ON)
+option(BUILD_PYTHON_BINDINGS "export python module" OFF)
 option(BUILD_MEX_BINDINGS "export matlab mex file" OFF)
 option(BUILD_SHARED_LIBS "Build shared libraries" ON)
 option(BUILD_TESTING "Build tests" ${PROJECT_IS_TOP_LEVEL})
@@ -208,47 +208,84 @@ endif()
 
 
 
-# ---- UML options ----
-option(ENABLE_UML "Enable UML generation target" ON)
 
-set(UML_GENERATOR "plantuml" CACHE STRING "UML generator backend (e.g. plantuml, mermaid). Note: depends on clang-uml version.")
-set(UML_DIAGRAM "core_class" CACHE STRING "Diagram name in .clang-uml to generate")
 
-# This must be a translation unit that exists in compile_commands.json
-set(UML_TU "${CMAKE_SOURCE_DIR}/examples/cpp/sample01_iterating.cpp" CACHE FILEPATH "Translation unit used for UML generation")
+
+option(ENABLE_UML "Enable UML generation" ON)
+
+set(UML_DIAGRAM "core_class" CACHE STRING "clang-uml diagram name")
+set(UML_GENERATOR "plantuml" CACHE STRING "plantuml | mermaid")
+set(UML_TU "${CMAKE_SOURCE_DIR}/examples/cpp/sample01_iterating.cpp"
+        CACHE FILEPATH "A TU present in compile_commands.json")
+
+set(UML_FORMAT "svg" CACHE STRING "UML output format (svg, png, pdf)" FORCE)
+set_property(CACHE UML_FORMAT PROPERTY STRINGS svg png pdf)
+
 
 if(ENABLE_UML)
     find_program(CLANG_UML_EXECUTABLE NAMES clang-uml REQUIRED)
 
-    # Make sure compile_commands.json is produced by CMake generators that support it
-    set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+    # Always generate compile_commands.json
+    set(CMAKE_EXPORT_COMPILE_COMMANDS ON CACHE BOOL "Export compile_commands.json" FORCE)
 
+    # Paths
     set(UML_CONFIG_TEMPLATE "${CMAKE_SOURCE_DIR}/cmake/utils/clang-uml.in.yaml")
-    set(UML_CONFIG_OUT      "${CMAKE_BINARY_DIR}/.clang-uml")
+    set(UML_CONFIG          "${CMAKE_BINARY_DIR}/.clang-uml")
     set(UML_OUTPUT_DIR      "${CMAKE_BINARY_DIR}/diagrams")
-
-    # Values substituted into the template
     set(UML_COMPILATION_DATABASE_DIR "${CMAKE_BINARY_DIR}")
 
-    configure_file("${UML_CONFIG_TEMPLATE}" "${UML_CONFIG_OUT}" @ONLY)
-
-    # Optional: ensure output directory exists
     file(MAKE_DIRECTORY "${UML_OUTPUT_DIR}")
 
-    # ---- Target: uml ----
-    add_custom_target(uml
-            COMMAND "${CLANG_UML_EXECUTABLE}"
-            -c "${UML_CONFIG_OUT}"
-            -n "${UML_DIAGRAM}"
-            # NOTE: Some clang-uml versions accept -g/--generator, others prefer config-only.
-            # If your version doesn't support this flag, remove the next two args.
-            -g "${UML_GENERATOR}"
-            WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
-            COMMENT "Generating UML (${UML_DIAGRAM}) into ${UML_OUTPUT_DIR}"
-            VERBATIM
-    )
+    # Generate .clang-uml in build/
+    configure_file("${UML_CONFIG_TEMPLATE}" "${UML_CONFIG}" @ONLY)
 
-    # Good practice: uml should run after code is configured/built at least once
-    # If you have a dummy TU target for header-only libs, you can add dependency like:
-    # add_dependencies(uml clang_uml_dummy)
+    # -----------------------
+    # PlantUML
+    # -----------------------
+    if(UML_GENERATOR STREQUAL "plantuml")
+        find_program(PLANTUML_EXECUTABLE NAMES plantuml REQUIRED)
+
+        set(UML_INPUT  "${UML_OUTPUT_DIR}/${UML_DIAGRAM}.puml")
+        set(UML_OUTPUT "${UML_OUTPUT_DIR}/${UML_DIAGRAM}.${UML_FORMAT}")
+
+        add_custom_target(uml
+                COMMAND "${CLANG_UML_EXECUTABLE}"
+                -c "${UML_CONFIG}"
+                -n "${UML_DIAGRAM}"
+                COMMAND "${PLANTUML_EXECUTABLE}" -v
+                "-t${UML_FORMAT}"
+                "${UML_INPUT}"
+                COMMAND "${CMAKE_COMMAND}" -E echo
+                "UML generated successfully at: ${UML_OUTPUT}"
+                WORKING_DIRECTORY "${UML_OUTPUT_DIR}"
+                COMMENT "Generate UML (${UML_DIAGRAM}) with PlantUML (${UML_FORMAT})"
+                VERBATIM
+        )
+
+        # -----------------------
+        # Mermaid
+        # -----------------------
+    elseif(UML_GENERATOR STREQUAL "mermaid")
+        find_program(MMDC_EXECUTABLE NAMES mmdc REQUIRED)
+
+        set(UML_INPUT  "${UML_OUTPUT_DIR}/${UML_DIAGRAM}.mmd")
+        set(UML_OUTPUT "${UML_OUTPUT_DIR}/${UML_DIAGRAM}.${UML_FORMAT}")
+
+        add_custom_target(uml
+                COMMAND "${CLANG_UML_EXECUTABLE}"
+                -c "${UML_CONFIG}"
+                -n "${UML_DIAGRAM}"
+                COMMAND "${MMDC_EXECUTABLE}"
+                -i "${UML_INPUT}"
+                -o "${UML_OUTPUT}"
+                COMMAND "${CMAKE_COMMAND}" -E echo
+                "UML generated successfully at: ${UML_OUTPUT}"
+                WORKING_DIRECTORY "${UML_OUTPUT_DIR}"
+                COMMENT "Generate UML (${UML_DIAGRAM}) with Mermaid (${UML_FORMAT})"
+                VERBATIM
+        )
+
+    else()
+        message(FATAL_ERROR "UML_GENERATOR must be plantuml or mermaid")
+    endif()
 endif()
