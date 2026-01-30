@@ -54,6 +54,12 @@ using Logger = std::shared_ptr<spdlog::logger>;
 void basicConfig(gsp::logging::level level = gsp::logging::level::info,
                       const std::string& pattern = "[%Y-%m-%d %H:%M:%S.%e] [%^%l%$] [%n] %v");
 
+void basicConfig(
+    int argc, char** argv,
+    gsp::logging::level level = gsp::logging::level::info,
+    std::string pattern = "[%Y-%m-%d %H:%M:%S.%e] [%^%l%$] [%n] %v"
+);
+
 Logger getLogger(const std::string& name = "root");
 Logger getLoggerByPath(const std::string& path);
 } // namespace gsp::logging

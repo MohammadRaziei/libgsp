@@ -33,9 +33,9 @@ uint32_t countNumEdges(const gsp::BaseGraph& graph) {
 }
 
 
-int main() {
-    gsp::logging::basicConfig(gsp::logging::level::debug);
-    auto logger = gsp::logging::getLoggerByPath(__FILE__);
+int main(int argc, char** argv) {
+    gsp::logging::basicConfig(argc, argv, gsp::logging::level::debug);
+    auto logger = gsp::logging::getLogger();
 
     logger->info("Sample 01: Iterating over nodes and edges");
 
