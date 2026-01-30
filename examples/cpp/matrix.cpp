@@ -90,108 +90,108 @@ double mse(const Eigen::MatrixXd& A, const Eigen::MatrixXd& B) {
 
 // ---- Example ----
 int main() {
-    Eigen::MatrixXd W(4,4);
-    W << 0,1,1,0,
-         1,0,1,0,
-         1,1,0,1,
-         0,0,1,0;
-
-    W.transposeInPlace();
-    gsp::StateMatrixGraph gen(&W, true, -INFINITY);
-    while (auto it = gen.next()) {
-        *it += 1;
-    }
-    std::cout << "W:\n" << W << std::endl;
-
-    gen.reset();
-    while (auto it = gen.next()) {
-        *it -= 1;
-    }
-
-    std::cout << "W:\n" << W << std::endl;
-
-
-    Eigen::MatrixXd WW = Eigen::KroneckerProduct(W,W);
-    std::cout << "WW:\n" << WW << std::endl;
-
-
-    tic;
-    auto Ldense = computeNormalizedLaplacian(W);
-    toc;
-    std::cout << "Normalized Laplacian (dense):\n" << Ldense << "\n";
-
-    {
-        Spectra::DenseSymMatProd<double> op(Ldense);
-
-        // Construct eigen solver object, requesting the largest three eigenvalues
-        Spectra::SymEigsSolver<Spectra::DenseSymMatProd<double>> eigs(op, 3, 4);
-
-        // Initialize and compute
-        eigs.init();
-        int nconv = eigs.compute(Spectra::SortRule::LargestAlge);
-
-
-        // Retrieve results
-        Eigen::VectorXd evalues;
-        Eigen::MatrixXd evectors;
-        if(eigs.info() == Spectra::CompInfo::Successful) {
-            std::cout << "Successfully computed eigenvalues\n";
-            evalues = eigs.eigenvalues();
-            evectors = eigs.eigenvectors();
-        }
-
-        std::cout << "Eigenvalues found:\n" << evalues << std::endl;
-        std::cout << "Eigenvectors found:\n" << evectors << std::endl;
-
-
-    }
-
-
-
-
-    gsp::sparsematrix Ws = W.sparseView();
-
-
-    Ws = Ws.transpose();
-    gsp::StateMatrixGraph gen2(&Ws, true, -INFINITY);
-    while (auto it = gen2.next()) {
-        *it += 1;
-    }
-    std::cout << "Ws:\n" << Ws << std::endl;
-
-    gen2.reset();
-    while (auto it = gen2.next()) {
-        *it -= 1;
-    }
-
-    std::cout << "Ws:\n" << Ws << std::endl;
-
-
-
-    Eigen::SparseMatrix<double> WWs = Eigen::KroneckerProductSparse(Ws,Ws);
-    std::cout << "WWs:\n" << WWs << std::endl;
-
-
-
-    tic;
-    auto Lsparse = computeNormalizedLaplacianSparse(Ws);
-    toc;
-    std::cout << "\nNormalized Laplacian (sparse):\n";
-    std::cout << Eigen::MatrixXd(Lsparse) << "\n"; // for display
-
-
-    double error = mse(Ldense, Eigen::MatrixXd(Lsparse));
-    std::cout << "\nMSE between dense and sparse L_N: " << error << "\n";
-
-
-//    auto mat = Ws;
-    
-//    Eigen::EigenSolver<Eigen::MatrixXd> solver(mat);
+//    Eigen::MatrixXd W(4,4);
+//    W << 0,1,1,0,
+//         1,0,1,0,
+//         1,1,0,1,
+//         0,0,1,0;
 //
-//    std::cout << "Eigenvalues: \n" << solver.eigenvalues().real() << std::endl;
+//    W.transposeInPlace();
+//    gsp::StateMatrixGraph gen(&W, true, -INFINITY);
+//    while (auto it = gen.next()) {
+//        *it += 1;
+//    }
+//    std::cout << "W:\n" << W << std::endl;
 //
-//    std::cout << "Eigenvectors: \n" << solver.eigenvectors().real() << std::endl;
-
+//    gen.reset();
+//    while (auto it = gen.next()) {
+//        *it -= 1;
+//    }
+//
+//    std::cout << "W:\n" << W << std::endl;
+//
+//
+//    Eigen::MatrixXd WW = Eigen::KroneckerProduct(W,W);
+//    std::cout << "WW:\n" << WW << std::endl;
+//
+//
+//    tic;
+//    auto Ldense = computeNormalizedLaplacian(W);
+//    toc;
+//    std::cout << "Normalized Laplacian (dense):\n" << Ldense << "\n";
+//
+//    {
+//        Spectra::DenseSymMatProd<double> op(Ldense);
+//
+//        // Construct eigen solver object, requesting the largest three eigenvalues
+//        Spectra::SymEigsSolver<Spectra::DenseSymMatProd<double>> eigs(op, 3, 4);
+//
+//        // Initialize and compute
+//        eigs.init();
+//        int nconv = eigs.compute(Spectra::SortRule::LargestAlge);
+//
+//
+//        // Retrieve results
+//        Eigen::VectorXd evalues;
+//        Eigen::MatrixXd evectors;
+//        if(eigs.info() == Spectra::CompInfo::Successful) {
+//            std::cout << "Successfully computed eigenvalues\n";
+//            evalues = eigs.eigenvalues();
+//            evectors = eigs.eigenvectors();
+//        }
+//
+//        std::cout << "Eigenvalues found:\n" << evalues << std::endl;
+//        std::cout << "Eigenvectors found:\n" << evectors << std::endl;
+//
+//
+//    }
+//
+//
+//
+//
+//    gsp::sparsematrix Ws = W.sparseView();
+//
+//
+//    Ws = Ws.transpose();
+//    gsp::StateMatrixGraph gen2(&Ws, true, -INFINITY);
+//    while (auto it = gen2.next()) {
+//        *it += 1;
+//    }
+//    std::cout << "Ws:\n" << Ws << std::endl;
+//
+//    gen2.reset();
+//    while (auto it = gen2.next()) {
+//        *it -= 1;
+//    }
+//
+//    std::cout << "Ws:\n" << Ws << std::endl;
+//
+//
+//
+//    Eigen::SparseMatrix<double> WWs = Eigen::KroneckerProductSparse(Ws,Ws);
+//    std::cout << "WWs:\n" << WWs << std::endl;
+//
+//
+//
+//    tic;
+//    auto Lsparse = computeNormalizedLaplacianSparse(Ws);
+//    toc;
+//    std::cout << "\nNormalized Laplacian (sparse):\n";
+//    std::cout << Eigen::MatrixXd(Lsparse) << "\n"; // for display
+//
+//
+//    double error = mse(Ldense, Eigen::MatrixXd(Lsparse));
+//    std::cout << "\nMSE between dense and sparse L_N: " << error << "\n";
+//
+//
+////    auto mat = Ws;
+//
+////    Eigen::EigenSolver<Eigen::MatrixXd> solver(mat);
+////
+////    std::cout << "Eigenvalues: \n" << solver.eigenvalues().real() << std::endl;
+////
+////    std::cout << "Eigenvectors: \n" << solver.eigenvectors().real() << std::endl;
+//
 
     return 0;
 }
