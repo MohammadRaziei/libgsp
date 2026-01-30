@@ -50,21 +50,21 @@ TEST_F(EdgeGeneratorTest, DenseGraphUndirectedWithEdges) {
     // Should get edges: (0,1), (0,2), (1,2) - only upper triangle for undirected
     auto edge1 = generator.next();
     ASSERT_TRUE(edge1.has_value());
-    EXPECT_EQ(edge1->source, 0);
-    EXPECT_EQ(edge1->target, 1);
-    EXPECT_DOUBLE_EQ(edge1->weight, 1.0);
+    EXPECT_EQ(edge1->source(), 0);
+    EXPECT_EQ(edge1->target(), 1);
+    EXPECT_DOUBLE_EQ(edge1->weight(), 1.0);
     
     auto edge2 = generator.next();
     ASSERT_TRUE(edge2.has_value());
-    EXPECT_EQ(edge2->source, 0);
-    EXPECT_EQ(edge2->target, 2);
-    EXPECT_DOUBLE_EQ(edge2->weight, 2.0);
+    EXPECT_EQ(edge2->source(), 0);
+    EXPECT_EQ(edge2->target(), 2);
+    EXPECT_DOUBLE_EQ(edge2->weight(), 2.0);
     
     auto edge3 = generator.next();
     ASSERT_TRUE(edge3.has_value());
-    EXPECT_EQ(edge3->source, 1);
-    EXPECT_EQ(edge3->target, 2);
-    EXPECT_DOUBLE_EQ(edge3->weight, 3.0);
+    EXPECT_EQ(edge3->source(), 1);
+    EXPECT_EQ(edge3->target(), 2);
+    EXPECT_DOUBLE_EQ(edge3->weight(), 3.0);
     
     auto edge4 = generator.next();
     EXPECT_FALSE(edge4.has_value()); // No more edges
@@ -86,39 +86,39 @@ TEST_F(EdgeGeneratorTest, DenseGraphDirectedWithEdges) {
     // Should get all non-zero edges: (0,1), (0,2), (1,0), (1,2), (2,0), (2,1)
     auto edge1 = generator.next();
     ASSERT_TRUE(edge1.has_value());
-    EXPECT_EQ(edge1->source, 0);
-    EXPECT_EQ(edge1->target, 1);
-    EXPECT_DOUBLE_EQ(edge1->weight, 1.0);
+    EXPECT_EQ(edge1->source(), 0);
+    EXPECT_EQ(edge1->target(), 1);
+    EXPECT_DOUBLE_EQ(edge1->weight(), 1.0);
     
     auto edge2 = generator.next();
     ASSERT_TRUE(edge2.has_value());
-    EXPECT_EQ(edge2->source, 0);
-    EXPECT_EQ(edge2->target, 2);
-    EXPECT_DOUBLE_EQ(edge2->weight, 2.0);
+    EXPECT_EQ(edge2->source(), 0);
+    EXPECT_EQ(edge2->target(), 2);
+    EXPECT_DOUBLE_EQ(edge2->weight(), 2.0);
     
     auto edge3 = generator.next();
     ASSERT_TRUE(edge3.has_value());
-    EXPECT_EQ(edge3->source, 1);
-    EXPECT_EQ(edge3->target, 0);
-    EXPECT_DOUBLE_EQ(edge3->weight, 4.0);
+    EXPECT_EQ(edge3->source(), 1);
+    EXPECT_EQ(edge3->target(), 0);
+    EXPECT_DOUBLE_EQ(edge3->weight(), 4.0);
     
     auto edge4 = generator.next();
     ASSERT_TRUE(edge4.has_value());
-    EXPECT_EQ(edge4->source, 1);
-    EXPECT_EQ(edge4->target, 2);
-    EXPECT_DOUBLE_EQ(edge4->weight, 3.0);
+    EXPECT_EQ(edge4->source(), 1);
+    EXPECT_EQ(edge4->target(), 2);
+    EXPECT_DOUBLE_EQ(edge4->weight(), 3.0);
     
     auto edge5 = generator.next();
     ASSERT_TRUE(edge5.has_value());
-    EXPECT_EQ(edge5->source, 2);
-    EXPECT_EQ(edge5->target, 0);
-    EXPECT_DOUBLE_EQ(edge5->weight, 5.0);
+    EXPECT_EQ(edge5->source(), 2);
+    EXPECT_EQ(edge5->target(), 0);
+    EXPECT_DOUBLE_EQ(edge5->weight(), 5.0);
     
     auto edge6 = generator.next();
     ASSERT_TRUE(edge6.has_value());
-    EXPECT_EQ(edge6->source, 2);
-    EXPECT_EQ(edge6->target, 1);
-    EXPECT_DOUBLE_EQ(edge6->weight, 6.0);
+    EXPECT_EQ(edge6->source(), 2);
+    EXPECT_EQ(edge6->target(), 1);
+    EXPECT_DOUBLE_EQ(edge6->weight(), 6.0);
     
     auto edge7 = generator.next();
     EXPECT_FALSE(edge7.has_value()); // No more edges
@@ -143,21 +143,21 @@ TEST_F(EdgeGeneratorTest, SparseGraphUndirectedWithEdges) {
     // Should get edges: (0,1), (0,2), (1,2) - only upper triangle for undirected
     auto edge1 = generator.next();
     ASSERT_TRUE(edge1.has_value());
-    EXPECT_EQ(edge1->source, 0);
-    EXPECT_EQ(edge1->target, 1);
-    EXPECT_DOUBLE_EQ(edge1->weight, 1.0);
+    EXPECT_EQ(edge1->source(), 0);
+    EXPECT_EQ(edge1->target(), 1);
+    EXPECT_DOUBLE_EQ(edge1->weight(), 1.0);
     
     auto edge2 = generator.next();
     ASSERT_TRUE(edge2.has_value());
-    EXPECT_EQ(edge2->source, 0);
-    EXPECT_EQ(edge2->target, 2);
-    EXPECT_DOUBLE_EQ(edge2->weight, 2.0);
+    EXPECT_EQ(edge2->source(), 0);
+    EXPECT_EQ(edge2->target(), 2);
+    EXPECT_DOUBLE_EQ(edge2->weight(), 2.0);
     
     auto edge3 = generator.next();
     ASSERT_TRUE(edge3.has_value());
-    EXPECT_EQ(edge3->source, 1);
-    EXPECT_EQ(edge3->target, 2);
-    EXPECT_DOUBLE_EQ(edge3->weight, 3.0);
+    EXPECT_EQ(edge3->source(), 1);
+    EXPECT_EQ(edge3->target(), 2);
+    EXPECT_DOUBLE_EQ(edge3->weight(), 3.0);
     
     auto edge4 = generator.next();
     EXPECT_FALSE(edge4.has_value()); // No more edges
@@ -179,15 +179,15 @@ TEST_F(EdgeGeneratorTest, ThresholdFiltering) {
     
     auto edge1 = generator.next();
     ASSERT_TRUE(edge1.has_value());
-    EXPECT_EQ(edge1->source, 0);
-    EXPECT_EQ(edge1->target, 2);
-    EXPECT_DOUBLE_EQ(edge1->weight, 2.0);
+    EXPECT_EQ(edge1->source(), 0);
+    EXPECT_EQ(edge1->target(), 2);
+    EXPECT_DOUBLE_EQ(edge1->weight(), 2.0);
     
     auto edge2 = generator.next();
     ASSERT_TRUE(edge2.has_value());
-    EXPECT_EQ(edge2->source, 1);
-    EXPECT_EQ(edge2->target, 2);
-    EXPECT_DOUBLE_EQ(edge2->weight, 3.0);
+    EXPECT_EQ(edge2->source(), 1);
+    EXPECT_EQ(edge2->target(), 2);
+    EXPECT_DOUBLE_EQ(edge2->weight(), 3.0);
     
     auto edge3 = generator.next();
     EXPECT_FALSE(edge3.has_value()); // No more edges above threshold
@@ -209,8 +209,8 @@ TEST_F(EdgeGeneratorTest, ResetFunctionality) {
     // Get first edge
     auto edge1 = generator.next();
     ASSERT_TRUE(edge1.has_value());
-    EXPECT_EQ(edge1->source, 0);
-    EXPECT_EQ(edge1->target, 1);
+    EXPECT_EQ(edge1->source(), 0);
+    EXPECT_EQ(edge1->target(), 1);
     
     // Reset the generator
     generator.reset();
@@ -218,9 +218,9 @@ TEST_F(EdgeGeneratorTest, ResetFunctionality) {
     // Get first edge again after reset
     auto edge1_after_reset = generator.next();
     ASSERT_TRUE(edge1_after_reset.has_value());
-    EXPECT_EQ(edge1_after_reset->source, 0);
-    EXPECT_EQ(edge1_after_reset->target, 1);
-    EXPECT_DOUBLE_EQ(edge1_after_reset->weight, 1.0);
+    EXPECT_EQ(edge1_after_reset->source(), 0);
+    EXPECT_EQ(edge1_after_reset->target(), 1);
+    EXPECT_DOUBLE_EQ(edge1_after_reset->weight(), 1.0);
 }
 
 TEST_F(EdgeGeneratorTest, SparseGraphDirectedWithEdges) {
@@ -239,21 +239,21 @@ TEST_F(EdgeGeneratorTest, SparseGraphDirectedWithEdges) {
     // Should get all edges: (0,1), (0,2), (1,2)
     auto edge1 = generator.next();
     ASSERT_TRUE(edge1.has_value());
-    EXPECT_EQ(edge1->source, 0);
-    EXPECT_EQ(edge1->target, 1);
-    EXPECT_DOUBLE_EQ(edge1->weight, 1.0);
+    EXPECT_EQ(edge1->source(), 0);
+    EXPECT_EQ(edge1->target(), 1);
+    EXPECT_DOUBLE_EQ(edge1->weight(), 1.0);
     
     auto edge2 = generator.next();
     ASSERT_TRUE(edge2.has_value());
-    EXPECT_EQ(edge2->source, 0);
-    EXPECT_EQ(edge2->target, 2);
-    EXPECT_DOUBLE_EQ(edge2->weight, 2.0);
+    EXPECT_EQ(edge2->source(), 0);
+    EXPECT_EQ(edge2->target(), 2);
+    EXPECT_DOUBLE_EQ(edge2->weight(), 2.0);
     
     auto edge3 = generator.next();
     ASSERT_TRUE(edge3.has_value());
-    EXPECT_EQ(edge3->source, 1);
-    EXPECT_EQ(edge3->target, 2);
-    EXPECT_DOUBLE_EQ(edge3->weight, 3.0);
+    EXPECT_EQ(edge3->source(), 1);
+    EXPECT_EQ(edge3->target(), 2);
+    EXPECT_DOUBLE_EQ(edge3->weight(), 3.0);
     
     auto edge4 = generator.next();
     EXPECT_FALSE(edge4.has_value()); // No more edges
@@ -275,9 +275,9 @@ TEST_F(EdgeGeneratorTest, ResetWithThreshold) {
 
     auto edge_after_reset = generator.next();
     ASSERT_TRUE(edge_after_reset.has_value());
-    EXPECT_EQ(edge_after_reset->source, 1);
-    EXPECT_EQ(edge_after_reset->target, 2);
-    EXPECT_DOUBLE_EQ(edge_after_reset->weight, 3.0);
+    EXPECT_EQ(edge_after_reset->source(), 1);
+    EXPECT_EQ(edge_after_reset->target(), 2);
+    EXPECT_DOUBLE_EQ(edge_after_reset->weight(), 3.0);
 
     auto edge2 = generator.next();
     EXPECT_FALSE(edge2.has_value()); // No more edges above threshold 2.5

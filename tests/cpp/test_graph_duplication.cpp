@@ -32,28 +32,24 @@ TEST_F(GraphDuplicationTest, CloneMethodCreatesDeepCopy) {
     auto cloned_graph = original_graph->clone();
 
     // Verify that the clone has the same properties
-    ASSERT_EQ(cloned_graph->numNodes(), original_graph->numNodes());
+    ASSERT_EQ(cloned_graph.numNodes(), original_graph->numNodes());
     
     // Check that coordinates are the same
     auto orig_coord_0 = original_graph->coord(0);
-    auto clone_coord_0 = cloned_graph->coord(0);
+    auto clone_coord_0 = cloned_graph.coord(0);
     EXPECT_DOUBLE_EQ(orig_coord_0.x(), clone_coord_0.x());
     EXPECT_DOUBLE_EQ(orig_coord_0.y(), clone_coord_0.y());
     EXPECT_DOUBLE_EQ(orig_coord_0.z(), clone_coord_0.z());
 
     // Check that names are the same
     auto orig_name_0 = original_graph->name(0);
-    auto clone_name_0 = cloned_graph->name(0);
+    auto clone_name_0 = cloned_graph.name(0);
     EXPECT_EQ(orig_name_0, clone_name_0);
-
-    // Verify that they are actually different objects (deep copy)
-    bool same_address = (original_graph.get() == cloned_graph.get());
-    EXPECT_FALSE(same_address);
 
     // Test that modifying the original doesn't affect the clone
     original_graph->setCoord(0, gsp::Coord(10.0, 10.0, 10.0));
     auto new_orig_coord_0 = original_graph->coord(0);
-    auto still_clone_coord_0 = cloned_graph->coord(0);
+    auto still_clone_coord_0 = cloned_graph.coord(0);
     
     EXPECT_DOUBLE_EQ(new_orig_coord_0.x(), 10.0);
     EXPECT_DOUBLE_EQ(still_clone_coord_0.x(), 0.0); // Should remain unchanged
@@ -61,43 +57,8 @@ TEST_F(GraphDuplicationTest, CloneMethodCreatesDeepCopy) {
     EXPECT_DOUBLE_EQ(still_clone_coord_0.z(), 0.0);
 }
 
-// Test the copy() method (polymorphic, returns BaseGraph)
-TEST_F(GraphDuplicationTest, CopyMethodCreatesDeepCopy) {
-    // Copy the graph using the polymorphic copy method
-    std::unique_ptr<gsp::BaseGraph> copied_graph = original_graph->copy();
-
-    // Verify that the copy has the same properties
-    ASSERT_EQ(copied_graph->numNodes(), original_graph->numNodes());
-    
-    // Check that coordinates are the same (using BaseGraph interface)
-    auto orig_coord_0 = original_graph->coord(0);
-    auto copy_coord_0 = copied_graph->coord(0);
-    EXPECT_DOUBLE_EQ(orig_coord_0.x(), copy_coord_0.x());
-    EXPECT_DOUBLE_EQ(orig_coord_0.y(), copy_coord_0.y());
-    EXPECT_DOUBLE_EQ(orig_coord_0.z(), copy_coord_0.z());
-
-    // Check that names are the same
-    auto orig_name_0 = original_graph->name(0);
-    auto copy_name_0 = copied_graph->name(0);
-    EXPECT_EQ(orig_name_0, copy_name_0);
-
-    // Verify that they are actually different objects (deep copy)
-    bool same_address = (original_graph.get() == copied_graph.get());
-    EXPECT_FALSE(same_address);
-
-    // Test that modifying the original doesn't affect the copy
-    original_graph->setCoord(0, gsp::Coord(20.0, 20.0, 20.0));
-    auto new_orig_coord_0 = original_graph->coord(0);
-    auto still_copy_coord_0 = copied_graph->coord(0);
-    
-    EXPECT_DOUBLE_EQ(new_orig_coord_0.x(), 20.0);
-    EXPECT_DOUBLE_EQ(still_copy_coord_0.x(), 0.0); // Should remain unchanged
-    EXPECT_DOUBLE_EQ(still_copy_coord_0.y(), 0.0);
-    EXPECT_DOUBLE_EQ(still_copy_coord_0.z(), 0.0);
-}
-
-// Test that both methods work with sparse graphs too
-TEST(GraphDuplicationSparseTest, CloneAndCopyWithSparseGraph) {
+// Test that clone works with sparse graphs too
+TEST(GraphDuplicationSparseTest, CloneWithSparseGraph) {
     // Create a sparse graph
     gsp::SparseGraph sparse_original(4);
     
@@ -113,39 +74,28 @@ TEST(GraphDuplicationSparseTest, CloneAndCopyWithSparseGraph) {
 
     // Test clone method
     auto sparse_cloned = sparse_original.clone();
-    ASSERT_EQ(sparse_cloned->numNodes(), sparse_original.numNodes());
-    EXPECT_EQ(sparse_cloned->name(0), "snode0");
-
-    // Test copy method (polymorphic)
-    std::unique_ptr<gsp::BaseGraph> sparse_copied = sparse_original.copy();
-    ASSERT_EQ(sparse_copied->numNodes(), sparse_original.numNodes());
-    EXPECT_EQ(sparse_copied->name(0), "snode0");
+    ASSERT_EQ(sparse_cloned.numNodes(), sparse_original.numNodes());
+    EXPECT_EQ(sparse_cloned.name(0), "snode0");
 
     // Verify independence
     sparse_original.setCoord(0, gsp::Coord(100.0, 100.0, 100.0));
     EXPECT_DOUBLE_EQ(sparse_original.coord(0).x(), 100.0);
-    EXPECT_DOUBLE_EQ(sparse_cloned->coord(0).x(), 0.0);  // Should be unchanged
-    EXPECT_DOUBLE_EQ(sparse_copied->coord(0).x(), 0.0);  // Should be unchanged
+    EXPECT_DOUBLE_EQ(sparse_cloned.coord(0).x(), 0.0);  // Should be unchanged
 }
 
-// Test that the concrete type is preserved with clone() but not with copy()
-TEST_F(GraphDuplicationTest, TypePreservationDifference) {
+// Test that the concrete type is preserved with clone()
+TEST_F(GraphDuplicationTest, TypePreservationWithClone) {
     // Using clone() preserves the concrete type, so we can access Graph-specific methods
     auto cloned_dense = original_graph->clone();
+    
     // We can call Graph-specific methods on the cloned object
-    auto weights = cloned_dense->weights();
+    auto weights = cloned_dense.weights();
     EXPECT_EQ(weights.rows(), 3);
     EXPECT_EQ(weights.cols(), 3);
 
-    // Using copy() returns BaseGraph*, so we lose direct access to Graph-specific methods
-    std::unique_ptr<gsp::BaseGraph> copied_base = original_graph->copy();
-    // We can only access BaseGraph interface methods
-    EXPECT_EQ(copied_base->numNodes(), 3);
-    
-    // Verify that both objects are independent
+    // Verify that objects are independent
     original_graph->setCoord(1, gsp::Coord(99.0, 99.0, 99.0));
-    EXPECT_DOUBLE_EQ(cloned_dense->coord(1).x(), 1.0);  // Unchanged
-    EXPECT_DOUBLE_EQ(copied_base->coord(1).x(), 1.0);   // Unchanged
+    EXPECT_DOUBLE_EQ(cloned_dense.coord(1).x(), 1.0);  // Unchanged
 }
 
 // Test that internal caches are properly invalidated in clones
@@ -159,7 +109,7 @@ TEST_F(GraphDuplicationTest, CacheInvalidationInClone) {
     auto cloned_graph = original_graph->clone();
 
     // The cloned graph should compute its own laplacian independently
-    auto& cloned_laplacian = cloned_graph->laplacian();
+    auto& cloned_laplacian = cloned_graph.laplacian();
     EXPECT_EQ(cloned_laplacian.rows(), 3);
     EXPECT_EQ(cloned_laplacian.cols(), 3);
 
@@ -172,6 +122,6 @@ TEST_F(GraphDuplicationTest, CacheInvalidationInClone) {
     // The cloned laplacian should still be based on the original edges, not the new ones
     // This verifies that the cache was properly invalidated/separated
     EXPECT_NE(&cloned_laplacian, &modified_laplacian);  // Different objects
-    EXPECT_EQ(cloned_graph->edges().size(), 2);  // Should have original 2 edges
+    EXPECT_EQ(cloned_graph.edges().size(), 2);  // Should have original 2 edges
     EXPECT_EQ(original_graph->edges().size(), 1);  // Should have new 1 edge
 }

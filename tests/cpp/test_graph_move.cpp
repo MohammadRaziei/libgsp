@@ -43,7 +43,7 @@ TEST_F(GraphMoveTest, MoveConstructor) {
     gsp::DenseGraph moved_graph = std::move(original);
 
     // Verify that moved_graph has the correct data
-    ASSERT_EQ(moved_graph.num_nodes, 3);
+    ASSERT_EQ(moved_graph.numNodes(), 3);
     EXPECT_EQ(moved_graph.name(0), "node0");
     EXPECT_EQ(moved_graph.name(1), "node1");
     EXPECT_EQ(moved_graph.name(2), "node2");
@@ -91,7 +91,7 @@ TEST_F(GraphMoveTest, MoveAssignmentOperator) {
     dest.setNames(dest_names);
 
     // Verify initial state of destination
-    EXPECT_EQ(dest.num_nodes, 4);
+    EXPECT_EQ(dest.numNodes(), 4);
     EXPECT_EQ(dest.name(0), "dest0");
     auto initial_coord = dest.coord(0);
     EXPECT_DOUBLE_EQ(initial_coord.x(), 100.0);
@@ -100,7 +100,7 @@ TEST_F(GraphMoveTest, MoveAssignmentOperator) {
     dest = std::move(source);
 
     // Verify that dest now has source's data
-    EXPECT_EQ(dest.num_nodes, 2);
+    EXPECT_EQ(dest.numNodes(), 2);
     EXPECT_EQ(dest.name(0), "src0");
     EXPECT_EQ(dest.name(1), "src1");
 
@@ -116,9 +116,9 @@ TEST_F(GraphMoveTest, MoveAssignmentOperator) {
 
     auto edges_moved = dest.edges();
     EXPECT_EQ(edges_moved.size(), 1);
-    EXPECT_EQ(edges_moved[0].source, 0);
-    EXPECT_EQ(edges_moved[0].target, 1);
-    EXPECT_DOUBLE_EQ(edges_moved[0].weight, 3.0);
+    EXPECT_EQ(edges_moved[0].source(), 0);
+    EXPECT_EQ(edges_moved[0].target(), 1);
+    EXPECT_DOUBLE_EQ(edges_moved[0].weight(), 3.0);
 }
 
 // Test self move assignment (should be safe)
@@ -144,7 +144,7 @@ TEST_F(GraphMoveTest, SelfMoveAssignment) {
     graph = std::move(graph);
 
     // Values should remain the same
-    EXPECT_EQ(graph.num_nodes, 2);
+    EXPECT_EQ(graph.numNodes(), 2);
     EXPECT_EQ(graph.name(0), original_name0);
     EXPECT_EQ(graph.name(1), original_name1);
 
@@ -161,9 +161,9 @@ TEST_F(GraphMoveTest, SelfMoveAssignment) {
     auto edges_after = graph.edges();
     EXPECT_EQ(edges_after.size(), original_edges.size());
     if (!original_edges.empty() && !edges_after.empty()) {
-        EXPECT_EQ(edges_after[0].source, original_edges[0].source);
-        EXPECT_EQ(edges_after[0].target, original_edges[0].target);
-        EXPECT_DOUBLE_EQ(edges_after[0].weight, original_edges[0].weight);
+        EXPECT_EQ(edges_after[0].source(), original_edges[0].source());
+        EXPECT_EQ(edges_after[0].target(), original_edges[0].target());
+        EXPECT_DOUBLE_EQ(edges_after[0].weight(), original_edges[0].weight());
     }
 }
 
@@ -185,7 +185,7 @@ TEST_F(GraphMoveTest, SparseGraphMoveOperations) {
     gsp::SparseGraph sparse_moved = std::move(sparse_orig);
 
     // Verify moved graph has correct data
-    EXPECT_EQ(sparse_moved.num_nodes, 3);
+    EXPECT_EQ(sparse_moved.numNodes(), 3);
     EXPECT_EQ(sparse_moved.name(0), "sparse0");
     EXPECT_EQ(sparse_moved.name(1), "sparse1");
     EXPECT_EQ(sparse_moved.name(2), "sparse2");
@@ -222,14 +222,14 @@ TEST_F(GraphMoveTest, SparseGraphMoveAssignment) {
     dest.setNames(dest_names);
 
     // Verify initial state
-    EXPECT_EQ(dest.num_nodes, 3);
+    EXPECT_EQ(dest.numNodes(), 3);
     EXPECT_EQ(dest.name(0), "dest_sparse0");
 
     // Perform move assignment
     dest = std::move(source);
 
     // Verify that dest now has source's data
-    EXPECT_EQ(dest.num_nodes, 2);
+    EXPECT_EQ(dest.numNodes(), 2);
     EXPECT_EQ(dest.name(0), "src_sparse0");
     EXPECT_EQ(dest.name(1), "src_sparse1");
 
@@ -240,7 +240,7 @@ TEST_F(GraphMoveTest, SparseGraphMoveAssignment) {
 
     auto edges_moved = dest.edges();
     EXPECT_EQ(edges_moved.size(), 1);
-    EXPECT_EQ(edges_moved[0].source, 0);
-    EXPECT_EQ(edges_moved[0].target, 1);
-    EXPECT_DOUBLE_EQ(edges_moved[0].weight, 5.0);
+    EXPECT_EQ(edges_moved[0].source(), 0);
+    EXPECT_EQ(edges_moved[0].target(), 1);
+    EXPECT_DOUBLE_EQ(edges_moved[0].weight(), 5.0);
 }
