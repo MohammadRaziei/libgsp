@@ -11,28 +11,27 @@
 namespace gsp {
 namespace detail {
 
-template <class GraphT>
+template <bool is_const>
 class TemplateVertexIterator {
 public:
     using iterator_category = std::random_access_iterator_tag;
     using value_type        = Node;
     using difference_type   = std::ptrdiff_t;
+    using graph_type   = std::conditional_t<is_const, const VertexGraph, VertexGraph>;
 
-    static constexpr bool kIsConstGraph = std::is_const_v<GraphT>;
-
-    using pointer   = std::conditional_t<kIsConstGraph, const Node*, Node*>;
-    using reference = std::conditional_t<kIsConstGraph, const Node&, Node&>;
+    using pointer   = std::conditional_t<is_const, const Node*, Node*>;
+    using reference = std::conditional_t<is_const, const Node&, Node&>;
 
     TemplateVertexIterator() = default;
 
-    explicit TemplateVertexIterator(GraphT* graph, int64_t index = 0)
+    explicit TemplateVertexIterator(graph_type* graph, int64_t index = 0)
         : graph_(graph), index_(index) {
         updateCurrent();
     }
 
 
     // Dereference operator (non-const) - only for non-const GraphT
-    template <class T = GraphT, std::enable_if_t<!std::is_const_v<T>, int> = 0>
+    template <class T = graph_type, std::enable_if_t<!std::is_const_v<T>, int> = 0>
     reference operator*() {
         ensureValidForDeref();
         return *current_; // Node&
@@ -45,7 +44,7 @@ public:
     }
 
 // Pointer operator (non-const) - only for non-const GraphT
-    template <class T = GraphT, std::enable_if_t<!std::is_const_v<T>, int> = 0>
+    template <class T = graph_type, std::enable_if_t<!std::is_const_v<T>, int> = 0>
     pointer operator->() {
         ensureValidForDeref();
         return std::addressof(*current_); // Node*
@@ -154,17 +153,16 @@ public:
     }
 
     // Conversion: non-const iterator -> const iterator
-    template <class T = GraphT, std::enable_if_t<!std::is_const_v<T>, int> = 0>
-    operator TemplateVertexIterator<const std::remove_const_t<GraphT>>() const {
-        using ConstGraph = const std::remove_const_t<GraphT>;
-        return TemplateVertexIterator<ConstGraph>(graph_, static_cast<uint32_t>(index_));
+    template <class T = graph_type, std::enable_if_t<!std::is_const_v<T>, int> = 0>
+    operator TemplateVertexIterator<true>() const {
+        return TemplateVertexIterator<true>(graph_, index_);
     }
 
-    const GraphT* graph() const { return graph_; }
+    const graph_type* graph() const { return graph_; }
     int64_t index() const { return index_; }
 
 protected:
-    GraphT* graph_ = nullptr;
+    graph_type* graph_ = nullptr;
     int64_t index_ = 0;
     std::optional<value_type> current_;
 
@@ -218,14 +216,14 @@ protected:
 } // namespace detail
 
 
-class VertexIterator : public detail::TemplateVertexIterator<VertexGraph> {
-    using Base = detail::TemplateVertexIterator<VertexGraph>;
+class VertexIterator : public detail::TemplateVertexIterator<false> {
+    using Base = detail::TemplateVertexIterator<false>;
 public:
     using Base::Base; // Inherit constructors
 };
 
-class ConstVertexIterator : public detail::TemplateVertexIterator<const VertexGraph> {
-    using Base = detail::TemplateVertexIterator<const VertexGraph>;
+class ConstVertexIterator : public detail::TemplateVertexIterator<true> {
+    using Base = detail::TemplateVertexIterator<true>;
 public:
     using Base::Base;
 
