@@ -21,31 +21,23 @@
 #include "libgsp/utils/Types.h"
 #include "libgsp/utils/Logging.h"
 
-namespace gsp {
-namespace detail {
-    template <class Matrix> class MatrixBox;
-    template <class Matrix> class CacheBox;
+namespace gsp::detail {
+template<class Matrix> class MatrixBox;
+template<class Matrix> class CacheBox;
 }
-
-class BaseGraph;
-template <class Matrix> class Graph;
-
-// NOTE: These aliases may still point to your default double types from Types.h,
-// but Graph itself is now generic for any Eigen dense/sparse scalar.
-using SparseGraph = Graph<sparsematrix>;
-using DenseGraph  = Graph<densematrix>;
-
-} // namespace gsp
 
 // ============================================================
 // gsp::Graph
 // ============================================================
 
+namespace gsp {
+
 template <class Matrix>
-class gsp::Graph : public gsp::BaseGraph {
+class Graph : public gsp::BaseGraph {
 public:
     using densevector = typename gsp::types::densevector_m<Matrix>;
     using value_type  = Matrix;
+    using scalar_type  = typename types::elem_t<Matrix>;
 
     // Normalized outputs are computed/stored in float_of<elem_t<Matrix>>
     using normalized_matrix = gsp::types::matrix_float_t<Matrix>;
@@ -105,8 +97,8 @@ public:
         return graph;
     }
 
-    SparseGraph toSparse(double thresh = 0.0) const;
-    DenseGraph  toDense(double thresh = 0.0) const;
+    Graph<sparsematrix_t<scalar_type>> toSparse(double thresh = 0.0) const;
+    Graph<densematrix_t<scalar_type>>  toDense(double thresh = 0.0) const;
 
     void invalidateCache();
 
@@ -130,6 +122,15 @@ private:
 
     std::unique_ptr<gsp::detail::CacheBox<Matrix>> cache_;
 };
+
+
+// NOTE: These aliases may still point to your default double types from Types.h,
+// but Graph itself is now generic for any Eigen dense/sparse scalar.
+    using SparseGraph = Graph<sparsematrix>;
+    using DenseGraph  = Graph<densematrix>;
+
+} // namespace gsp
+
 
 // ============================================================
 // Implementations
@@ -376,13 +377,13 @@ gsp::Graph<Matrix> gsp::Graph<Matrix>::clone() const {
 }
 
 template <class Matrix>
-gsp::SparseGraph gsp::Graph<Matrix>::toSparse(double thresh) const {
-    return to<gsp::sparsematrix>(thresh);
+gsp::Graph<gsp::sparsematrix_t<gsp::types::elem_t<Matrix>>> gsp::Graph<Matrix>::toSparse(double thresh) const {
+    return to<gsp::sparsematrix_t<gsp::types::elem_t<Matrix>>>(thresh);
 }
 
 template <class Matrix>
-gsp::DenseGraph gsp::Graph<Matrix>::toDense(double thresh) const {
-    return to<gsp::densematrix>(thresh);
+gsp::Graph<gsp::densematrix_t<gsp::types::elem_t<Matrix>>> gsp::Graph<Matrix>::toDense(double thresh) const {
+    return to<gsp::densematrix_t<gsp::types::elem_t<Matrix>>>(thresh);
 }
 
 // ---- cache-backed getters ----

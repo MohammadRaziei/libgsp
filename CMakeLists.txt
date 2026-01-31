@@ -223,7 +223,7 @@ set_property(CACHE UML_FORMAT PROPERTY STRINGS svg png pdf)
 
 
 if(ENABLE_UML)
-    add_executable(uml_tu ${UML_TU})
+    add_library(uml_tu OBJECT ${UML_TU})
     target_link_libraries(uml_tu PRIVATE libgsp::libgsp)
 
     find_program(CLANG_UML_EXECUTABLE NAMES clang-uml REQUIRED)
@@ -252,7 +252,7 @@ if(ENABLE_UML)
         set(UML_OUTPUT "${UML_OUTPUT_DIR}/${UML_DIAGRAM}.${UML_FORMAT}")
 
         add_custom_target(uml
-                COMMAND "${CLANG_UML_EXECUTABLE}"
+                COMMAND "${CLANG_UML_EXECUTABLE}" -v
                 -c "${UML_CONFIG}"
                 -n "${UML_DIAGRAM}"
                 COMMAND "${PLANTUML_EXECUTABLE}" -v
@@ -275,7 +275,7 @@ if(ENABLE_UML)
         set(UML_OUTPUT "${UML_OUTPUT_DIR}/${UML_DIAGRAM}.${UML_FORMAT}")
 
         add_custom_target(uml
-                COMMAND "${CLANG_UML_EXECUTABLE}"
+                COMMAND "${CLANG_UML_EXECUTABLE}" -v
                 -c "${UML_CONFIG}"
                 -n "${UML_DIAGRAM}"
                 COMMAND "${MMDC_EXECUTABLE}"
@@ -291,4 +291,5 @@ if(ENABLE_UML)
     else()
         message(FATAL_ERROR "UML_GENERATOR must be plantuml or mermaid")
     endif()
+    add_dependencies(uml uml_tu)
 endif()
