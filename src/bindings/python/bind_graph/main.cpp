@@ -10,7 +10,7 @@
 #include "libgsp/Signal.h"
 #include "libgsp/GraphSignal.h"
 #include "libgsp/iterators/EdgeGenerator.h"
-#include "libgsp/io/File.h"
+// #include "libgsp/io/File.h"
 
 namespace nb = nanobind;
 using namespace nb::literals;
@@ -168,14 +168,36 @@ NB_MODULE(_graph, m) {
     bind_graph<gsp::sparsematrix>(m, "SparseGraph");
     bind_graph<gsp::densematrix>(m, "DenseGraph");
 
-    // EdgeGenerator classes
+    // EdgeGenerator classes - make them Python iterators
     nb::class_<gsp::EdgeGenerator>(m, "EdgeGenerator")
         .def("reset", &gsp::EdgeGenerator::reset)
-        .def("next", &gsp::EdgeGenerator::next);
+        .def("next", &gsp::EdgeGenerator::next)
+        .def("__iter__", [](gsp::EdgeGenerator &gen) -> gsp::EdgeGenerator& { 
+            gen.reset(); 
+            return gen; 
+        })
+        .def("__next__", [](gsp::EdgeGenerator &gen) -> std::optional<gsp::Edge> {
+            auto edge = gen.next();
+            if (!edge.has_value()) {
+                throw nb::stop_iteration();
+            }
+            return edge;
+        });
 
     nb::class_<gsp::ConstEdgeGenerator>(m, "ConstEdgeGenerator")
         .def("reset", &gsp::ConstEdgeGenerator::reset)
-        .def("next", &gsp::ConstEdgeGenerator::next);
+        .def("next", &gsp::ConstEdgeGenerator::next)
+        .def("__iter__", [](gsp::ConstEdgeGenerator &gen) -> gsp::ConstEdgeGenerator& { 
+            gen.reset(); 
+            return gen; 
+        })
+        .def("__next__", [](gsp::ConstEdgeGenerator &gen) -> std::optional<const gsp::Edge> {
+            auto edge = gen.next();
+            if (!edge.has_value()) {
+                throw nb::stop_iteration();
+            }
+            return edge;
+        });
 
     // SignalMask
     nb::class_<gsp::SignalMask>(m, "SignalMask")
@@ -196,6 +218,6 @@ NB_MODULE(_graph, m) {
     // bind_graph_signal<gsp::densematrix, double>(m, "GraphSignalDenseDouble");
 
     // IO functions
-    m.def("readFile", &gsp::io::readFile, "filename"_a);
-    m.def("writeFile", &gsp::io::writeFile, "filename"_a, "data"_a);
+    // m.def("readFile", &gsp::io::readFile, "filename"_a);
+    // m.def("writeFile", &gsp::io::writeFile, "filename"_a, "data"_a);
 }
