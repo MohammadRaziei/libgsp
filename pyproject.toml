@@ -56,7 +56,11 @@ BUILD_TESTING = "OFF"      # Disable building tests
 BUILD_EXAMPLES = "OFF"     # Disable building examples
 BUILD_BENCHMARKS = "OFF"   # Disable building benchmarks
 BUILD_PYTHON_BINDINGS = "ON"  # Build Python bindings
-CMAKE_BUILD_TYPE = "Release"  # Set build type to Release   
+CMAKE_BUILD_TYPE = "Release"  # Set build type to Release
+CMAKE_POSITION_INDEPENDENT_CODE = "ON"  # Required for shared libraries
+SPDLOG_BUILD_SHARED = "OFF"  # Build spdlog as static library
+SPDLOG_BUILD_EXAMPLE = "OFF"  # Disable spdlog examples
+SPDLOG_BUILD_TESTS = "OFF"  # Disable spdlog tests
 #
 #[tool.scikit-build]
 #cmake.args = ["-DSOME_DEFINE=ON", "-DOTHER=OFF"]

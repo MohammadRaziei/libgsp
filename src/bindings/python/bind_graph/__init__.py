@@ -12,16 +12,10 @@ __all__ = [
     # Classes
     'VertexGraph', 'BaseGraph',
     'SparseGraph', 'DenseGraph',
+    'EdgeGenerator', 'ConstEdgeGenerator',
     'SignalMask', 'SignalDouble', 'SignalFloat',
     'GraphSignalSparseDouble', 'GraphSignalDenseDouble',
-    'EdgeGeneratorSparse', 'EdgeGeneratorDense',
     
     # Functions
     'readFile', 'writeFile',
 ]
-
-# Create aliases for convenience
-Signal = SignalDouble
-GraphSignal = GraphSignalSparseDouble
-EdgeGenerator = EdgeGeneratorSparse
-Graph = SparseGraph
