@@ -281,7 +281,7 @@ if(ENABLE_UML)
         set(UML_INPUT  "${UML_OUTPUT_DIR}/${UML_DIAGRAM}.json")
         set(UML_OUTPUT  "${UML_OUTPUT_DIR}/${UML_DIAGRAM}.json")
         set(RENDER_CMD
-        "${CMAKE_COMMAND}" -E echo "json is ready!"
+            "${CMAKE_COMMAND}" -E echo "json is ready!"
         )
 
     else()
