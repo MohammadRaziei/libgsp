@@ -25,8 +25,8 @@ class GraphSignal {
    public:
     GraphSignal(const gsp::Graph<Matrix>& graph, const gsp::Signal<T>& signal)
         : graph_(&graph), signal_(signal), logger_(gsp::logging::getLogger("GraphSignal")) {
-        if (graph_->num_nodes != signal_.size()) {
-            const std::string msg = fmt::format("Signal size {} does not match graph size {}", signal_.size(), graph_->num_nodes);
+        if (graph_->numNodes() != signal_.size()) {
+            const std::string msg = fmt::format("Signal size {} does not match graph size {}", signal_.size(), graph_->numNodes());
             logger_->error(msg);
             throw std::length_error(msg);
         }
