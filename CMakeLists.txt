@@ -215,21 +215,24 @@ option(ENABLE_UML "Enable UML generation" ON)
 
 set(UML_DIAGRAM "core_class" CACHE STRING "clang-uml diagram name")
 set(UML_GENERATOR "plantuml" CACHE STRING "plantuml | mermaid")
-set(UML_TU "${CMAKE_SOURCE_DIR}/examples/cpp/sample01_iterating.cpp"
-        CACHE FILEPATH "A TU present in compile_commands.json")
+set(UML_TU "${CMAKE_SOURCE_DIR}/tools/uml/uml_tu.cpp"
+        CACHE FILEPATH "A TU present in compile_commands.json" FORCE)
 
 set(UML_FORMAT "svg" CACHE STRING "UML output format (svg, png, pdf)" FORCE)
 set_property(CACHE UML_FORMAT PROPERTY STRINGS svg png pdf)
 
 
 if(ENABLE_UML)
+    add_executable(uml_tu ${UML_TU})
+    target_link_libraries(uml_tu PRIVATE libgsp::libgsp)
+
     find_program(CLANG_UML_EXECUTABLE NAMES clang-uml REQUIRED)
 
     # Always generate compile_commands.json
     set(CMAKE_EXPORT_COMPILE_COMMANDS ON CACHE BOOL "Export compile_commands.json" FORCE)
 
     # Paths
-    set(UML_CONFIG_TEMPLATE "${CMAKE_SOURCE_DIR}/cmake/utils/clang-uml.in.yaml")
+    set(UML_CONFIG_TEMPLATE "${CMAKE_SOURCE_DIR}/tools/uml/clang-uml.in.yaml")
     set(UML_CONFIG          "${CMAKE_BINARY_DIR}/.clang-uml")
     set(UML_OUTPUT_DIR      "${CMAKE_BINARY_DIR}/diagrams")
     set(UML_COMPILATION_DATABASE_DIR "${CMAKE_BINARY_DIR}")
@@ -256,7 +259,7 @@ if(ENABLE_UML)
                 "-t${UML_FORMAT}"
                 "${UML_INPUT}"
                 COMMAND "${CMAKE_COMMAND}" -E echo
-                "UML generated successfully at: ${UML_OUTPUT}"
+                "-- [UML] Output written to: ${UML_OUTPUT}"
                 WORKING_DIRECTORY "${UML_OUTPUT_DIR}"
                 COMMENT "Generate UML (${UML_DIAGRAM}) with PlantUML (${UML_FORMAT})"
                 VERBATIM
@@ -279,7 +282,7 @@ if(ENABLE_UML)
                 -i "${UML_INPUT}"
                 -o "${UML_OUTPUT}"
                 COMMAND "${CMAKE_COMMAND}" -E echo
-                "UML generated successfully at: ${UML_OUTPUT}"
+                "-- [UML] Output written to: ${UML_OUTPUT}"
                 WORKING_DIRECTORY "${UML_OUTPUT_DIR}"
                 COMMENT "Generate UML (${UML_DIAGRAM}) with Mermaid (${UML_FORMAT})"
                 VERBATIM
