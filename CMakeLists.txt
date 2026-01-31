@@ -213,8 +213,8 @@ endif()
 
 option(ENABLE_UML "Enable UML generation" ON)
 
-set(UML_DIAGRAM "core_class" CACHE STRING "clang-uml diagram name")
-set(UML_GENERATOR "plantuml" CACHE STRING "plantuml | mermaid")
+set(UML_DIAGRAM "core_class" CACHE STRING "clang-uml diagram name" FORCE)
+set(UML_GENERATOR "plantuml" CACHE STRING "plantuml | mermaid | json" FORCE)
 set(UML_TU "${CMAKE_SOURCE_DIR}/tools/uml/uml_tu.cpp"
         CACHE FILEPATH "A TU present in compile_commands.json" FORCE)
 
@@ -242,54 +242,59 @@ if(ENABLE_UML)
     # Generate .clang-uml in build/
     configure_file("${UML_CONFIG_TEMPLATE}" "${UML_CONFIG}" @ONLY)
 
+
+    set(CLANG_UML_CMD
+            "${CLANG_UML_EXECUTABLE}" -v
+            -g "${UML_GENERATOR}"
+            -c "${UML_CONFIG}"
+            -n "${UML_DIAGRAM}"
+    )
     # -----------------------
     # PlantUML
     # -----------------------
     if(UML_GENERATOR STREQUAL "plantuml")
         find_program(PLANTUML_EXECUTABLE NAMES plantuml REQUIRED)
-
-        set(UML_INPUT  "${UML_OUTPUT_DIR}/${UML_DIAGRAM}.puml")
-        set(UML_OUTPUT "${UML_OUTPUT_DIR}/${UML_DIAGRAM}.${UML_FORMAT}")
-
-        add_custom_target(uml
-                COMMAND "${CLANG_UML_EXECUTABLE}" -v
-                -c "${UML_CONFIG}"
-                -n "${UML_DIAGRAM}"
-                COMMAND "${PLANTUML_EXECUTABLE}" -v
+        set(UML_INPUT "${UML_OUTPUT_DIR}/${UML_DIAGRAM}.puml")
+        set(UML_OUTPUT  "${UML_OUTPUT_DIR}/${UML_DIAGRAM}.${UML_FORMAT}")
+        set(RENDER_CMD
+                "${PLANTUML_EXECUTABLE}" -v
                 "-t${UML_FORMAT}"
                 "${UML_INPUT}"
-                COMMAND "${CMAKE_COMMAND}" -E echo
-                "-- [UML] Output written to: ${UML_OUTPUT}"
-                WORKING_DIRECTORY "${UML_OUTPUT_DIR}"
-                COMMENT "Generate UML (${UML_DIAGRAM}) with PlantUML (${UML_FORMAT})"
-                VERBATIM
         )
-
-        # -----------------------
-        # Mermaid
-        # -----------------------
+    # -----------------------
+    # Mermaid
+    # -----------------------
     elseif(UML_GENERATOR STREQUAL "mermaid")
         find_program(MMDC_EXECUTABLE NAMES mmdc REQUIRED)
+        set(UML_INPUT "${UML_OUTPUT_DIR}/${UML_DIAGRAM}.mmd")
+        set(UML_OUTPUT  "${UML_OUTPUT_DIR}/${UML_DIAGRAM}.${UML_FORMAT}")
 
-        set(UML_INPUT  "${UML_OUTPUT_DIR}/${UML_DIAGRAM}.mmd")
-        set(UML_OUTPUT "${UML_OUTPUT_DIR}/${UML_DIAGRAM}.${UML_FORMAT}")
-
-        add_custom_target(uml
-                COMMAND "${CLANG_UML_EXECUTABLE}" -v
-                -c "${UML_CONFIG}"
-                -n "${UML_DIAGRAM}"
-                COMMAND "${MMDC_EXECUTABLE}"
+        set(RENDER_CMD
+                "${MMDC_EXECUTABLE}" -v
                 -i "${UML_INPUT}"
                 -o "${UML_OUTPUT}"
-                COMMAND "${CMAKE_COMMAND}" -E echo
-                "-- [UML] Output written to: ${UML_OUTPUT}"
-                WORKING_DIRECTORY "${UML_OUTPUT_DIR}"
-                COMMENT "Generate UML (${UML_DIAGRAM}) with Mermaid (${UML_FORMAT})"
-                VERBATIM
+        )
+    # -----------------------
+    # Json
+    # -----------------------
+    elseif(UML_GENERATOR STREQUAL "json")
+        set(UML_INPUT  "${UML_OUTPUT_DIR}/${UML_DIAGRAM}.json")
+        set(UML_OUTPUT  "${UML_OUTPUT_DIR}/${UML_DIAGRAM}.json")
+        set(RENDER_CMD
+        "${CMAKE_COMMAND}" -E echo "json is ready!"
         )
 
     else()
-        message(FATAL_ERROR "UML_GENERATOR must be plantuml or mermaid")
+        message(FATAL_ERROR "UML_GENERATOR must be plantuml, mermaid or json")
     endif()
+
+    add_custom_target(uml
+            COMMAND ${CLANG_UML_CMD}
+            COMMAND ${RENDER_CMD}
+            COMMAND "${CMAKE_COMMAND}" -E echo "-- [UML] Output written to: ${UML_OUTPUT}"
+            WORKING_DIRECTORY "${UML_OUTPUT_DIR}"
+            COMMENT "Generate UML (${UML_DIAGRAM}) with PlantUML (${UML_FORMAT})"
+            VERBATIM
+    )
     add_dependencies(uml uml_tu)
 endif()
