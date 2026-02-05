@@ -17,8 +17,13 @@
 
 // Forward declarations for iterators
 namespace gsp {
-    class VertexIterator;
-    class ConstVertexIterator;
+//    class VertexIterator;
+//    class ConstVertexIterator;
+    namespace detail {
+        template<bool is_const> class TemplateVertexIteratorIsConst;
+    }
+    using VertexIterator = detail::TemplateVertexIteratorIsConst<false>;
+    using ConstVertexIterator = detail::TemplateVertexIteratorIsConst<true>;
     class VertexGraph;
     class Coord;
     struct Node;
@@ -27,8 +32,7 @@ namespace gsp {
 class gsp::Coord {
 public:
     Coord() noexcept : x_(0), y_(0), z_(0), graph_(nullptr), idx_(0u) {}
-    Coord(double x, double y, double z = 0, VertexGraph* graph = nullptr, uint32_t idx = 0u) noexcept :
-        x_(x), y_(y), z_(z), graph_(graph), idx_(idx) {}
+    Coord(double x, double y, double z = 0) noexcept : Coord(x, y, z, nullptr, 0u) {}
     Coord(const gsp::Coord& other);
 
     gsp::Coord& operator=(const gsp::Coord& other);
@@ -46,9 +50,12 @@ public:
     bool isDetached() const;
 
 protected:
+    Coord(double x, double y, double z, VertexGraph* graph, uint32_t idx) noexcept :
+            x_(x), y_(y), z_(z), graph_(graph), idx_(idx) {}
     double x_, y_, z_;
     uint32_t idx_ = 0u;
     VertexGraph* graph_ = nullptr;
+    friend class gsp::VertexGraph;
 };
 
 struct gsp::Node {

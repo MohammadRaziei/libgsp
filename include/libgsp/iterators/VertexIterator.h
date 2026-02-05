@@ -12,7 +12,7 @@ namespace gsp {
 namespace detail {
 
 template <bool is_const>
-class TemplateVertexIterator {
+class TemplateVertexIteratorIsConst {
 public:
     using iterator_category = std::random_access_iterator_tag;
     using value_type        = Node;
@@ -22,9 +22,9 @@ public:
     using pointer   = std::conditional_t<is_const, const Node*, Node*>;
     using reference = std::conditional_t<is_const, const Node&, Node&>;
 
-    TemplateVertexIterator() = default;
+    TemplateVertexIteratorIsConst() = default;
 
-    explicit TemplateVertexIterator(graph_type* graph, int64_t index = 0)
+    explicit TemplateVertexIteratorIsConst(graph_type* graph, int64_t index = 0)
         : graph_(graph), index_(index) {
         updateCurrent();
     }
@@ -57,60 +57,60 @@ public:
     }
 
     // Pre-increment
-    TemplateVertexIterator& operator++() {
+    TemplateVertexIteratorIsConst& operator++() {
         ++index_;
         updateCurrent();
         return *this;
     }
 
     // Post-increment
-    TemplateVertexIterator operator++(int) {
-        TemplateVertexIterator tmp = *this;
+    TemplateVertexIteratorIsConst operator++(int) {
+        TemplateVertexIteratorIsConst tmp = *this;
         ++(*this);
         return tmp;
     }
 
     // Pre-decrement
-    TemplateVertexIterator& operator--() {
+    TemplateVertexIteratorIsConst& operator--() {
         --index_;
         updateCurrent();
         return *this;
     }
 
     // Post-decrement
-    TemplateVertexIterator operator--(int) {
-        TemplateVertexIterator tmp = *this;
+    TemplateVertexIteratorIsConst operator--(int) {
+        TemplateVertexIteratorIsConst tmp = *this;
         --(*this);
         return tmp;
     }
 
     // Arithmetic operators
-    TemplateVertexIterator& operator+=(difference_type n) {
+    TemplateVertexIteratorIsConst& operator+=(difference_type n) {
         index_ += static_cast<int64_t>(n);
         updateCurrent();
         return *this;
     }
 
-    TemplateVertexIterator& operator-=(difference_type n) {
+    TemplateVertexIteratorIsConst& operator-=(difference_type n) {
         index_ -= static_cast<int64_t>(n);
         updateCurrent();
         return *this;
     }
 
-    TemplateVertexIterator operator+(difference_type n) const {
-        TemplateVertexIterator tmp = *this;
+    TemplateVertexIteratorIsConst operator+(difference_type n) const {
+        TemplateVertexIteratorIsConst tmp = *this;
         tmp += n;
         return tmp;
     }
 
-    TemplateVertexIterator operator-(difference_type n) const {
-        TemplateVertexIterator tmp = *this;
+    TemplateVertexIteratorIsConst operator-(difference_type n) const {
+        TemplateVertexIteratorIsConst tmp = *this;
         tmp -= n;
         return tmp;
     }
 
     // Iterator difference
-    difference_type operator-(const TemplateVertexIterator& other) const {
+    difference_type operator-(const TemplateVertexIteratorIsConst& other) const {
         ensureSameGraph(other);
         return static_cast<difference_type>(index_ - other.index_);
     }
@@ -130,32 +130,32 @@ public:
     }
 
     // Comparisons
-    bool operator==(const TemplateVertexIterator& other) const {
+    bool operator==(const TemplateVertexIteratorIsConst& other) const {
         return graph_ == other.graph_ && index_ == other.index_;
     }
-    bool operator!=(const TemplateVertexIterator& other) const { return !(*this == other); }
+    bool operator!=(const TemplateVertexIteratorIsConst& other) const { return !(*this == other); }
 
-    bool operator<(const TemplateVertexIterator& other) const {
+    bool operator<(const TemplateVertexIteratorIsConst& other) const {
         ensureSameGraph(other);
         return index_ < other.index_;
     }
-    bool operator<=(const TemplateVertexIterator& other) const {
+    bool operator<=(const TemplateVertexIteratorIsConst& other) const {
         ensureSameGraph(other);
         return index_ <= other.index_;
     }
-    bool operator>(const TemplateVertexIterator& other) const {
+    bool operator>(const TemplateVertexIteratorIsConst& other) const {
         ensureSameGraph(other);
         return index_ > other.index_;
     }
-    bool operator>=(const TemplateVertexIterator& other) const {
+    bool operator>=(const TemplateVertexIteratorIsConst& other) const {
         ensureSameGraph(other);
         return index_ >= other.index_;
     }
 
     // Conversion: non-const iterator -> const iterator
     template <class T = graph_type, std::enable_if_t<!std::is_const_v<T>, int> = 0>
-    operator TemplateVertexIterator<true>() const {
-        return TemplateVertexIterator<true>(graph_, index_);
+    operator TemplateVertexIteratorIsConst<true>() const {
+        return TemplateVertexIteratorIsConst<true>(graph_, index_);
     }
 
     const graph_type* graph() const { return graph_; }
@@ -177,7 +177,7 @@ protected:
         return static_cast<int64_t>(graph_->numNodes());
     }
 
-    void ensureSameGraph(const TemplateVertexIterator& other) const {
+    void ensureSameGraph(const TemplateVertexIteratorIsConst& other) const {
         if (graph_ != other.graph_) {
             throw std::invalid_argument("Cannot operate on iterators from different graphs");
         }
@@ -215,31 +215,31 @@ protected:
 
 } // namespace detail
 
-
-class VertexIterator : public detail::TemplateVertexIterator<false> {
-    using Base = detail::TemplateVertexIterator<false>;
-public:
-    using Base::Base; // Inherit constructors
-};
-
-class ConstVertexIterator : public detail::TemplateVertexIterator<true> {
-    using Base = detail::TemplateVertexIterator<true>;
-public:
-    using Base::Base;
-
-    // Conversion ctor: VertexIterator -> ConstVertexIterator
-    ConstVertexIterator(const gsp::VertexIterator& other)
-            : Base(other.graph(), other.index()) {
-    }
-
-    // Assignment: VertexIterator -> ConstVertexIterator
-    ConstVertexIterator& operator=(const gsp::VertexIterator& other) {
-        this->graph_ = other.graph();
-        this->index_ = other.index();
-        this->updateCurrent();
-        return *this;
-    }
-};
+//
+//class VertexIterator : public detail::TemplateVertexIteratorIsConst<false> {
+//    using Base = detail::TemplateVertexIterator<false>;
+//public:
+//    using Base::Base; // Inherit constructors
+//};
+//
+//class ConstVertexIterator : public detail::TemplateVertexIterator<true> {
+//    using Base = detail::TemplateVertexIterator<true>;
+//public:
+//    using Base::Base;
+//
+//    // Conversion ctor: VertexIterator -> ConstVertexIterator
+//    ConstVertexIterator(const gsp::VertexIterator& other)
+//            : Base(other.graph(), other.index()) {
+//    }
+//
+//    // Assignment: VertexIterator -> ConstVertexIterator
+//    ConstVertexIterator& operator=(const gsp::VertexIterator& other) {
+//        this->graph_ = other.graph();
+//        this->index_ = other.index();
+//        this->updateCurrent();
+//        return *this;
+//    }
+//};
 
 } // namespace gsp
 
