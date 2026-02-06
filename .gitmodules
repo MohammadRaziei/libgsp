@@ -61,3 +61,6 @@
 [submodule "src/third_party/matplotlib-cpp"]
 	path = src/third_party/matplotlib-cpp
 	url = https://github.com/lava/matplotlib-cpp
+[submodule "src/third_party/nanoflann"]
+	path = src/third_party/nanoflann
+	url = https://github.com/jlblancoc/nanoflann.git
