@@ -29,5 +29,24 @@ int main(int argc, char** argv) {
     logger->info("distances: \n{}", fmt::streamed(distance));
 
 
+    gsp::KnnDistance<double> knn;
+    knn.setMetric(gsp::DistanceMetric::L2)
+            .setKFixed(10)
+            .setExcludeSelf(true)
+            .setTriangularOnly(false);
+
+    knn.build(graph.coords());
+    logger->info("knn distances: \n{}", fmt::streamed(knn.compute().toDense()));
+
+    gsp::NanoflannAnnDistance<double> ann;
+    ann.setMetric(gsp::DistanceMetric::Cosine)
+            .setKFixed(10)
+            .setExcludeSelf(true)
+            .setTriangularOnly(false);
+
+    ann.build(graph.coords());
+    logger->info("nanoflann distances: \n{}", fmt::streamed(ann.compute().toDense()));
+
+
     return 0;
 }

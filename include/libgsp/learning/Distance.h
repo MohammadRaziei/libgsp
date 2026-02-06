@@ -9,7 +9,16 @@
 #include "libgsp/utils/Types.h"
 
 #include <Eigen/Dense>
+#include <Eigen/Dense>
+#include <Eigen/Sparse>
+#include <nanoflann.hpp>
+
 #include <stdexcept>
+#include <vector>
+#include <cmath>
+#include <algorithm>
+#include <numeric>
+#include <memory>
 
 namespace gsp {
 
@@ -105,6 +114,411 @@ namespace gsp {
     {
         return pairwiseDistance(X, X);
     }
+
+
+
+
+// Output distance metric
+// - L2: Euclidean distance
+// - Cosine: cosine distance = 1 - cosine_similarity
+    enum class DistanceMetric { L2, Cosine };
+
+// ============================================================
+// BaseKnnDistance (abstract contract)
+// - Only what we are sure we always need: build + compute (+ basic shape getters).
+// ============================================================
+    template <class Scalar>
+    class BaseKnnDistance {
+    public:
+        using Dense  = Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic>;
+        using DenseCRef = Eigen::Ref<const Dense>;
+        using Sparse = Eigen::SparseMatrix<Scalar>;
+
+        virtual ~BaseKnnDistance() = default;
+
+        // Build an internal index / store Y (m x d)
+        virtual void build(DenseCRef y) = 0;
+
+        // Compute sparse distances between X (n x d) and built Y (m x d)
+        // Output values are distances (not weights).
+        virtual Sparse compute(DenseCRef x) const = 0;
+
+        // Introspection (minimal but very useful)
+        virtual int dim() const = 0;          // d
+        virtual Eigen::Index size() const = 0; // m
+    };
+
+// ============================================================
+// Helpers
+// ============================================================
+    namespace detail {
+
+        template <class Mat>
+        inline void normalizeRowsInplace(Mat& a) {
+            for (Eigen::Index i = 0; i < a.rows(); ++i) {
+                const auto nrm = a.row(i).norm();
+                if (nrm > typename Mat::Scalar(0)) a.row(i) /= nrm;
+            }
+        }
+
+        inline int effectiveK(int k_fixed, double k_per_dim, int d) {
+            const int kk = (k_fixed > 0) ? k_fixed : static_cast<int>(std::ceil(k_per_dim * double(d)));
+            return std::max(1, kk);
+        }
+
+    } // namespace detail
+
+// ============================================================
+// KnnDistance (exact kNN via brute-force)
+// - build(): stores Y (and optionally normalized Y for cosine).
+// - compute(): for each row of X, scans all Y, selects k smallest distances.
+// ============================================================
+    template <class Scalar>
+    class KnnDistance {
+    public:
+        using Dense     = Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic>;
+        using DenseCRef = Eigen::Ref<const Dense>;
+        using Sparse    = Eigen::SparseMatrix<Scalar>;
+
+        // ---------------- configuration ----------------
+        KnnDistance& setMetric(DistanceMetric metric) {
+            metric_ = metric;
+            return *this;
+        }
+
+        KnnDistance& setKFixed(int k_fixed) {
+            k_fixed_ = k_fixed;
+            return *this;
+        }
+
+        KnnDistance& setKPerDim(double k_per_dim) {
+            k_per_dim_ = k_per_dim;
+            return *this;
+        }
+
+        KnnDistance& setTriangularOnly(bool triangular_only) {
+            triangular_only_ = triangular_only;
+            return *this;
+        }
+
+        KnnDistance& setExcludeSelf(bool exclude_self) {
+            exclude_self_ = exclude_self;
+            return *this;
+        }
+
+        // ---------------- API ----------------
+        void build(DenseCRef y) {
+            if (y.rows() <= 0 || y.cols() <= 0)
+                throw std::invalid_argument("KnnDistance::build: empty Y");
+
+            y_ = y;
+
+            if (metric_ == DistanceMetric::Cosine) {
+                y_norm_ = y_;
+                normalizeRowsInplace(y_norm_);
+            } else {
+                y_norm_.resize(0, 0);
+            }
+        }
+
+        // 🔹 NEW: default compute -> uses Y
+        Sparse compute() const {
+            if (y_.size() == 0)
+                throw std::runtime_error("KnnDistance::compute: call build(Y) first.");
+
+            return compute(y_);
+        }
+
+        Sparse compute(DenseCRef x) const {
+            if (y_.size() == 0)
+                throw std::runtime_error("KnnDistance::compute: call build(Y) first.");
+
+            if (x.cols() != y_.cols())
+                throw std::invalid_argument("KnnDistance::compute: X.cols != Y.cols");
+
+            const int n = static_cast<int>(x.rows());
+            const int m = static_cast<int>(y_.rows());
+            const int d = static_cast<int>(x.cols());
+            const int k = std::min(effectiveK(d), m);
+
+            Dense x_work = x;
+            if (metric_ == DistanceMetric::Cosine) {
+                normalizeRowsInplace(x_work);
+            }
+
+            std::vector<Eigen::Triplet<Scalar>> triplets;
+            triplets.reserve(static_cast<size_t>(n) * static_cast<size_t>(k));
+
+            std::vector<int> indices(m);
+            std::iota(indices.begin(), indices.end(), 0);
+
+            for (int i = 0; i < n; ++i) {
+                std::vector<Scalar> dist(m);
+
+                if (metric_ == DistanceMetric::L2) {
+                    for (int j = 0; j < m; ++j) {
+                        const Scalar d2 =
+                                (x_work.row(i) - y_.row(j)).squaredNorm();
+                        dist[j] = std::sqrt(std::max<Scalar>(Scalar(0), d2));
+                    }
+                } else {
+                    for (int j = 0; j < m; ++j) {
+                        const Scalar cos_sim =
+                                x_work.row(i).dot(y_norm_.row(j));
+                        dist[j] = Scalar(1) - cos_sim;
+                    }
+                }
+
+                std::nth_element(
+                        indices.begin(),
+                        indices.begin() + k,
+                        indices.end(),
+                        [&](int a, int b) { return dist[a] < dist[b]; }
+                );
+
+                for (int t = 0; t < k; ++t) {
+                    const int j = indices[t];
+
+                    if (exclude_self_ && n == m && i == j)
+                        continue;
+
+//                    if (triangular_only_ && i >= j)
+                    if (i >= j)
+                        continue;
+
+                    triplets.emplace_back(i, j, dist[j]);
+
+                    if (!triangular_only_) {
+                        triplets.emplace_back(j, i, dist[j]);
+                    }
+                }
+            }
+
+            Sparse D(n, m);
+            D.setFromTriplets(triplets.begin(), triplets.end());
+            D.makeCompressed();
+            return D;
+        }
+
+        // convenience
+        Sparse operator()() const { return compute(); }
+        Sparse operator()(DenseCRef x) const { return compute(x); }
+
+    private:
+        // ---------------- helpers ----------------
+        static void normalizeRowsInplace(Dense& a) {
+            for (Eigen::Index i = 0; i < a.rows(); ++i) {
+                const Scalar nrm = a.row(i).norm();
+                if (nrm > Scalar(0))
+                    a.row(i) /= nrm;
+            }
+        }
+
+        int effectiveK(int d) const {
+            const int k =
+                    (k_fixed_ > 0)
+                    ? k_fixed_
+                    : static_cast<int>(std::ceil(k_per_dim_ * double(d)));
+            return std::max(1, k);
+        }
+
+    private:
+        DistanceMetric metric_ = DistanceMetric::L2;
+        int k_fixed_ = 0;
+        double k_per_dim_ = 2.0;
+
+        bool triangular_only_ = false;
+        bool exclude_self_ = true;
+
+        Dense y_;
+        Dense y_norm_;
+    };
+
+
+
+// ============================================================
+// NanoflannAnnDistance (fast kNN using nanoflann KD-tree)
+// Notes:
+// - nanoflann KD-tree is typically exact for low dimensions; we still expose it as ANN backend.
+// - For cosine: we normalize Y and X and then use L2^2 relation to cosine distance.
+//   Here we output cosine distance = 1 - cos = 0.5 * ||x - y||^2 for normalized vectors.
+// ============================================================
+    namespace detail {
+
+// Row-wise adaptor: each row is a point.
+        template <class Mat>
+        struct EigenRowAdaptor {
+            using Scalar = typename Mat::Scalar;
+            const Mat& mat;
+
+            explicit EigenRowAdaptor(const Mat& m) : mat(m) {}
+
+            inline size_t kdtree_get_point_count() const { return static_cast<size_t>(mat.rows()); }
+
+            inline Scalar kdtree_get_pt(const size_t idx, const size_t dim) const {
+                return mat(static_cast<Eigen::Index>(idx), static_cast<Eigen::Index>(dim));
+            }
+
+            template <class BBOX>
+            bool kdtree_get_bbox(BBOX&) const { return false; }
+        };
+
+    } // namespace detail
+
+    template <class Scalar>
+    class NanoflannAnnDistance {
+    public:
+        using Dense     = Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic>;
+        using DenseCRef = Eigen::Ref<const Dense>;
+        using Sparse    = Eigen::SparseMatrix<Scalar>;
+
+        // ---------------- configuration ----------------
+        NanoflannAnnDistance& setMetric(DistanceMetric metric) {
+            metric_ = metric;
+            return *this;
+        }
+
+        NanoflannAnnDistance& setKFixed(int k_fixed) {
+            k_fixed_ = k_fixed;
+            return *this;
+        }
+
+        NanoflannAnnDistance& setKPerDim(double k_per_dim) {
+            k_per_dim_ = k_per_dim;
+            return *this;
+        }
+
+        NanoflannAnnDistance& setTriangularOnly(bool triangular_only) {
+            triangular_only_ = triangular_only;
+            return *this;
+        }
+
+        NanoflannAnnDistance& setExcludeSelf(bool exclude_self) {
+            exclude_self_ = exclude_self;
+            return *this;
+        }
+
+        // Kept for API symmetry; KD-tree knnSearch is typically exact (checks may be unused depending on nanoflann version).
+        NanoflannAnnDistance& setChecks(int checks) {
+            checks_ = checks;
+            return *this;
+        }
+
+        // ---------------- API ----------------
+        void build(DenseCRef y) {
+            if (y.rows() <= 0 || y.cols() <= 0)
+                throw std::invalid_argument("NanoflannAnnDistance::build: empty Y");
+
+            y_ = y;
+
+            if (metric_ == DistanceMetric::Cosine) {
+                detail::normalizeRowsInplace(y_);
+            }
+
+            adaptor_ = std::make_unique<Adaptor>(y_);
+            index_   = std::make_unique<Index>(
+                    static_cast<int>(y_.cols()),
+                    *adaptor_,
+                    nanoflann::KDTreeSingleIndexAdaptorParams(10)
+            );
+            index_->buildIndex();
+        }
+
+        // Default compute(): use stored Y
+        Sparse compute() const {
+            if (y_.size() == 0)
+                throw std::runtime_error("NanoflannAnnDistance::compute: call build(Y) first.");
+            return compute(y_);
+        }
+
+        Sparse compute(DenseCRef x) const {
+            if (!index_)
+                throw std::runtime_error("NanoflannAnnDistance::compute: call build(Y) first.");
+
+            if (x.cols() != y_.cols())
+                throw std::invalid_argument("NanoflannAnnDistance::compute: X.cols != Y.cols");
+
+            const int n = static_cast<int>(x.rows());
+            const int m = static_cast<int>(y_.rows());
+            const int d = static_cast<int>(x.cols());
+            const int k = std::min(detail::effectiveK(k_fixed_, k_per_dim_, d), m);
+
+            Dense x_work = x;
+            if (metric_ == DistanceMetric::Cosine) {
+                detail::normalizeRowsInplace(x_work);
+            }
+
+            std::vector<Eigen::Triplet<Scalar>> triplets;
+            triplets.reserve(static_cast<size_t>(n) * static_cast<size_t>(k));
+
+            using index_t = typename Index::IndexType;
+            std::vector<index_t> nn_index(static_cast<size_t>(k));
+            std::vector<Scalar>  nn_dist2(static_cast<size_t>(k));
+
+            for (int i = 0; i < n; ++i) {
+                const Scalar* query = x_work.row(i).data();
+
+                const size_t found = index_->knnSearch(
+                        query,
+                        static_cast<size_t>(k),
+                        nn_index.data(),
+                        nn_dist2.data()
+                );
+
+                for (size_t t = 0; t < found; ++t) {
+                    const int j = static_cast<int>(nn_index[t]);
+
+                    if (exclude_self_ && n == m && i == j)
+                        continue;
+
+                    if (triangular_only_ && i >= j)
+                        continue;
+
+                    Scalar value = Scalar(0);
+                    if (metric_ == DistanceMetric::L2) {
+                        value = std::sqrt(std::max<Scalar>(Scalar(0), nn_dist2[t]));
+                    } else {
+                        // cosine distance = 1 - cos = 0.5 * ||x-y||^2 for normalized vectors
+                        value = Scalar(0.5) * std::max<Scalar>(Scalar(0), nn_dist2[t]);
+                    }
+
+                    triplets.emplace_back(i, j, value);
+
+                    if (!triangular_only_) {
+                        triplets.emplace_back(j, i, value);
+                    }
+                }
+            }
+
+            Sparse D(n, m);
+            D.setFromTriplets(triplets.begin(), triplets.end());
+            D.makeCompressed();
+            return D;
+        }
+
+        Sparse operator()() const { return compute(); }
+        Sparse operator()(DenseCRef x) const { return compute(x); }
+
+    private:
+        DistanceMetric metric_ = DistanceMetric::L2;
+        int k_fixed_ = 0;
+        double k_per_dim_ = 2.0;
+
+        bool triangular_only_ = false;
+        bool exclude_self_ = true;
+
+        int checks_ = 64;
+
+        Dense y_;
+
+        using Adaptor = detail::EigenRowAdaptor<Dense>;
+        using Dist    = nanoflann::L2_Simple_Adaptor<Scalar, Adaptor>;
+        using Index   = nanoflann::KDTreeSingleIndexAdaptor<Dist, Adaptor, -1>;
+
+        std::unique_ptr<Adaptor> adaptor_;
+        std::unique_ptr<Index> index_;
+    };
+
 
 } // namespace gsp
 
