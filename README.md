@@ -100,9 +100,17 @@ libGSP is **actively under development**. Contributions, feedback, and feature r
 
 ## 📚 License
 
-This project is released under the [MIT License](LICENSE).
-Free for academic, personal, or commercial use.
+This project is licensed under the **BSD 3-Clause License**.
 
+You are free to use, modify, and redistribute this software for any purpose,
+including commercial and academic use, provided that the copyright notice and
+this license are retained.
+
+If you use this software in **academic research** or publish work that is based
+on it, please **cite the original author**.  
+A recommended citation is provided in the `CITATION.cff` file.
+
+This software is provided *"as is"*, without warranty of any kind.
 ---
 
 ## 🙌 Acknowledgments
