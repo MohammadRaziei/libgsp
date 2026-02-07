@@ -42,7 +42,7 @@ int main(int argc, char** argv) {
     ann.setMetric(gsp::DistanceMetric::L2)
             .setKFixed(10)
             .setExcludeSelf(true)
-            .setTriangularOnly(true);
+            .setTriangularOnly(false);
 
     ann.build(graph.coords());
     logger->info("nanoflann distances: \n{}", fmt::streamed(ann.compute().toDense()));

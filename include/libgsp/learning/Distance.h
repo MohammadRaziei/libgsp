@@ -456,13 +456,21 @@ namespace gsp {
             std::vector<Scalar>  nn_dist2(static_cast<size_t>(k));
 
             for (int i = 0; i < n; ++i) {
-                // Copy row to contiguous buffer for nanoflann query
-                // Eigen matrices are column-major by default, so row(i).data() is not contiguous
-                std::vector<Scalar> query_vec(d);
-                for (int dim = 0; dim < d; ++dim) {
-                    query_vec[dim] = x_work(i, dim);
+                const Scalar* query = nullptr;
+                std::vector<Scalar> query_vec; // Keep in outer scope
+                
+                // Check if matrix storage is row-major
+                if (x_work.IsRowMajor) {
+                    // Row-major: row(i).data() is contiguous
+                    query = x_work.row(i).data();
+                } else {
+                    // Column-major: need to copy row to contiguous buffer
+                    query_vec.resize(d);
+                    for (int dim = 0; dim < d; ++dim) {
+                        query_vec[dim] = x_work(i, dim);
+                    }
+                    query = query_vec.data();
                 }
-                const Scalar* query = query_vec.data();
 
                 const size_t found = index_->knnSearch(
                         query,
