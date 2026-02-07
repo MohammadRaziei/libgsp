@@ -203,6 +203,9 @@ namespace gsp {
         using DenseCRef = Eigen::Ref<const Dense>;
         using Sparse    = Eigen::SparseMatrix<Scalar>;
 
+        // Bring base class compute() into scope
+        using BaseKnnDistance<Scalar>::compute;
+
         // ---------------- configuration ----------------
         KnnDistance& setMetric(DistanceMetric metric) {
             metric_ = metric;
@@ -244,10 +247,6 @@ namespace gsp {
             }
         }
 
-
-        Sparse compute() const override {
-            return BaseKnnDistance<Scalar>::compute();
-        }
 
         Sparse compute(DenseCRef x) const override{
             if (this->y_.size() == 0)
@@ -391,6 +390,9 @@ namespace gsp {
         using DenseCRef = Eigen::Ref<const Dense>;
         using Sparse    = Eigen::SparseMatrix<Scalar>;
 
+        // Bring base class compute() into scope
+        using BaseKnnDistance<Scalar>::compute;
+
         // ---------------- configuration ----------------
         NanoflannAnnDistance& setMetric(DistanceMetric metric) {
             metric_ = metric;
@@ -443,10 +445,6 @@ namespace gsp {
             index_->buildIndex();
         }
 
-
-        Sparse compute() const override {
-            return BaseKnnDistance<Scalar>::compute();
-        }
 
         Sparse compute(DenseCRef x) const override {
             if (!index_)
