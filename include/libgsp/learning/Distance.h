@@ -319,10 +319,6 @@ namespace gsp {
             return D;
         }
 
-        // convenience
-        Sparse operator()() const { return compute(); }
-        Sparse operator()(DenseCRef x) const { return compute(x); }
-
     private:
         // ---------------- helpers ----------------
         static void normalizeRowsInplace(Dense& a) {
@@ -526,10 +522,6 @@ namespace gsp {
             D.makeCompressed();
             return D;
         }
-
-        // convenience
-        Sparse operator()() const { return compute(); }
-        Sparse operator()(DenseCRef x) const { return compute(x); }
 
     private:
         DistanceMetric metric_ = DistanceMetric::L2;
