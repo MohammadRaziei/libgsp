@@ -456,7 +456,13 @@ namespace gsp {
             std::vector<Scalar>  nn_dist2(static_cast<size_t>(k));
 
             for (int i = 0; i < n; ++i) {
-                const Scalar* query = x_work.row(i).data();
+                // Copy row to contiguous buffer for nanoflann query
+                // Eigen matrices are column-major by default, so row(i).data() is not contiguous
+                std::vector<Scalar> query_vec(d);
+                for (int dim = 0; dim < d; ++dim) {
+                    query_vec[dim] = x_work(i, dim);
+                }
+                const Scalar* query = query_vec.data();
 
                 const size_t found = index_->knnSearch(
                         query,
@@ -471,7 +477,9 @@ namespace gsp {
                     if (exclude_self_ && n == m && i == j)
                         continue;
 
-                    if (triangular_only_ && i >= j)
+                    // Skip if i >= j (process only upper triangle)
+                    // This matches KnnDistance implementation
+                    if (i >= j)
                         continue;
 
                     Scalar value = Scalar(0);

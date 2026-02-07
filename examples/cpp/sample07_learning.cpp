@@ -39,10 +39,10 @@ int main(int argc, char** argv) {
     logger->info("knn distances: \n{}", fmt::streamed(knn.compute().toDense()));
 
     gsp::NanoflannAnnDistance<double> ann;
-    ann.setMetric(gsp::DistanceMetric::Cosine)
+    ann.setMetric(gsp::DistanceMetric::L2)
             .setKFixed(10)
             .setExcludeSelf(true)
-            .setTriangularOnly(false);
+            .setTriangularOnly(true);
 
     ann.build(graph.coords());
     logger->info("nanoflann distances: \n{}", fmt::streamed(ann.compute().toDense()));
