@@ -143,17 +143,17 @@ namespace gsp {
 
         // Compute sparse distances between X (n x d) and built Y (m x d)
         // Output values are distances (not weights).
-        virtual Sparse compute(DenseCRef x) const = 0;
+        virtual Sparse compute(DenseCRef x) = 0;
 
-        virtual Sparse compute() const {
+        virtual Sparse compute() {
             if (this->y_.size() == 0)
                 throw std::runtime_error("KnnDistance::compute: call build(Y) first.");
-
+            compute_self_ = true;
             return compute(this->y_);
         }
 
-        virtual Sparse operator()() const { return compute(); }
-        virtual Sparse operator()(DenseCRef x) const { return compute(x); }
+        virtual Sparse operator()() { return compute(); }
+        virtual Sparse operator()(DenseCRef x) { return compute(x); }
 
 
         // Implementation of BaseKnnDistance pure virtual functions
@@ -171,6 +171,7 @@ namespace gsp {
 
     protected:
         DenseF y_;
+        bool compute_self_ = false;
     };
 
 // ============================================================
@@ -249,7 +250,7 @@ namespace gsp {
         }
 
 
-        Sparse compute(DenseCRef x) const override{
+        Sparse compute(DenseCRef x) override{
             if (this->y_.size() == 0)
                 throw std::runtime_error("KnnDistance::compute: call build(Y) first.");
 
@@ -299,16 +300,16 @@ namespace gsp {
                 for (int t = 0; t < k; ++t) {
                     const int j = indices[t];
 
-                    if (exclude_self_ && n == m && i == j)
+                    if (this->compute_self_ && exclude_self_ && i == j)
                         continue;
 
 //                    if (triangular_only_ && i >= j)
-                    if (i >= j)
+                    if (this->compute_self_ && i >= j)
                         continue;
 
                     triplets.emplace_back(i, j, dist[j]);
 
-                    if (!triangular_only_) {
+                    if (this->compute_self_ && !triangular_only_) {
                         triplets.emplace_back(j, i, dist[j]);
                     }
                 }
@@ -442,7 +443,7 @@ namespace gsp {
         }
 
 
-        Sparse compute(DenseCRef x) const override {
+        Sparse compute(DenseCRef x) override {
             if (!index_)
                 throw std::runtime_error("NanoflannAnnDistance::compute: call build(Y) first.");
 
@@ -493,12 +494,12 @@ namespace gsp {
                 for (size_t t = 0; t < found; ++t) {
                     const int j = static_cast<int>(nn_index[t]);
 
-                    if (exclude_self_ && n == m && i == j)
+                    if (this->compute_self_ && exclude_self_ && i == j)
                         continue;
 
                     // Skip if i >= j (process only upper triangle)
                     // This matches KnnDistance implementation
-                    if (i >= j)
+                    if (this->compute_self_ && i >= j)
                         continue;
 
                     Scalar value = Scalar(0);
@@ -511,7 +512,7 @@ namespace gsp {
 
                     triplets.emplace_back(i, j, value);
 
-                    if (!triangular_only_) {
+                    if (this->compute_self_ && !triangular_only_) {
                         triplets.emplace_back(j, i, value);
                     }
                 }
