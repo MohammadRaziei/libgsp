@@ -240,10 +240,7 @@ namespace gsp {
             this->y_ = y;
 
             if (metric_ == DistanceMetric::Cosine) {
-                y_norm_ = this->y_;
-                normalizeRowsInplace(y_norm_);
-            } else {
-                y_norm_.resize(0, 0);
+                normalizeRowsInplace(this->y_);
             }
         }
 
@@ -283,7 +280,7 @@ namespace gsp {
                 } else {
                     for (int j = 0; j < m; ++j) {
                         const Scalar cos_sim =
-                                x_work.row(i).dot(y_norm_.row(j));
+                                x_work.row(i).dot(this->y_.row(j));
                         dist[j] = Scalar(1) - cos_sim;
                     }
                 }
@@ -344,8 +341,6 @@ namespace gsp {
 
         bool triangular_only_ = false;
         bool exclude_self_ = true;
-
-        Dense y_norm_;
     };
 
 
