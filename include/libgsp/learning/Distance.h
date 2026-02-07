@@ -143,9 +143,32 @@ namespace gsp {
         // Output values are distances (not weights).
         virtual Sparse compute(DenseCRef x) const = 0;
 
-        // Introspection (minimal but very useful)
-        virtual int dim() const = 0;          // d
-        virtual Eigen::Index size() const = 0; // m
+        virtual Sparse compute() const {
+            if (this->y_.size() == 0)
+                throw std::runtime_error("KnnDistance::compute: call build(Y) first.");
+
+            return compute(this->y_);
+        }
+
+        virtual Sparse operator()() const { return compute(); }
+        virtual Sparse operator()(DenseCRef x) const { return compute(x); }
+
+
+        // Implementation of BaseKnnDistance pure virtual functions
+        virtual uint32_t dim() const {
+            if (y_.size() == 0)
+                throw std::runtime_error("KnnDistance::dim: call build(Y) first.");
+            return static_cast<uint32_t>(y_.cols());
+        }
+
+        virtual uint32_t size() const {
+            if (y_.size() == 0)
+                throw std::runtime_error("KnnDistance::size: call build(Y) first.");
+            return static_cast<uint32_t>(y_.rows());
+        }
+
+    protected:
+        Dense y_;
     };
 
 // ============================================================
@@ -174,7 +197,7 @@ namespace gsp {
 // - compute(): for each row of X, scans all Y, selects k smallest distances.
 // ============================================================
     template <class Scalar>
-    class KnnDistance {
+    class KnnDistance: public BaseKnnDistance<Scalar> {
     public:
         using Dense     = Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic>;
         using DenseCRef = Eigen::Ref<const Dense>;
@@ -211,33 +234,30 @@ namespace gsp {
             if (y.rows() <= 0 || y.cols() <= 0)
                 throw std::invalid_argument("KnnDistance::build: empty Y");
 
-            y_ = y;
+            this->y_ = y;
 
             if (metric_ == DistanceMetric::Cosine) {
-                y_norm_ = y_;
+                y_norm_ = this->y_;
                 normalizeRowsInplace(y_norm_);
             } else {
                 y_norm_.resize(0, 0);
             }
         }
 
-        // 🔹 NEW: default compute -> uses Y
-        Sparse compute() const {
-            if (y_.size() == 0)
-                throw std::runtime_error("KnnDistance::compute: call build(Y) first.");
 
-            return compute(y_);
+        Sparse compute() const override {
+            return BaseKnnDistance<Scalar>::compute();
         }
 
-        Sparse compute(DenseCRef x) const {
-            if (y_.size() == 0)
+        Sparse compute(DenseCRef x) const override{
+            if (this->y_.size() == 0)
                 throw std::runtime_error("KnnDistance::compute: call build(Y) first.");
 
-            if (x.cols() != y_.cols())
+            if (x.cols() != this->y_.cols())
                 throw std::invalid_argument("KnnDistance::compute: X.cols != Y.cols");
 
             const int n = static_cast<int>(x.rows());
-            const int m = static_cast<int>(y_.rows());
+            const int m = static_cast<int>(this->y_.rows());
             const int d = static_cast<int>(x.cols());
             const int k = std::min(effectiveK(d), m);
 
@@ -258,7 +278,7 @@ namespace gsp {
                 if (metric_ == DistanceMetric::L2) {
                     for (int j = 0; j < m; ++j) {
                         const Scalar d2 =
-                                (x_work.row(i) - y_.row(j)).squaredNorm();
+                                (x_work.row(i) - this->y_.row(j)).squaredNorm();
                         dist[j] = std::sqrt(std::max<Scalar>(Scalar(0), d2));
                     }
                 } else {
@@ -330,7 +350,6 @@ namespace gsp {
         bool triangular_only_ = false;
         bool exclude_self_ = true;
 
-        Dense y_;
         Dense y_norm_;
     };
 
@@ -366,7 +385,7 @@ namespace gsp {
     } // namespace detail
 
     template <class Scalar>
-    class NanoflannAnnDistance {
+    class NanoflannAnnDistance: public BaseKnnDistance<Scalar>  {
     public:
         using Dense     = Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic>;
         using DenseCRef = Eigen::Ref<const Dense>;
@@ -409,37 +428,35 @@ namespace gsp {
             if (y.rows() <= 0 || y.cols() <= 0)
                 throw std::invalid_argument("NanoflannAnnDistance::build: empty Y");
 
-            y_ = y;
+            this->y_ = y;
 
             if (metric_ == DistanceMetric::Cosine) {
-                detail::normalizeRowsInplace(y_);
+                detail::normalizeRowsInplace(this->y_);
             }
 
-            adaptor_ = std::make_unique<Adaptor>(y_);
+            adaptor_ = std::make_unique<Adaptor>(this->y_);
             index_   = std::make_unique<Index>(
-                    static_cast<int>(y_.cols()),
+                    static_cast<int>(this->y_.cols()),
                     *adaptor_,
                     nanoflann::KDTreeSingleIndexAdaptorParams(10)
             );
             index_->buildIndex();
         }
 
-        // Default compute(): use stored Y
-        Sparse compute() const {
-            if (y_.size() == 0)
-                throw std::runtime_error("NanoflannAnnDistance::compute: call build(Y) first.");
-            return compute(y_);
+
+        Sparse compute() const override {
+            return BaseKnnDistance<Scalar>::compute();
         }
 
-        Sparse compute(DenseCRef x) const {
+        Sparse compute(DenseCRef x) const override {
             if (!index_)
                 throw std::runtime_error("NanoflannAnnDistance::compute: call build(Y) first.");
 
-            if (x.cols() != y_.cols())
+            if (x.cols() != this->y_.cols())
                 throw std::invalid_argument("NanoflannAnnDistance::compute: X.cols != Y.cols");
 
             const int n = static_cast<int>(x.rows());
-            const int m = static_cast<int>(y_.rows());
+            const int m = static_cast<int>(this->y_.rows());
             const int d = static_cast<int>(x.cols());
             const int k = std::min(detail::effectiveK(k_fixed_, k_per_dim_, d), m);
 
@@ -512,6 +529,7 @@ namespace gsp {
             return D;
         }
 
+        // convenience
         Sparse operator()() const { return compute(); }
         Sparse operator()(DenseCRef x) const { return compute(x); }
 
@@ -525,7 +543,6 @@ namespace gsp {
 
         int checks_ = 64;
 
-        Dense y_;
 
         using Adaptor = detail::EigenRowAdaptor<Dense>;
         using Dist    = nanoflann::L2_Simple_Adaptor<Scalar, Adaptor>;
@@ -537,10 +554,6 @@ namespace gsp {
 
 
 } // namespace gsp
-
-
-
-
 
 
 #endif //LIBGSP_DISTANCE_H
