@@ -130,9 +130,11 @@ namespace gsp {
     template <class Scalar>
     class BaseKnnDistance {
     public:
+        using ScalarF  = gsp::types::float_of<Scalar>;
         using Dense  = Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic>;
+        using DenseF  = Eigen::Matrix<ScalarF, Eigen::Dynamic, Eigen::Dynamic>;
         using DenseCRef = Eigen::Ref<const Dense>;
-        using Sparse = Eigen::SparseMatrix<Scalar>;
+        using Sparse = Eigen::SparseMatrix<ScalarF>;
 
         virtual ~BaseKnnDistance() = default;
 
@@ -168,7 +170,7 @@ namespace gsp {
         }
 
     protected:
-        Dense y_;
+        DenseF y_;
     };
 
 // ============================================================
@@ -199,9 +201,11 @@ namespace gsp {
     template <class Scalar>
     class KnnDistance: public BaseKnnDistance<Scalar> {
     public:
-        using Dense     = Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic>;
-        using DenseCRef = Eigen::Ref<const Dense>;
-        using Sparse    = Eigen::SparseMatrix<Scalar>;
+        using ScalarF   = typename BaseKnnDistance<Scalar>::ScalarF;
+        using Dense     = typename BaseKnnDistance<Scalar>::Dense;
+        using DenseF    = typename BaseKnnDistance<Scalar>::DenseF;
+        using DenseCRef = typename BaseKnnDistance<Scalar>::DenseCRef;
+        using Sparse    = typename BaseKnnDistance<Scalar>::Sparse;
 
         // Bring base class compute() into scope
         using BaseKnnDistance<Scalar>::compute;
@@ -262,14 +266,14 @@ namespace gsp {
                 normalizeRowsInplace(x_work);
             }
 
-            std::vector<Eigen::Triplet<Scalar>> triplets;
+            std::vector<Eigen::Triplet<ScalarF>> triplets;
             triplets.reserve(static_cast<size_t>(n) * static_cast<size_t>(k));
 
             std::vector<int> indices(m);
             std::iota(indices.begin(), indices.end(), 0);
 
             for (int i = 0; i < n; ++i) {
-                std::vector<Scalar> dist(m);
+                std::vector<ScalarF> dist(m);
 
                 if (metric_ == DistanceMetric::L2) {
                     for (int j = 0; j < m; ++j) {
@@ -353,7 +357,6 @@ namespace gsp {
 //   Here we output cosine distance = 1 - cos = 0.5 * ||x - y||^2 for normalized vectors.
 // ============================================================
     namespace detail {
-
 // Row-wise adaptor: each row is a point.
         template <class Mat>
         struct EigenRowAdaptor {
@@ -377,9 +380,11 @@ namespace gsp {
     template <class Scalar>
     class NanoflannAnnDistance: public BaseKnnDistance<Scalar>  {
     public:
-        using Dense     = Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic>;
-        using DenseCRef = Eigen::Ref<const Dense>;
-        using Sparse    = Eigen::SparseMatrix<Scalar>;
+        using ScalarF   = typename BaseKnnDistance<Scalar>::ScalarF;
+        using Dense     = typename BaseKnnDistance<Scalar>::Dense;
+        using DenseF    = typename BaseKnnDistance<Scalar>::DenseF;
+        using DenseCRef = typename BaseKnnDistance<Scalar>::DenseCRef;
+        using Sparse    = typename BaseKnnDistance<Scalar>::Sparse;
 
         // Bring base class compute() into scope
         using BaseKnnDistance<Scalar>::compute;
@@ -449,21 +454,21 @@ namespace gsp {
             const int d = static_cast<int>(x.cols());
             const int k = std::min(detail::effectiveK(k_fixed_, k_per_dim_, d), m);
 
-            Dense x_work = x;
+            DenseF x_work = x;
             if (metric_ == DistanceMetric::Cosine) {
                 detail::normalizeRowsInplace(x_work);
             }
 
-            std::vector<Eigen::Triplet<Scalar>> triplets;
+            std::vector<Eigen::Triplet<ScalarF>> triplets;
             triplets.reserve(static_cast<size_t>(n) * static_cast<size_t>(k));
 
             using index_t = typename Index::IndexType;
             std::vector<index_t> nn_index(static_cast<size_t>(k));
-            std::vector<Scalar>  nn_dist2(static_cast<size_t>(k));
+            std::vector<ScalarF>  nn_dist2(static_cast<size_t>(k));
 
             for (int i = 0; i < n; ++i) {
-                const Scalar* query = nullptr;
-                std::vector<Scalar> query_vec; // Keep in outer scope
+                const ScalarF* query = nullptr;
+                std::vector<ScalarF> query_vec; // Keep in outer scope
                 
                 // Check if matrix storage is row-major
                 if (x_work.IsRowMajor) {
@@ -529,8 +534,8 @@ namespace gsp {
         int checks_ = 64;
 
 
-        using Adaptor = detail::EigenRowAdaptor<Dense>;
-        using Dist    = nanoflann::L2_Simple_Adaptor<Scalar, Adaptor>;
+        using Adaptor = detail::EigenRowAdaptor<DenseF>;
+        using Dist    = nanoflann::L2_Simple_Adaptor<ScalarF, Adaptor>;
         using Index   = nanoflann::KDTreeSingleIndexAdaptor<Dist, Adaptor, -1>;
 
         std::unique_ptr<Adaptor> adaptor_;
