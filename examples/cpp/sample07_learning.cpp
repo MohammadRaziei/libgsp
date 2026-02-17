@@ -19,33 +19,64 @@ int main(int argc, char** argv) {
     std::vector<gsp::Coord> coords_vec = {{0,0}, {2,0}, {1,-1}, {3,-1}};
 
     gsp::DenseGraph graph(4);
-    graph.setEdges(edges, false);
+    graph.setEdges(edges, true);
     graph.setCoords(coords_vec);
 
 //    logger->info("graph W: \n{}", fmt::streamed(graph.weights()));
     logger->info("graph coords: \n{}", fmt::streamed(graph.coords()));
 
-    auto distance = gsp::pairwiseDistance(graph.coords());
-    logger->info("distances: \n{}", fmt::streamed(distance));
+    tic;
+    auto distance = gsp::pairwiseL2Distance(graph.coords());
+    toc;
+    logger->info("pairwiseL2Distance: \n{}", fmt::streamed(distance));
 
 
     gsp::KnnDistance<double> knn;
-    knn.setMetric(gsp::DistanceMetric::L2)
+    tic;
+    knn.setMetric(gsp::DistanceMetric::L2Distance)
             .setKFixed(10)
+//            .setKPerDim(3)
             .setExcludeSelf(true)
-            .setTriangularOnly(false);
-
+            .setTriangularOnly(true);
     knn.build(graph.coords());
-    logger->info("knn distances: \n{}", fmt::streamed(knn.compute().toDense()));
+    toc;
+    logger->info("KNN L2Distance: \n{}", fmt::streamed(knn.compute().toDense()));
 
     gsp::NanoflannAnnDistance<double> ann;
-    ann.setMetric(gsp::DistanceMetric::L2)
+    tic;
+    ann.setMetric(gsp::DistanceMetric::L2Distance)
             .setKFixed(10)
             .setExcludeSelf(true)
             .setTriangularOnly(false);
-
     ann.build(graph.coords());
-    logger->info("nanoflann distances: \n{}", fmt::streamed(ann.compute().toDense()));
+    toc;
+    logger->info("ANN L2Distance: \n{}", fmt::streamed(ann.compute().toDense()));
+
+    auto cos_sim = gsp::pairwiseCosineSimilarity(graph.coords());
+    logger->info("pairwiseCosineSimilarity: \n{}", fmt::streamed(cos_sim));
+
+    tic;
+    auto chrd_dist = gsp::pairwiseChordalDistance(graph.coords());
+    toc;
+    logger->info("pairwiseChordalDistance: \n{}", fmt::streamed(chrd_dist));
+
+    tic;
+    knn.setMetric(gsp::DistanceMetric::ChordalDistance)
+            .setKFixed(10)
+            .setExcludeSelf(false)
+            .setTriangularOnly(false);
+    knn.build(graph.coords());
+    toc;
+    logger->info("KNN ChordalDistance: \n{}", fmt::streamed(knn.compute().toDense()));
+
+    tic;
+    ann.setMetric(gsp::DistanceMetric::ChordalDistance)
+            .setKFixed(10)
+            .setExcludeSelf(false)
+            .setTriangularOnly(false);
+    ann.build(graph.coords());
+    toc;
+    logger->info("ANN ChordalDistance: \n{}", fmt::streamed(ann.compute().toDense()));
 
 
     return 0;

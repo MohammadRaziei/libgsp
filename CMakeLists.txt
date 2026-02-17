@@ -70,6 +70,12 @@ target_compile_definitions(gsp PRIVATE PUGIXML_HEADER_ONLY)
 target_include_directories(gsp PRIVATE src/third_party/pugixml/src)
 target_link_libraries(gsp PUBLIC eigen)
 
+# Suppress Eigen warnings for gsp target as well
+target_compile_options(gsp PRIVATE
+    $<$<CXX_COMPILER_ID:GNU>:-Wno-stringop-overflow>
+    $<$<CXX_COMPILER_ID:Clang>:-Wno-stringop-overflow>
+)
+
 
 
 find_package(Python3 REQUIRED COMPONENTS Interpreter)

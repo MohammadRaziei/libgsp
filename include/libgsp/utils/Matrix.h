@@ -97,19 +97,48 @@ Eigen::Matrix<Scalar, Rows, Cols, Options, MR, MC> kron(const Eigen::Matrix<Scal
 
 
 template<typename Scalar, int Options, typename Index>
-Eigen::SparseMatrix<Scalar, Options, Index> kronSum(const Eigen::SparseMatrix<Scalar, Options, Index>& a,
-                                                    const Eigen::SparseMatrix<Scalar, Options, Index>& b) {
-    const Eigen::MatrixX<Scalar> Ia = Eigen::MatrixX<Scalar>::Identity(a.rows(), a.rows());
-    const Eigen::MatrixX<Scalar> Ib = Eigen::MatrixX<Scalar>::Identity(b.rows(), b.rows());
-    return Eigen::KroneckerProductSparse(a, Ib) * Eigen::KroneckerProductSparse(Ia, b);
+Eigen::SparseMatrix<Scalar, Options, Index>
+kronSum(const Eigen::SparseMatrix<Scalar, Options, Index>& A,
+        const Eigen::SparseMatrix<Scalar, Options, Index>& B)
+{
+    using SpMat = Eigen::SparseMatrix<Scalar, Options, Index>;
+
+    // Sparse identity matrices (do NOT use dense identity here).
+    SpMat Ia(A.rows(), A.rows()); Ia.setIdentity();
+
+    SpMat Ib(B.rows(), B.rows()); Ib.setIdentity();
+
+    SpMat K = Eigen::kroneckerProduct(A, Ib).eval()
+              + Eigen::kroneckerProduct(Ia, B).eval();
+
+    return K;
 }
 
-template<typename Scalar, int Rows, int Cols, int Options, int MR, int MC>
-Eigen::Matrix<Scalar, Rows, Cols, Options, MR, MC> kronSum(const Eigen::Matrix<Scalar, Rows, Cols, Options, MR, MC>& a,
-                                                           const Eigen::Matrix<Scalar, Rows, Cols, Options, MR, MC>& b) {
-    const Eigen::MatrixX<Scalar> Ia = Eigen::MatrixX<Scalar>::Identity(a.rows(), a.rows());
-    const Eigen::MatrixX<Scalar> Ib = Eigen::MatrixX<Scalar>::Identity(b.rows(), b.rows());
-    return Eigen::KroneckerProduct(a, Ib) * Eigen::KroneckerProduct(Ia, b);
+
+template <typename DerivedA, typename DerivedB>
+auto kronSum(const Eigen::MatrixBase<DerivedA>& A,
+             const Eigen::MatrixBase<DerivedB>& B)
+-> Eigen::Matrix<typename DerivedA::Scalar, Eigen::Dynamic, Eigen::Dynamic>
+{
+    using Scalar = typename DerivedA::Scalar;
+    static_assert(std::is_same_v<Scalar, typename DerivedB::Scalar>,
+                  "A and B must have the same scalar type.");
+
+    // Kronecker sum is defined for square matrices
+    assert(A.rows() == A.cols());
+    assert(B.rows() == B.cols());
+
+    const Eigen::Index n = A.rows();
+    const Eigen::Index m = B.rows();
+
+    Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> Ia(n, n);
+    Ia.setIdentity();
+
+    Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> Ib(m, m);
+    Ib.setIdentity();
+
+    return (Eigen::kroneckerProduct(A.derived(), Ib).eval()
+            + Eigen::kroneckerProduct(Ia, B.derived()).eval());
 }
 
 template<typename Scalar, int Options, typename Index>

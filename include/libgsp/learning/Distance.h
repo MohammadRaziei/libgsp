@@ -33,7 +33,7 @@ namespace gsp {
             class ScalarY, int RY, int CY, int OptY, int MRY, int MCY,
             class ScalarP, int RP, int CP, int OptP, int MRP, int MCP
     >
-    auto pairwiseDistance(
+    auto pairwiseQuadraticDistance(
             const Eigen::Matrix<ScalarX, RX, CX, OptX, MRX, MCX>& X,
             const Eigen::Matrix<ScalarY, RY, CY, OptY, MRY, MCY>& Y,
             const Eigen::Matrix<ScalarP, RP, CP, OptP, MRP, MCP>& P
@@ -96,7 +96,7 @@ namespace gsp {
             class ScalarX, int RX, int CX, int OptX, int MRX, int MCX,
             class ScalarY, int RY, int CY, int OptY, int MRY, int MCY
     >
-    auto pairwiseDistance(
+    auto pairwiseL2Distance(
             const Eigen::Matrix<ScalarX, RX, CX, OptX, MRX, MCX>& X,
             const Eigen::Matrix<ScalarY, RY, CY, OptY, MRY, MCY>& Y
     )
@@ -105,23 +105,166 @@ namespace gsp {
         using OutScalar = gsp::types::float_of<ScalarX>;
         Eigen::Matrix<OutScalar, Eigen::Dynamic, Eigen::Dynamic> I =
                 Eigen::Matrix<OutScalar, Eigen::Dynamic, Eigen::Dynamic>::Identity(X.cols(), X.cols());
-        return pairwiseDistance(X, Y, I);
+        return pairwiseQuadraticDistance(X, Y, I);
     }
 
     template <class ScalarX, int RX, int CX, int OptX, int MRX, int MCX>
-    auto pairwiseDistance(const Eigen::Matrix<ScalarX, RX, CX, OptX, MRX, MCX>& X)
+    auto pairwiseL2Distance(const Eigen::Matrix<ScalarX, RX, CX, OptX, MRX, MCX>& X)
     -> Eigen::Matrix<gsp::types::float_of<ScalarX>, RX, RX, OptX, MRX, MRX>
     {
-        return pairwiseDistance(X, X);
+        return pairwiseL2Distance(X, X);
     }
 
+
+
+    // ------------------------------------------------------------
+// pairwiseCosineDistance (row-wise):
+// Cosine distance = 1 - cosine_similarity
+// cosine_similarity(x,y) = (x·y) / (||x|| ||y||)
+//
+// X: n x d (rows are vectors), Y: m x d
+// Returns: n x m
+//
+// Notes:
+// - If a row has zero norm, we define its cosine similarity with anything as 0,
+//   hence cosine distance = 1.
+// - Numerically clamps similarity to [-1, 1].
+// ------------------------------------------------------------
+    template <
+            class ScalarX, int RX, int CX, int OptX, int MRX, int MCX,
+            class ScalarY, int RY, int CY, int OptY, int MRY, int MCY
+    >
+    auto pairwiseChordalDistance(
+            const Eigen::Matrix<ScalarX, RX, CX, OptX, MRX, MCX>& X,
+            const Eigen::Matrix<ScalarY, RY, CY, OptY, MRY, MCY>& Y
+    )
+    -> Eigen::Matrix<
+            gsp::types::float_of<ScalarX>,
+            RX,
+            RY,
+            OptX,
+            MRX,
+            MRY
+    >
+    {
+        using OutScalar = gsp::types::float_of<ScalarX>;
+        using OutMat    = Eigen::Matrix<OutScalar, RX, RY, OptX, MRX, MRY>;
+
+        if (X.cols() != Y.cols())
+            throw std::invalid_argument("pairwiseCosineDistance: X.cols != Y.cols");
+
+        const Eigen::Index n = X.rows();
+        const Eigen::Index m = Y.rows();
+
+        Eigen::Matrix<OutScalar, Eigen::Dynamic, Eigen::Dynamic> Xn =
+                X.template cast<OutScalar>();
+        Eigen::Matrix<OutScalar, Eigen::Dynamic, Eigen::Dynamic> Yn =
+                Y.template cast<OutScalar>();
+
+        // Normalize rows (zero stays zero)
+        for (Eigen::Index i = 0; i < n; ++i) {
+            const OutScalar nx = Xn.row(i).norm();
+            if (nx > OutScalar(0))
+                Xn.row(i) /= nx;
+        }
+        for (Eigen::Index j = 0; j < m; ++j) {
+            const OutScalar ny = Yn.row(j).norm();
+            if (ny > OutScalar(0))
+                Yn.row(j) /= ny;
+        }
+
+        OutMat D;
+        D.resize(n, m);
+
+        // D_ij = 0.5 * ||x_i - y_j||^2
+        for (Eigen::Index i = 0; i < n; ++i) {
+            for (Eigen::Index j = 0; j < m; ++j) {
+                D(i, j) = OutScalar(0.5) *
+                          (Xn.row(i) - Yn.row(j)).squaredNorm();
+            }
+        }
+
+        return D;
+    }
+
+    // Convenience overload: X vs X
+    template <class ScalarX, int RX, int CX, int OptX, int MRX, int MCX>
+    auto pairwiseChordalDistance(const Eigen::Matrix<ScalarX, RX, CX, OptX, MRX, MCX>& X)
+    -> Eigen::Matrix<gsp::types::float_of<ScalarX>, RX, RX, OptX, MRX, MRX>
+    {
+        return pairwiseChordalDistance(X, X);
+    }
+
+    /////////////////////////////
+
+    template <
+            class ScalarX, int RX, int CX, int OptX, int MRX, int MCX,
+            class ScalarY, int RY, int CY, int OptY, int MRY, int MCY
+    >
+    auto pairwiseCosineSimilarity(
+            const Eigen::Matrix<ScalarX, RX, CX, OptX, MRX, MCX>& X,
+            const Eigen::Matrix<ScalarY, RY, CY, OptY, MRY, MCY>& Y
+    )
+    -> Eigen::Matrix<
+            gsp::types::float_of<ScalarX>,
+            RX,
+            RY,
+            OptX,
+            MRX,
+            MRY
+    >
+    {
+        using OutScalar = gsp::types::float_of<ScalarX>;
+        using OutMat    = Eigen::Matrix<OutScalar, RX, RY, OptX, MRX, MRY>;
+
+        if (X.cols() != Y.cols())
+            throw std::invalid_argument("pairwiseCosineSimilarity: X.cols != Y.cols");
+
+        const Eigen::Index n = X.rows();
+        const Eigen::Index m = Y.rows();
+
+        // Cast for stable computation
+        Eigen::Matrix<OutScalar, Eigen::Dynamic, Eigen::Dynamic> Xn = X.template cast<OutScalar>();
+        Eigen::Matrix<OutScalar, Eigen::Dynamic, Eigen::Dynamic> Yn = Y.template cast<OutScalar>();
+
+        // Normalize rows (zero stays zero)
+        for (Eigen::Index i = 0; i < n; ++i) {
+            const OutScalar nx = Xn.row(i).norm();
+            if (nx > OutScalar(0)) Xn.row(i) /= nx;
+        }
+        for (Eigen::Index j = 0; j < m; ++j) {
+            const OutScalar ny = Yn.row(j).norm();
+            if (ny > OutScalar(0)) Yn.row(j) /= ny;
+        }
+
+        // Cosine similarity = <x_hat, y_hat>
+        OutMat S;
+        S.resize(n, m);
+        S.noalias() = Xn * Yn.transpose();
+
+        // Optional: clamp for numeric drift
+//        S = S.cwiseMin(OutScalar(1)).cwiseMax(OutScalar(-1));
+
+        return S;
+    }
+
+
+    ////////////////////////////////
+
+    // Convenience overload: X vs X
+    template <class ScalarX, int RX, int CX, int OptX, int MRX, int MCX>
+    auto pairwiseCosineSimilarity(const Eigen::Matrix<ScalarX, RX, CX, OptX, MRX, MCX>& X)
+    -> Eigen::Matrix<gsp::types::float_of<ScalarX>, RX, RX, OptX, MRX, MRX>
+    {
+        return pairwiseCosineSimilarity(X, X);
+    }
 
 
 
 // Output distance metric
 // - L2: Euclidean distance
 // - Cosine: cosine distance = 1 - cosine_similarity
-    enum class DistanceMetric { L2, Cosine };
+    enum class DistanceMetric { L2Distance, ChordalDistance };
 
 // ============================================================
 // BaseKnnDistance (abstract contract)
@@ -179,9 +322,14 @@ namespace gsp {
 
         template <class Mat>
         inline void normalizeRowsInplace(Mat& a) {
+            using Scalar = typename Mat::Scalar;
             for (Eigen::Index i = 0; i < a.rows(); ++i) {
-                const auto nrm = a.row(i).norm();
-                if (nrm > typename Mat::Scalar(0)) a.row(i) /= nrm;
+                const Scalar nrm = a.row(i).norm();
+                if (nrm > Scalar(0)) {
+                    a.row(i) /= nrm;
+                } else {
+                    a.row(i).setZero();  // explicit zero-vector handling
+                }
             }
         }
 
@@ -198,7 +346,7 @@ namespace gsp {
 // - compute(): for each row of X, scans all Y, selects k smallest distances.
 // ============================================================
     template <class Scalar>
-    class KnnDistance: public BaseKnnDistance<Scalar> {
+    class KnnDistance : public BaseKnnDistance<Scalar> {
     public:
         using ScalarF   = typename BaseKnnDistance<Scalar>::ScalarF;
         using Dense     = typename BaseKnnDistance<Scalar>::Dense;
@@ -206,10 +354,8 @@ namespace gsp {
         using DenseCRef = typename BaseKnnDistance<Scalar>::DenseCRef;
         using Sparse    = typename BaseKnnDistance<Scalar>::Sparse;
 
-        // Bring base class compute() into scope
         using BaseKnnDistance<Scalar>::compute;
 
-        // ---------------- configuration ----------------
         KnnDistance& setMetric(DistanceMetric metric) {
             metric_ = metric;
             return *this;
@@ -235,20 +381,19 @@ namespace gsp {
             return *this;
         }
 
-        // ---------------- API ----------------
         void build(DenseCRef y) {
             if (y.rows() <= 0 || y.cols() <= 0)
                 throw std::invalid_argument("KnnDistance::build: empty Y");
 
             this->y_ = y;
 
-            if (metric_ == DistanceMetric::Cosine) {
-                normalizeRowsInplace(this->y_);
+            // Normalize only for ChordalDistance (unit-sphere distance)
+            if (metric_ == DistanceMetric::ChordalDistance) {
+                detail::normalizeRowsInplace(this->y_);
             }
         }
 
-
-        Sparse compute(DenseCRef x, bool compute_self = false) const override{
+        Sparse compute(DenseCRef x, bool compute_self = false) const override {
             if (this->y_.size() == 0)
                 throw std::runtime_error("KnnDistance::compute: call build(Y) first.");
 
@@ -264,8 +409,10 @@ namespace gsp {
             const int k = std::min(effectiveK(d), m);
 
             Dense x_work = x;
-            if (metric_ == DistanceMetric::Cosine) {
-                normalizeRowsInplace(x_work);
+
+            // Normalize only for ChordalDistance to match pairwiseChordalDistance/ANN behavior
+            if (metric_ == DistanceMetric::ChordalDistance) {
+                detail::normalizeRowsInplace(x_work);
             }
 
             std::vector<Eigen::Triplet<ScalarF>> triplets;
@@ -277,18 +424,21 @@ namespace gsp {
             for (int i = 0; i < n; ++i) {
                 std::vector<ScalarF> dist(m);
 
-                if (metric_ == DistanceMetric::L2) {
+                if (metric_ == DistanceMetric::L2Distance) {
                     for (int j = 0; j < m; ++j) {
-                        const Scalar d2 =
+                        const ScalarF d2 =
                                 (x_work.row(i) - this->y_.row(j)).squaredNorm();
-                        dist[j] = std::sqrt(std::max<Scalar>(Scalar(0), d2));
+                        dist[j] = std::sqrt(std::max<ScalarF>(ScalarF(0), d2));
+                    }
+                } else if (metric_ == DistanceMetric::ChordalDistance) {
+                    // d = 0.5 * ||x_hat - y_hat||^2  (exactly what pairwiseChordalDistance does)
+                    for (int j = 0; j < m; ++j) {
+                        const ScalarF d2 =
+                                (x_work.row(i) - this->y_.row(j)).squaredNorm();
+                        dist[j] = ScalarF(0.5) * std::max<ScalarF>(ScalarF(0), d2);
                     }
                 } else {
-                    for (int j = 0; j < m; ++j) {
-                        const Scalar cos_sim =
-                                x_work.row(i).dot(this->y_.row(j));
-                        dist[j] = Scalar(1) - cos_sim;
-                    }
+                    throw std::invalid_argument("KnnDistance::compute: unsupported metric");
                 }
 
                 std::nth_element(
@@ -304,14 +454,14 @@ namespace gsp {
                     if (compute_self && exclude_self_ && i == j)
                         continue;
 
-//                    if (triangular_only_ && i >= j)
                     if (compute_self && i >= j)
                         continue;
 
-                    triplets.emplace_back(i, j, dist[j]);
+                    const ScalarF value = dist[j];
+                    triplets.emplace_back(i, j, value);
 
                     if (compute_self && !triangular_only_) {
-                        triplets.emplace_back(j, i, dist[j]);
+                        triplets.emplace_back(j, i, value);
                     }
                 }
             }
@@ -323,15 +473,6 @@ namespace gsp {
         }
 
     private:
-        // ---------------- helpers ----------------
-        static void normalizeRowsInplace(Dense& a) {
-            for (Eigen::Index i = 0; i < a.rows(); ++i) {
-                const Scalar nrm = a.row(i).norm();
-                if (nrm > Scalar(0))
-                    a.row(i) /= nrm;
-            }
-        }
-
         int effectiveK(int d) const {
             const int k =
                     (k_fixed_ > 0)
@@ -341,12 +482,12 @@ namespace gsp {
         }
 
     private:
-        DistanceMetric metric_ = DistanceMetric::L2;
+        DistanceMetric metric_ = DistanceMetric::L2Distance;
         int k_fixed_ = 0;
         double k_per_dim_ = 2.0;
 
         bool triangular_only_ = false;
-        bool exclude_self_ = true;
+        bool exclude_self_ = false;
     };
 
 
@@ -430,7 +571,7 @@ namespace gsp {
 
             this->y_ = y;
 
-            if (metric_ == DistanceMetric::Cosine) {
+            if (metric_ == DistanceMetric::ChordalDistance) {
                 detail::normalizeRowsInplace(this->y_);
             }
 
@@ -461,7 +602,7 @@ namespace gsp {
             const int k = std::min(detail::effectiveK(k_fixed_, k_per_dim_, d), m);
 
             DenseF x_work = x;
-            if (metric_ == DistanceMetric::Cosine) {
+            if (metric_ == DistanceMetric::ChordalDistance) {
                 detail::normalizeRowsInplace(x_work);
             }
 
@@ -507,12 +648,15 @@ namespace gsp {
                     if (compute_self && i >= j)
                         continue;
 
-                    Scalar value = Scalar(0);
-                    if (metric_ == DistanceMetric::L2) {
-                        value = std::sqrt(std::max<Scalar>(Scalar(0), nn_dist2[t]));
-                    } else {
+                    ScalarF value = std::max<Scalar>(Scalar(0), nn_dist2[t]);
+                    if (metric_ == DistanceMetric::L2Distance) {
+                        value = std::sqrt(value);
+                    } else if (metric_ == DistanceMetric::ChordalDistance) {
                         // cosine distance = 1 - cos = 0.5 * ||x-y||^2 for normalized vectors
-                        value = Scalar(0.5) * std::max<Scalar>(Scalar(0), nn_dist2[t]);
+                        value *= ScalarF(0.5);
+//                        if (metric_ == DistanceMetric::CosineSimilarity) {
+//                            value = ScalarF(1) - value;
+//                        }
                     }
 
                     triplets.emplace_back(i, j, value);
@@ -530,12 +674,12 @@ namespace gsp {
         }
 
     private:
-        DistanceMetric metric_ = DistanceMetric::L2;
+        DistanceMetric metric_ = DistanceMetric::L2Distance;
         int k_fixed_ = 0;
         double k_per_dim_ = 2.0;
 
         bool triangular_only_ = false;
-        bool exclude_self_ = true;
+        bool exclude_self_ = false;
 
         int checks_ = 64;
 
