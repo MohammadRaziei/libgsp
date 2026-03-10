@@ -175,14 +175,75 @@ Scalar maxCoeff(const Eigen::SparseMatrix<Scalar, Options, StorageIndex>& mat) {
 
 
 
+/**
+ * @brief Applies a function element-wise to a Dense matrix in-place.
+ *
+ * @tparam Derived The type of the input matrix (e.g., MatrixXd).
+ * @tparam Func The type of the callable function (lambda, functor, etc.).
+ * @tparam Args Variadic types for additional arguments to pass to the function.
+ * @param matrix Input dense matrix (modified in-place).
+ * @param func The function to apply: Scalar func(Scalar, Args...).
+ * @param args Additional arguments to forward to the function.
+ */
+    template <typename Derived, typename Func, typename... Args>
+    void arrayfunInplace(Eigen::MatrixBase<Derived>& matrix, Func&& func, Args&&... args) {
+        // Static assertion to ensure the scalar type is floating point
+        static_assert(std::is_floating_point<typename Derived::Scalar>::value,
+                      "Scalar type must be floating point (float or double).");
+
+        // Efficiently iterate over the data using Eigen's raw data access
+        // Note: We use .derived() to access the actual object type
+        auto* data_ptr = matrix.derived().data();
+        const auto size = matrix.derived().size();
+
+        for (Eigen::Index i = 0; i < size; ++i) {
+            data_ptr[i] = func(data_ptr[i], std::forward<Args>(args)...);
+        }
+    }
+
+/**
+ * @brief Applies a function element-wise to a Sparse matrix in-place.
+ *
+ * This function iterates only over non-zero elements, preserving sparsity.
+ *
+ * @tparam Scalar The scalar type.
+ * @tparam Options The storage options (ColMajor, RowMajor).
+ * @tparam StorageIndex The index type.
+ * @tparam Func The type of the callable function.
+ * @tparam Args Variadic types for additional arguments.
+ * @param matrix Input sparse matrix (modified in-place).
+ * @param func The function to apply: Scalar func(Scalar, Args...).
+ * @param args Additional arguments to forward to the function.
+ */
+    template <typename Scalar, int Options, typename StorageIndex, typename Func, typename... Args>
+    void arrayfunInplace(Eigen::SparseMatrix<Scalar, Options, StorageIndex>& matrix,
+                         Func&& func,
+                         Args&&... args) {
+
+        // Static assertion to ensure the scalar type is floating point
+        static_assert(std::is_floating_point<Scalar>::value,
+                      "Scalar type must be floating point (float or double).");
+
+        using SparseMatrixType = Eigen::SparseMatrix<Scalar, Options, StorageIndex>;
+
+        // Iterate over non-zero elements
+        for (int k = 0; k < matrix.outerSize(); ++k) {
+            for (typename SparseMatrixType::InnerIterator it(matrix, k); it; ++it) {
+                // Apply the function to the value
+                it.valueRef() = func(it.value(), std::forward<Args>(args)...);
+            }
+        }
+    }
+
+
 
 
 /**
  * @brief Applies a function element-wise to a Dense matrix (similar to MATLAB's arrayfun).
  *
  * @tparam Derived The type of the input matrix (e.g., MatrixXd).
- * @tparam Func The type of the callable function (lambda, functor, etc.).
- * @tparam Args Variadic types for additional arguments to pass to the function.
+ * @tparam Func The type of the callable function.
+ * @tparam Args Variadic types for additional arguments.
  * @param matrix Input dense matrix.
  * @param func The function to apply: Scalar func(Scalar, Args...).
  * @param args Additional arguments to forward to the function.
@@ -190,29 +251,17 @@ Scalar maxCoeff(const Eigen::SparseMatrix<Scalar, Options, StorageIndex>& mat) {
  */
     template <typename Derived, typename Func, typename... Args>
     Derived arrayfun(const Eigen::MatrixBase<Derived>& matrix, Func&& func, Args&&... args) {
-        // Static assertion to ensure the scalar type is floating point
-        static_assert(std::is_floating_point<typename Derived::Scalar>::value,
-                      "Scalar type must be floating point (float or double).");
-
-        // Create a copy of the matrix to store results
+        // Create a copy of the matrix
         Derived result = matrix.derived();
 
-        // Efficiently iterate over the data using Eigen's raw data access
-        // This is faster than using operator() for large dense matrices.
-        auto* data_ptr = result.data();
-        const auto size = result.size();
-
-        for (Eigen::Index i = 0; i < size; ++i) {
-            data_ptr[i] = func(data_ptr[i], std::forward<Args>(args)...);
-        }
+        // Call the in-place version on the copy
+        arrayfunInplace(result, std::forward<Func>(func), std::forward<Args>(args)...);
 
         return result;
     }
 
 /**
  * @brief Applies a function element-wise to a Sparse matrix.
- *
- * This function iterates only over non-zero elements, preserving sparsity.
  *
  * @tparam Scalar The scalar type.
  * @tparam Options The storage options (ColMajor, RowMajor).
@@ -230,26 +279,14 @@ Scalar maxCoeff(const Eigen::SparseMatrix<Scalar, Options, StorageIndex>& mat) {
             Func&& func,
             Args&&... args) {
 
-        // Static assertion to ensure the scalar type is floating point
-        static_assert(std::is_floating_point<Scalar>::value,
-                      "Scalar type must be floating point (float or double).");
+        // Create a copy of the matrix
+        Eigen::SparseMatrix<Scalar, Options, StorageIndex> result = matrix;
 
-        using SparseMatrixType = Eigen::SparseMatrix<Scalar, Options, StorageIndex>;
-
-        // Create a copy to modify
-        SparseMatrixType result = matrix;
-
-        // Iterate over non-zero elements
-        for (int k = 0; k < result.outerSize(); ++k) {
-            for (typename SparseMatrixType::InnerIterator it(result, k); it; ++it) {
-                // Apply the function to the value
-                it.valueRef() = func(it.value(), std::forward<Args>(args)...);
-            }
-        }
+        // Call the in-place version on the copy
+        arrayfunInplace(result, std::forward<Func>(func), std::forward<Args>(args)...);
 
         return result;
     }
-
 
 } // namespace gsp::matrix
 
