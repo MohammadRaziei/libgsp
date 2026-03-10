@@ -32,7 +32,7 @@ int main(int argc, char** argv) {
     logger->info("pairwiseL2Distance: \n{}", fmt::streamed(distance));
 
     tic;
-    auto learned_weights = gsp::gaussianKernel(distance, 1);
+    auto learned_weights = gsp::gaussianKernel(distance, 1, 0.01);
     toc;
     logger->info("weight with gaussianKernel: \n{}", fmt::streamed(learned_weights));
 

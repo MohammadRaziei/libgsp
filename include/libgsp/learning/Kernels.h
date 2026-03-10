@@ -94,10 +94,10 @@ namespace gsp {
      */
     template <class Matrix>
     void gaussianKernelInplace(Matrix& distance, double sigma2, double thresh = 1e-6) {
-        auto gaussian_lambda = [](auto val, auto sigma2) {
-            return std::exp(-(val * val) / (2.0 * sigma2));
+        auto gaussian_lambda = [sigma2](typename std::decay_t<Matrix>::Scalar& val)  {
+            val = std::exp(-(val * val) / (2.0 * sigma2));
         };
-        detail::arrayfunKernelInplace(distance, thresh, gaussian_lambda, sigma2);
+        detail::arrayfunKernelInplace(distance, thresh, gaussian_lambda);
     }
 
     /**
@@ -136,10 +136,10 @@ namespace gsp {
      */
     template <class Matrix>
     void exponentialKernelInplace(Matrix& distance, double sigma, double thresh = 1e-6) {
-        auto exponential_lambda = [](auto val, auto sigma) {
-            return std::exp(-val / sigma);
+        auto exponential_lambda = [sigma](typename std::decay_t<Matrix>::Scalar& val)  {
+            val = std::exp(-val / sigma);
         };
-        detail::arrayfunKernelInplace(distance, thresh, exponential_lambda, sigma);
+        detail::arrayfunKernelInplace(distance, thresh, exponential_lambda);
     }
 
     /**
@@ -178,11 +178,11 @@ namespace gsp {
      */
     template <class Matrix>
     void cauchyKernelInplace(Matrix& distance, double sigma, double thresh = 1e-6) {
-        auto cauchy_lambda = [](auto val, auto sigma) {
+        auto cauchy_lambda = [sigma](typename std::decay_t<Matrix>::Scalar& val)  {
             auto ratio = val / sigma;
-            return 1.0 / (1.0 + ratio * ratio);
+            val = 1.0 / (1.0 + ratio * ratio);
         };
-        detail::arrayfunKernelInplace(distance, thresh, cauchy_lambda, sigma);
+        detail::arrayfunKernelInplace(distance, thresh, cauchy_lambda);
     }
 
     /**
@@ -221,10 +221,10 @@ namespace gsp {
      */
     template <class Matrix>
     void inverseMultiquadricKernelInplace(Matrix& distance, double sigma, double thresh = 1e-6) {
-        auto inverse_multiquadric_lambda = [](auto val, auto sigma) {
-            return 1.0 / std::sqrt((val * val) + (sigma * sigma));
+        auto inverse_multiquadric_lambda = [sigma](typename std::decay_t<Matrix>::Scalar& val)  {
+            val = 1.0 / std::sqrt((val * val) + (sigma * sigma));
         };
-        detail::arrayfunKernelInplace(distance, thresh, inverse_multiquadric_lambda, sigma);
+        detail::arrayfunKernelInplace(distance, thresh, inverse_multiquadric_lambda);
     }
 
     /**
@@ -259,17 +259,16 @@ namespace gsp {
      *
      * @tparam Matrix The type of the distance matrix (Dense or Sparse).
      * @param distance Input distance matrix (modified in-place).
-     * @param sigma The scale parameter ($\sigma$).
+     * @param sigma2 The scale parameter ($\sigma^2$).
      * @param thresh Threshold to zero-out small weights (default: 1e-6).
      */
     template <class Matrix>
-    void rationalQuadraticKernelInplace(Matrix& distance, double sigma, double thresh = 1e-6) {
-        auto rational_quadratic_lambda = [](auto val, auto sigma) {
+    void rationalQuadraticKernelInplace(Matrix& distance, double sigma2, double thresh = 1e-6) {
+        auto rational_quadratic_lambda = [sigma2](typename std::decay_t<Matrix>::Scalar& val)  {
             auto val_sq = val * val;
-            auto sigma_sq = sigma * sigma;
-            return 1.0 - (val_sq / (val_sq + sigma_sq));
+            val = 1.0 - (val_sq / (val_sq + sigma2));
         };
-        detail::arrayfunKernelInplace(distance, thresh, rational_quadratic_lambda, sigma);
+        detail::arrayfunKernelInplace(distance, thresh, rational_quadratic_lambda);
     }
 
     /**
@@ -310,10 +309,10 @@ namespace gsp {
      */
     template <class Matrix>
     void epsilonNeighborhoodKernelInplace(Matrix& distance, double epsilon, double thresh = 1e-6) {
-        auto epsilon_lambda = [](auto val, auto epsilon) {
-            return (val < epsilon) ? 1.0 : 0.0;
+        auto epsilon_lambda = [epsilon](typename std::decay_t<Matrix>::Scalar& val)  {
+            val = (val < epsilon) ? 1.0 : 0.0;
         };
-        detail::arrayfunKernelInplace(distance, thresh, epsilon_lambda, epsilon);
+        detail::arrayfunKernelInplace(distance, thresh, epsilon_lambda);
     }
 
     /**
@@ -356,10 +355,10 @@ namespace gsp {
     template <class Matrix>
     void fromSupKernelInplace(Matrix& distance, double sup, double thresh = 1e-6) {
         if (sup == 0.0) sup = gsp::matrix::maxCoeff(distance);
-        auto sup_minus_lambda = [](auto val, auto sup) {
-            return sup - val;
+        auto sup_minus_lambda = [sup](typename std::decay_t<Matrix>::Scalar& val) {
+            val = sup - val;
         };
-        detail::arrayfunKernelInplace(distance, thresh, sup_minus_lambda, sup);
+        detail::arrayfunKernelInplace(distance, thresh, sup_minus_lambda);
     }
 
     /**
@@ -401,10 +400,10 @@ namespace gsp {
      */
     template <class Matrix>
     void inverseDistKernelInplace(Matrix& distance, double eps, double thresh = 1e-6) {
-        auto inverse_lambda = [](auto val, auto eps) {
-            return 1.0 / (val + eps);
+        auto inverse_lambda = [eps](typename std::decay_t<Matrix>::Scalar& val)  {
+            val = 1.0 / (val + eps);
         };
-        detail::arrayfunKernelInplace(distance, thresh, inverse_lambda, eps);
+        detail::arrayfunKernelInplace(distance, thresh, inverse_lambda);
     }
 
     /**
