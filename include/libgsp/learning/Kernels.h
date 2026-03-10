@@ -240,7 +240,7 @@ namespace gsp {
      * @return Matrix The resulting binary weight matrix.
      */
     template <class Matrix>
-    Matrix epsilonNeighborhood(const Matrix& distance, double epsilon, double thresh = 1e-6) {
+    Matrix epsilonNeighborhoodKernel(const Matrix& distance, double epsilon, double thresh = 1e-6) {
         // Formula: 1 if d < epsilon else 0
         // Note: thresh is usually not needed here as output is already 0 or 1,
         // but kept for interface consistency.
@@ -265,7 +265,7 @@ namespace gsp {
      * @return Matrix The resulting weight matrix.
      */
     template <class Matrix>
-    Matrix fromSup(const Matrix& distance, double sup, double thresh = 1e-6) {
+    Matrix fromSupKernel(const Matrix& distance, double sup, double thresh = 1e-6) {
         // Determine the sup value
         if (sup == 0.0) sup = distance.maxCoeff();
         // Formula: sup - d
@@ -290,7 +290,7 @@ namespace gsp {
      * @return Matrix The resulting weight matrix.
      */
     template <class Matrix>
-    Matrix inverseDist(const Matrix& distance, double eps, double thresh = 1e-6) {
+    Matrix inverseDistKernel(const Matrix& distance, double eps, double thresh = 1e-6) {
         // Formula: 1 / (d + eps)
         auto inverse_lambda = [](auto val, auto eps) {
             return 1.0 / (val + eps);
