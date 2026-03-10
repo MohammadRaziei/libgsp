@@ -12,152 +12,57 @@
 namespace gsp {
 
 /**
- * @brief Computes the Gaussian kernel for Dense matrices.
+ * @brief Applies a function element-wise to a Dense matrix (similar to MATLAB's arrayfun).
  *
- * @param distance Input dense distance matrix.
- * @param sigma2 The variance parameter (sigma squared).
- * @param thresh Threshold to zero-out small weights.
- * @return Eigen::Matrix<Scalar, Rows, Cols> The resulting dense weight matrix.
+ * @tparam Derived The type of the input matrix (e.g., MatrixXd).
+ * @tparam Func The type of the callable function (lambda, functor, etc.).
+ * @tparam Args Variadic types for additional arguments to pass to the function.
+ * @param matrix Input dense matrix.
+ * @param func The function to apply: Scalar func(Scalar, Args...).
+ * @param args Additional arguments to forward to the function.
+ * @return Derived The resulting matrix with the same type as input.
  */
-template <typename Scalar, int Rows, int Cols,  int Options, int MaxRows, int MaxCols>
-Eigen::Matrix<Scalar, Rows, Cols> gaussianKernel(
-            const Eigen::Matrix<Scalar, Rows, Cols, Options, MaxRows, MaxCols>& distance,
-            double sigma2, double thresh = 1e-6) {
-    // Static assertion to ensure the scalar type is floating point
-    static_assert(std::is_floating_point<Scalar>::value,
-                  "Scalar type must be floating point (float or double).");
-
-    // Compute Gaussian kernel: exp(-d^2 / (2 * sigma^2))
-    // Using Eigen's expression templates for optimal performance.
-    Eigen::Matrix<Scalar, Rows, Cols, Options, MaxRows, MaxCols> weights =
-            (-distance.array().square() / (2 * sigma2)).exp();
-
-    // Apply thresholding
-    if (thresh > 0.0) {
-        weights = (weights.array() >= thresh).select(weights, 0.0);
-    }
-
-    return weights;
-}
-
-
-/**
- * @brief Computes the Gaussian kernel for Sparse matrices without full dense conversion.
- *
- * This function is memory efficient and avoids converting the entire matrix to dense.
- * It uses sparse-sparse operations and direct value iteration for the exponential.
- *
- * @tparam Scalar The scalar type (e.g., float, double).
- * @tparam Options The storage options (e.g., ColMajor, RowMajor).
- * @tparam StorageIndex The index type (e.g., int).
- * @param distance Input sparse distance matrix.
- * @param sigma2 The variance parameter (sigma squared).
- * @param thresh Threshold to zero-out small weights.
- * @return Eigen::SparseMatrix<Scalar, Options, StorageIndex> The resulting sparse weight matrix.
- */
-template <typename Scalar, int Options, typename StorageIndex>
-Eigen::SparseMatrix<Scalar, Options, StorageIndex> gaussianKernel(
-        const Eigen::SparseMatrix<Scalar, Options, StorageIndex>& distance,
-        double sigma2,
-        double thresh = 1e-6) {
-
-    // Static assertion to ensure the scalar type is floating point
-    static_assert(std::is_floating_point<Scalar>::value,
-                  "Scalar type must be floating point (float or double).");
-
-    using SparseMatrixType = Eigen::SparseMatrix<Scalar, Options, StorageIndex>;
-
-    // 1. Compute Squared Distances: D_sq = D .* D (Hadamard product)
-    // This preserves sparsity perfectly.
-    SparseMatrixType distSquared = distance.cwiseProduct(distance);
-
-    // 2. Scale by Gaussian factor: Scaled = -1 / (2 * sigma^2) * D_sq
-    // We perform a sparse-sparse multiplication with a diagonal-like matrix
-    // or simply iterate and scale. Iteration is O(NNZ) and very cache-friendly.
-    const Scalar scale_factor = Scalar(-1.0 / (2 * sigma2));
-
-    // We create a copy to store the scaled values before exp()
-    SparseMatrixType scaledMatrix = distSquared;
-
-    // Iterate over non-zero elements to apply scaling and exponential
-    // This is the most memory-efficient way for the exp() operation on sparse data.
-    for (int k = 0; k < scaledMatrix.outerSize(); ++k) {
-        for (typename SparseMatrixType::InnerIterator it(scaledMatrix, k); it; ++it) {
-            Scalar val = it.value();
-            // Apply scaling: val * (-1 / 2sigma^2)
-            val *= scale_factor;
-
-            // Apply Exponential: exp(val)
-            // Note: exp(0) = 1, so zeros remain zeros (sparsity preserved for 0-distances)
-            // However, if distance was 0, exp(0)=1, which creates a new non-zero.
-            // This is unavoidable for the diagonal of the graph.
-            it.valueRef() = std::exp(val);
-        }
-    }
-
-    // 3. Apply Thresholding
-    if (thresh > 0.0) {
-        // prune() removes elements smaller than the reference (thresh)
-        // It also removes elements that are exactly zero.
-        scaledMatrix.prune(thresh);
-    }
-
-    return scaledMatrix;
-}
-
-
-/**
- * @brief Computes the Exponential kernel for Dense matrices.
- *
- * @tparam Scalar The scalar type (e.g., float, double).
- * @tparam Rows Number of rows (Dynamic or fixed).
- * @tparam Cols Number of columns (Dynamic or fixed).
- * @param distance Input dense distance matrix.
- * @param sigma The decay parameter (sigma).
- * @param thresh Threshold to zero-out small weights.
- * @return Eigen::Matrix<Scalar, Rows, Cols> The resulting dense weight matrix.
- */
-    template <typename Scalar, int Rows, int Cols, int Options, int MaxRows, int MaxCols>
-    Eigen::Matrix<Scalar, Rows, Cols> exponentialKernel(
-            const Eigen::Matrix<Scalar, Rows, Cols, Options, MaxRows, MaxCols>& distance,
-            double sigma, double thresh = 1e-6) {
-
+    template <typename Derived, typename Func, typename... Args>
+    Derived arrayfun(const Eigen::MatrixBase<Derived>& matrix, Func&& func, Args&&... args) {
         // Static assertion to ensure the scalar type is floating point
-        static_assert(std::is_floating_point<Scalar>::value,
+        static_assert(std::is_floating_point<typename Derived::Scalar>::value,
                       "Scalar type must be floating point (float or double).");
 
-        // Compute Exponential kernel: exp(-d / sigma)
-        // Using Eigen's expression templates for optimal performance.
-        Eigen::Matrix<Scalar, Rows, Cols, Options, MaxRows, MaxCols> weights =
-                (-distance.array() / sigma).exp();
+        // Create a copy of the matrix to store results
+        Derived result = matrix.derived();
 
-        // Apply thresholding
-        if (thresh > 0.0) {
-            weights = (weights.array() >= thresh).select(weights, 0.0);
+        // Efficiently iterate over the data using Eigen's raw data access
+        // This is faster than using operator() for large dense matrices.
+        auto* data_ptr = result.data();
+        const auto size = result.size();
+
+        for (Eigen::Index i = 0; i < size; ++i) {
+            data_ptr[i] = func(data_ptr[i], std::forward<Args>(args)...);
         }
 
-        return weights;
+        return result;
     }
 
 /**
- * @brief Computes the Exponential kernel for Sparse matrices without full dense conversion.
+ * @brief Applies a function element-wise to a Sparse matrix.
  *
- * This function is memory efficient and avoids converting the entire matrix to dense.
- * It uses sparse-sparse operations and direct value iteration for the exponential.
+ * This function iterates only over non-zero elements, preserving sparsity.
  *
- * @tparam Scalar The scalar type (e.g., float, double).
- * @tparam Options The storage options (e.g., ColMajor, RowMajor).
- * @tparam StorageIndex The index type (e.g., int).
- * @param distance Input sparse distance matrix.
- * @param sigma The decay parameter (sigma).
- * @param thresh Threshold to zero-out small weights.
- * @return Eigen::SparseMatrix<Scalar, Options, StorageIndex> The resulting sparse weight matrix.
+ * @tparam Scalar The scalar type.
+ * @tparam Options The storage options (ColMajor, RowMajor).
+ * @tparam StorageIndex The index type.
+ * @tparam Func The type of the callable function.
+ * @tparam Args Variadic types for additional arguments.
+ * @param matrix Input sparse matrix.
+ * @param func The function to apply: Scalar func(Scalar, Args...).
+ * @param args Additional arguments to forward to the function.
+ * @return Eigen::SparseMatrix<Scalar, Options, StorageIndex> The resulting sparse matrix.
  */
-    template <typename Scalar, int Options, typename StorageIndex>
-    Eigen::SparseMatrix<Scalar, Options, StorageIndex> exponentialKernel(
-            const Eigen::SparseMatrix<Scalar, Options, StorageIndex>& distance,
-            double sigma,
-            double thresh = 1e-6) {
+    template <typename Scalar, int Options, typename StorageIndex, typename Func, typename... Args>
+    Eigen::SparseMatrix<Scalar, Options, StorageIndex> arrayfun(
+            const Eigen::SparseMatrix<Scalar, Options, StorageIndex>& matrix,
+            Func&& func,
+            Args&&... args) {
 
         // Static assertion to ensure the scalar type is floating point
         static_assert(std::is_floating_point<Scalar>::value,
@@ -165,40 +70,74 @@ Eigen::SparseMatrix<Scalar, Options, StorageIndex> gaussianKernel(
 
         using SparseMatrixType = Eigen::SparseMatrix<Scalar, Options, StorageIndex>;
 
-        // 1. For Exponential kernel, we use the distance directly (no squaring needed).
-        // We create a copy to store the result.
-        SparseMatrixType resultMatrix = distance;
+        // Create a copy to modify
+        SparseMatrixType result = matrix;
 
-        // 2. Scale by Exponential factor: Scaled = -1 / sigma
-        // Iterate over non-zero elements to apply scaling and exponential
-        // This is the most memory-efficient way for the exp() operation on sparse data.
-        const Scalar scale_factor = Scalar(-1.0) / Scalar(sigma);
-
-        for (int k = 0; k < resultMatrix.outerSize(); ++k) {
-            for (typename SparseMatrixType::InnerIterator it(resultMatrix, k); it; ++it) {
-                Scalar val = it.value();
-                // Apply scaling: val * (-1 / sigma)
-                val *= scale_factor;
-
-                // Apply Exponential: exp(val)
-                // Note: exp(0) = 1, so zeros remain zeros (sparsity preserved for 0-distances)
-                // However, if distance was 0, exp(0)=1, which creates a new non-zero.
-                // This is unavoidable for the diagonal of the graph.
-                it.valueRef() = std::exp(val);
+        // Iterate over non-zero elements
+        for (int k = 0; k < result.outerSize(); ++k) {
+            for (typename SparseMatrixType::InnerIterator it(result, k); it; ++it) {
+                // Apply the function to the value
+                it.valueRef() = func(it.value(), std::forward<Args>(args)...);
             }
         }
 
-        // 3. Apply Thresholding
-        if (thresh > 0.0) {
-            // prune() removes elements smaller than the reference (thresh)
-            // It also removes elements that are exactly zero.
-            resultMatrix.prune(thresh);
-        }
-
-        return resultMatrix;
+        return result;
     }
 
-//    eigen exponentialKernel(eigen distance, double sigma, double thresh);
+// Helper Lambdas
+    namespace detail {
+        // Gaussian: exp(-x^2 / (2 * sigma^2))
+        auto gaussian_lambda = [](auto val, auto sigma2) {
+            return std::exp(-(val * val) / (2.0 * sigma2));
+        };
+
+        // Exponential: exp(-x / sigma)
+        auto exponential_lambda = [](auto val, auto sigma) {
+            return std::exp(-val / sigma);
+        };
+
+
+        template <typename Derived, typename Func, typename... Args>
+        Derived arrayfunKernel(
+                const Eigen::MatrixBase<Derived>& distance,
+                double thresh, Func&& func, Args&&... args) {
+            auto weights = arrayfun(distance.derived(), func, std::forward<Args>(args)...);
+
+            if (thresh > 0.0) {
+                weights = (weights.array() >= thresh).select(weights, static_cast<typename std::decay_t<Derived>::Scalar>(0));
+            }
+            return weights;
+        }
+
+        template <typename Scalar, int Options, typename StorageIndex, typename Func, typename... Args>
+        Eigen::SparseMatrix<Scalar, Options, StorageIndex> arrayfunKernel(
+                const Eigen::SparseMatrix<Scalar, Options, StorageIndex>& distance,
+                double thresh, Func&& func, Args&&... args) {
+
+            auto weights = arrayfun(distance, func, std::forward<Args>(args)...);
+
+            if (thresh > 0.0) {
+                weights.prune(thresh);
+            }
+            return weights;
+        }
+
+    }
+
+
+// --- Gaussian Kernel ---
+
+    template <class Matrix>
+    Matrix gaussianKernel(const Matrix& distance, double sigma2, double thresh = 1e-6) {
+        return detail::arrayfunKernel(distance, thresh, detail::gaussian_lambda, sigma2);
+    }
+// --- Exponential Kernel ---
+
+    template <class Matrix>
+    Matrix exponentialKernel(const Matrix& distance, double sigma, double thresh = 1e-6) {
+        return detail::arrayfunKernel(distance, thresh, detail::exponential_lambda, sigma);
+    }
+
 //    eigen cauchyKernel(eigen distance, double sigma, double thresh);
 //    eigen inverseMultiquadricKernel(eigen distance, double sigma, double thresh);
 
