@@ -182,11 +182,11 @@ Scalar maxCoeff(const Eigen::SparseMatrix<Scalar, Options, StorageIndex>& mat) {
  * @tparam Func The type of the callable function (lambda, functor, etc.).
  * @tparam Args Variadic types for additional arguments to pass to the function.
  * @param matrix Input dense matrix (modified in-place).
- * @param funcInplace The function to apply: void func(Scalar&, Args...).
+ * @param func The function to apply: Scalar func(Scalar, Args...).
  * @param args Additional arguments to forward to the function.
  */
     template <typename Derived, typename Func, typename... Args>
-    void arrayfunInplace(Eigen::MatrixBase<Derived>& matrix, Func&& funcInplace, Args&&... args) {
+    void arrayfunInplace(Eigen::MatrixBase<Derived>& matrix, Func&& func, Args&&... args) {
         // Static assertion to ensure the scalar type is floating point
         static_assert(std::is_floating_point<typename Derived::Scalar>::value,
                       "Scalar type must be floating point (float or double).");
@@ -197,7 +197,7 @@ Scalar maxCoeff(const Eigen::SparseMatrix<Scalar, Options, StorageIndex>& mat) {
         const auto size = matrix.derived().size();
 
         for (Eigen::Index i = 0; i < size; ++i) {
-            funcInplace(data_ptr[i], std::forward<Args>(args)...);
+            data_ptr[i] = func(data_ptr[i], std::forward<Args>(args)...);
         }
     }
 
@@ -212,12 +212,12 @@ Scalar maxCoeff(const Eigen::SparseMatrix<Scalar, Options, StorageIndex>& mat) {
  * @tparam Func The type of the callable function.
  * @tparam Args Variadic types for additional arguments.
  * @param matrix Input sparse matrix (modified in-place).
- * @param funcInplace The function to apply: void func(Scalar&, Args...).
+ * @param func The function to apply: Scalar func(Scalar, Args...).
  * @param args Additional arguments to forward to the function.
  */
     template <typename Scalar, int Options, typename StorageIndex, typename Func, typename... Args>
     void arrayfunInplace(Eigen::SparseMatrix<Scalar, Options, StorageIndex>& matrix,
-                         Func&& funcInplace, Args&&... args) {
+                         Func&& func, Args&&... args) {
 
         // Static assertion to ensure the scalar type is floating point
         static_assert(std::is_floating_point<Scalar>::value,
@@ -229,7 +229,7 @@ Scalar maxCoeff(const Eigen::SparseMatrix<Scalar, Options, StorageIndex>& mat) {
         for (int k = 0; k < matrix.outerSize(); ++k) {
             for (typename SparseMatrixType::InnerIterator it(matrix, k); it; ++it) {
                 // Apply the function to the value
-                funcInplace(it.valueRef(), std::forward<Args>(args)...);
+                it.valueRef() = func(it.value(), std::forward<Args>(args)...);
             }
         }
     }
@@ -275,8 +275,7 @@ Scalar maxCoeff(const Eigen::SparseMatrix<Scalar, Options, StorageIndex>& mat) {
     template <typename Scalar, int Options, typename StorageIndex, typename Func, typename... Args>
     Eigen::SparseMatrix<Scalar, Options, StorageIndex> arrayfun(
             const Eigen::SparseMatrix<Scalar, Options, StorageIndex>& matrix,
-            Func&& func,
-            Args&&... args) {
+            Func&& func, Args&&... args) {
 
         // Create a copy of the matrix
         Eigen::SparseMatrix<Scalar, Options, StorageIndex> result = matrix;
