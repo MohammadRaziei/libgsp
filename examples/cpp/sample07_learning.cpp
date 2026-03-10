@@ -91,6 +91,11 @@ int main(int argc, char** argv) {
     toc;
     logger->info("ANN ChordalDistance: \n{}", fmt::streamed(sparse_distance.toDense()));
 
+    tic;
+    sparse_learned_weights = gsp::fromSupKernel(sparse_distance, 1);
+    toc;
+    logger->info("weight with fromSupKernel: \n{}", fmt::streamed(sparse_learned_weights.toDense()));
+
 
     return 0;
 }
