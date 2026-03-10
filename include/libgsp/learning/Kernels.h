@@ -113,9 +113,19 @@ namespace gsp {
 
     }
 
-
-// --- Gaussian Kernel ---
-
+    // --- Gaussian Kernel ---
+    /**
+     * @brief Computes the Gaussian kernel weights from a distance matrix.
+     *
+     * This function applies the Gaussian (RBF) kernel element-wise to the distance matrix.
+     * Formula: $w_{ij} = \exp\left(-\frac{d_{ij}^2}{2\sigma^2}\right)$
+     *
+     * @tparam Matrix The type of the distance matrix (Dense or Sparse).
+     * @param distance Input distance matrix.
+     * @param sigma2 The variance parameter ($\sigma^2$) of the Gaussian distribution.
+     * @param thresh Threshold to zero-out small weights (default: 1e-6).
+     * @return Matrix The resulting weight matrix.
+     */
     template <class Matrix>
     Matrix gaussianKernel(const Matrix& distance, double sigma2, double thresh = 1e-6) {
         // Gaussian: exp(-x^2 / (2 * sigma^2))
@@ -124,8 +134,20 @@ namespace gsp {
         };
         return detail::arrayfunKernel(distance, thresh, gaussian_lambda, sigma2);
     }
-// --- Exponential Kernel ---
 
+    // --- Exponential Kernel ---
+    /**
+     * @brief Computes the Exponential kernel weights from a distance matrix.
+     *
+     * This function applies the Exponential kernel element-wise to the distance matrix.
+     * Formula: $w_{ij} = \exp\left(-\frac{d_{ij}}{\sigma}\right)$
+     *
+     * @tparam Matrix The type of the distance matrix (Dense or Sparse).
+     * @param distance Input distance matrix.
+     * @param sigma The decay parameter ($\sigma$).
+     * @param thresh Threshold to zero-out small weights (default: 1e-6).
+     * @return Matrix The resulting weight matrix.
+     */
     template <class Matrix>
     Matrix exponentialKernel(const Matrix& distance, double sigma, double thresh = 1e-6) {
         // Exponential: exp(-x / sigma)
@@ -135,6 +157,18 @@ namespace gsp {
         return detail::arrayfunKernel(distance, thresh, exponential_lambda, sigma);
     }
 
+    /**
+     * @brief Computes the Cauchy kernel weights from a distance matrix.
+     *
+     * This function applies the Cauchy kernel element-wise to the distance matrix.
+     * Formula: $w_{ij} = \frac{1}{1 + \left(\frac{d_{ij}}{\sigma}\right)^2}$
+     *
+     * @tparam Matrix The type of the distance matrix (Dense or Sparse).
+     * @param distance Input distance matrix.
+     * @param sigma The scale parameter ($\sigma$).
+     * @param thresh Threshold to zero-out small weights (default: 1e-6).
+     * @return Matrix The resulting weight matrix.
+     */
     template <class Matrix>
     Matrix cauchyKernel(const Matrix& distance, double sigma, double thresh = 1e-6) {
         // Formula: 1 / (1 + (val / sigma)^2)
@@ -145,18 +179,41 @@ namespace gsp {
         return detail::arrayfunKernel(distance, thresh, cauchy_lambda, sigma);
     }
 
+    /**
+     * @brief Computes the Inverse Multiquadric kernel weights from a distance matrix.
+     *
+     * This function applies the Inverse Multiquadric kernel element-wise to the distance matrix.
+     * Formula: $w_{ij} = \frac{1}{\sqrt{d_{ij}^2 + \sigma^2}}$
+     *
+     * @tparam Matrix The type of the distance matrix (Dense or Sparse).
+     * @param distance Input distance matrix.
+     * @param sigma The smoothness parameter ($\sigma$).
+     * @param thresh Threshold to zero-out small weights (default: 1e-6).
+     * @return Matrix The resulting weight matrix.
+     */
     template <class Matrix>
     Matrix inverseMultiquadricKernel(const Matrix& distance, double sigma, double thresh = 1e-6) {
         // Formula: 1 / sqrt(val^2 + sigma^2)
         auto inverse_multiquadric_lambda = [](auto val, auto sigma) {
             return 1.0 / std::sqrt((val * val) + (sigma * sigma));
         };
-
         return detail::arrayfunKernel(distance, thresh, inverse_multiquadric_lambda, sigma);
     }
 
     // --- Rational Quadratic Kernel ---
-
+    /**
+     * @brief Computes the Rational Quadratic kernel weights from a distance matrix.
+     *
+     * This function applies the Rational Quadratic kernel element-wise to the distance matrix.
+     * It can be interpreted as an infinite sum of Gaussian kernels with different length scales.
+     * Formula: $w_{ij} = 1 - \frac{d_{ij}^2}{d_{ij}^2 + \sigma^2}$
+     *
+     * @tparam Matrix The type of the distance matrix (Dense or Sparse).
+     * @param distance Input distance matrix.
+     * @param sigma The scale parameter ($\sigma$).
+     * @param thresh Threshold to zero-out small weights (default: 1e-6).
+     * @return Matrix The resulting weight matrix.
+     */
     template <class Matrix>
     Matrix rationalQuadraticKernel(const Matrix& distance, double sigma, double thresh = 1e-6) {
         // Formula: 1 - (d^2 / (d^2 + sigma^2))
@@ -165,12 +222,23 @@ namespace gsp {
             auto sigma_sq = sigma * sigma;
             return 1.0 - (val_sq / (val_sq + sigma_sq));
         };
-
         return detail::arrayfunKernel(distance, thresh, rational_quadratic_lambda, sigma);
     }
 
     // --- Epsilon Neighborhood ---
-
+    /**
+     * @brief Computes the Epsilon Neighborhood graph weights.
+     *
+     * This function creates a binary weight matrix where an edge exists if the distance
+     * is less than epsilon.
+     * Formula: $w_{ij} = \begin{cases} 1 & \text{if } d_{ij} < \epsilon \\ 0 & \text{otherwise} \end{cases}$
+     *
+     * @tparam Matrix The type of the distance matrix (Dense or Sparse).
+     * @param distance Input distance matrix.
+     * @param epsilon The radius threshold ($\epsilon$).
+     * @param thresh Threshold to zero-out small weights (default: 1e-6). Note: Output is already 0 or 1.
+     * @return Matrix The resulting binary weight matrix.
+     */
     template <class Matrix>
     Matrix epsilonNeighborhood(const Matrix& distance, double epsilon, double thresh = 1e-6) {
         // Formula: 1 if d < epsilon else 0
@@ -179,37 +247,56 @@ namespace gsp {
         auto epsilon_lambda = [](auto val, auto epsilon) {
             return (val < epsilon) ? 1.0 : 0.0;
         };
-
         return detail::arrayfunKernel(distance, thresh, epsilon_lambda, epsilon);
     }
 
     // --- from Sup ---
-
+    /**
+     * @brief Computes weights based on the maximum distance (Sup-normalized).
+     *
+     * This function transforms distances to similarities by subtracting them from the
+     * maximum distance value (Sup). It results in a linear decay of weights.
+     * Formula: $w_{ij} = \sup(D) - d_{ij}$
+     *
+     * @tparam Matrix The type of the distance matrix (Dense or Sparse).
+     * @param distance Input distance matrix.
+     * @param sup The maximum distance value. If set to 0, it is automatically computed as max(distance).
+     * @param thresh Threshold to zero-out small weights (default: 1e-6).
+     * @return Matrix The resulting weight matrix.
+     */
     template <class Matrix>
     Matrix fromSup(const Matrix& distance, double sup, double thresh = 1e-6) {
         // Determine the sup value
         if (sup == 0.0) sup = distance.maxCoeff();
-
         // Formula: sup - d
         auto sup_minus_lambda = [](auto val, auto sup) {
             return sup - val;
         };
-
         return detail::arrayfunKernel(distance, thresh, sup_minus_lambda, sup);
     }
 
     // --- Inverse Dist ---
-
+    /**
+     * @brief Computes the Inverse Distance weights.
+     *
+     * This function computes the inverse of the distance, adding a small epsilon
+     * to avoid division by zero.
+     * Formula: $w_{ij} = \frac{1}{d_{ij} + \epsilon}$
+     *
+     * @tparam Matrix The type of the distance matrix (Dense or Sparse).
+     * @param distance Input distance matrix.
+     * @param eps A small constant added to the distance to prevent division by zero.
+     * @param thresh Threshold to zero-out small weights (default: 1e-6).
+     * @return Matrix The resulting weight matrix.
+     */
     template <class Matrix>
     Matrix inverseDist(const Matrix& distance, double eps, double thresh = 1e-6) {
         // Formula: 1 / (d + eps)
         auto inverse_lambda = [](auto val, auto eps) {
             return 1.0 / (val + eps);
         };
-
         return detail::arrayfunKernel(distance, thresh, inverse_lambda, eps);
     }
-
 }
 
 #endif //LIBGSP_KERNELS_H
