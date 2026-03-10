@@ -286,16 +286,24 @@ namespace gsp {
 
         // Compute sparse distances between X (n x d) and built Y (m x d)
         // Output values are distances (not weights).
-        virtual Sparse compute(DenseCRef x, bool compute_self = false) const = 0;
+        virtual Sparse query(DenseCRef x, bool compute_self = false) const = 0;
 
-        virtual Sparse compute() const {
+        virtual Sparse query() const {
             if (this->y_.size() == 0)
                 throw std::runtime_error("KnnDistance::compute: call build(Y) first.");
-            return compute(this->y_, true);
+            return query(this->y_, true);
         }
 
-        virtual Sparse operator()() const { return compute(); }
-        virtual Sparse operator()(DenseCRef x) const { return compute(x); }
+        virtual Sparse compute(DenseCRef x, DenseCRef y, bool compute_self = false) {
+            this->build(y);
+            return this->query(x, compute_self);
+        }
+
+        virtual Sparse compute(DenseCRef x) {
+            return this->compute(x, x, true);
+        }
+
+        virtual Sparse operator()(DenseCRef x) { return this->compute(x); }
 
 
         // Implementation of BaseKnnDistance pure virtual functions
@@ -354,7 +362,8 @@ namespace gsp {
         using DenseCRef = typename BaseKnnDistance<Scalar>::DenseCRef;
         using Sparse    = typename BaseKnnDistance<Scalar>::Sparse;
 
-        using BaseKnnDistance<Scalar>::compute;
+//        using BaseKnnDistance<Scalar>::compute;
+        KnnDistance() : BaseKnnDistance<Scalar>() {}
 
         KnnDistance& setMetric(DistanceMetric metric) {
             metric_ = metric;
@@ -393,7 +402,7 @@ namespace gsp {
             }
         }
 
-        Sparse compute(DenseCRef x, bool compute_self = false) const override {
+        Sparse query(DenseCRef x, bool compute_self = false) const override {
             if (this->y_.size() == 0)
                 throw std::runtime_error("KnnDistance::compute: call build(Y) first.");
 
@@ -530,7 +539,10 @@ namespace gsp {
         using Sparse    = typename BaseKnnDistance<Scalar>::Sparse;
 
         // Bring base class compute() into scope
-        using BaseKnnDistance<Scalar>::compute;
+//        using BaseKnnDistance<Scalar>::compute;
+
+
+        NanoflannAnnDistance() : BaseKnnDistance<Scalar>() {}
 
         // ---------------- configuration ----------------
         NanoflannAnnDistance& setMetric(DistanceMetric metric) {
@@ -585,7 +597,7 @@ namespace gsp {
         }
 
 
-        Sparse compute(DenseCRef x, bool compute_self = false) const override {
+        Sparse query(DenseCRef x, bool compute_self = false) const override {
             if (!index_)
                 throw std::runtime_error("NanoflannAnnDistance::compute: call build(Y) first.");
 
@@ -643,9 +655,9 @@ namespace gsp {
                     if (compute_self && exclude_self_ && i == j)
                         continue;
 
-                    // Skip if i >= j (process only upper triangle)
+                    // Skip if i > j (process only upper triangle)
                     // This matches KnnDistance implementation
-                    if (compute_self && i >= j)
+                    if (compute_self && i > j)
                         continue;
 
                     ScalarF value = std::max<Scalar>(Scalar(0), nn_dist2[t]);

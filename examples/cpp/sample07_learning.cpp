@@ -7,6 +7,7 @@
 #include "libgsp/utils/Logging.h"
 #include "libgsp/Graph.h"
 #include "libgsp/learning/Distance.h"
+#include "libgsp/learning/Kernels.h"
 
 
 int main(int argc, char** argv) {
@@ -30,27 +31,38 @@ int main(int argc, char** argv) {
     toc;
     logger->info("pairwiseL2Distance: \n{}", fmt::streamed(distance));
 
+    tic;
+    auto learned_weights = gsp::gaussianKernel(distance, 1);
+    toc;
+    logger->info("weight with gaussianKernel: \n{}", fmt::streamed(learned_weights));
+
 
     gsp::KnnDistance<double> knn;
+    gsp::sparsematrix_t<double> sparse_distance, sparse_learned_weights;
     tic;
     knn.setMetric(gsp::DistanceMetric::L2Distance)
             .setKFixed(10)
 //            .setKPerDim(3)
             .setExcludeSelf(true)
             .setTriangularOnly(true);
-    knn.build(graph.coords());
+    sparse_distance = knn.compute(graph.coords());
     toc;
-    logger->info("KNN L2Distance: \n{}", fmt::streamed(knn.compute().toDense()));
+    logger->info("KNN L2Distance: \n{}", fmt::streamed(sparse_distance.toDense()));
 
     gsp::NanoflannAnnDistance<double> ann;
     tic;
     ann.setMetric(gsp::DistanceMetric::L2Distance)
             .setKFixed(10)
-            .setExcludeSelf(true)
+            .setExcludeSelf(false)
             .setTriangularOnly(false);
-    ann.build(graph.coords());
+    sparse_distance = ann.compute(graph.coords());
     toc;
-    logger->info("ANN L2Distance: \n{}", fmt::streamed(ann.compute().toDense()));
+    logger->info("ANN L2Distance: \n{}", fmt::streamed(sparse_distance.toDense()));
+    tic;
+    sparse_learned_weights = gsp::gaussianKernel(sparse_distance, 1);
+    toc;
+    logger->info("weight with gaussianKernel: \n{}", fmt::streamed(sparse_learned_weights.toDense()));
+
 
     auto cos_sim = gsp::pairwiseCosineSimilarity(graph.coords());
     logger->info("pairwiseCosineSimilarity: \n{}", fmt::streamed(cos_sim));
@@ -65,9 +77,9 @@ int main(int argc, char** argv) {
             .setKFixed(10)
             .setExcludeSelf(false)
             .setTriangularOnly(false);
-    knn.build(graph.coords());
+    sparse_distance = knn.compute(graph.coords());
     toc;
-    logger->info("KNN ChordalDistance: \n{}", fmt::streamed(knn.compute().toDense()));
+    logger->info("KNN ChordalDistance: \n{}", fmt::streamed(sparse_distance.toDense()));
 
     tic;
     ann.setMetric(gsp::DistanceMetric::ChordalDistance)
@@ -75,8 +87,9 @@ int main(int argc, char** argv) {
             .setExcludeSelf(false)
             .setTriangularOnly(false);
     ann.build(graph.coords());
+    sparse_distance = ann.compute(graph.coords());
     toc;
-    logger->info("ANN ChordalDistance: \n{}", fmt::streamed(ann.compute().toDense()));
+    logger->info("ANN ChordalDistance: \n{}", fmt::streamed(sparse_distance.toDense()));
 
 
     return 0;
