@@ -86,17 +86,6 @@ namespace gsp {
 
 // Helper Lambdas
     namespace detail {
-        // Gaussian: exp(-x^2 / (2 * sigma^2))
-        auto gaussian_lambda = [](auto val, auto sigma2) {
-            return std::exp(-(val * val) / (2.0 * sigma2));
-        };
-
-        // Exponential: exp(-x / sigma)
-        auto exponential_lambda = [](auto val, auto sigma) {
-            return std::exp(-val / sigma);
-        };
-
-
         template <typename Derived, typename Func, typename... Args>
         Derived arrayfunKernel(
                 const Eigen::MatrixBase<Derived>& distance,
@@ -129,18 +118,42 @@ namespace gsp {
 
     template <class Matrix>
     Matrix gaussianKernel(const Matrix& distance, double sigma2, double thresh = 1e-6) {
-        return detail::arrayfunKernel(distance, thresh, detail::gaussian_lambda, sigma2);
+        // Gaussian: exp(-x^2 / (2 * sigma^2))
+        auto gaussian_lambda = [](auto val, auto sigma2) {
+            return std::exp(-(val * val) / (2.0 * sigma2));
+        };
+        return detail::arrayfunKernel(distance, thresh, gaussian_lambda, sigma2);
     }
 // --- Exponential Kernel ---
 
     template <class Matrix>
     Matrix exponentialKernel(const Matrix& distance, double sigma, double thresh = 1e-6) {
-        return detail::arrayfunKernel(distance, thresh, detail::exponential_lambda, sigma);
+        // Exponential: exp(-x / sigma)
+        auto exponential_lambda = [](auto val, auto sigma) {
+            return std::exp(-val / sigma);
+        };
+        return detail::arrayfunKernel(distance, thresh, exponential_lambda, sigma);
     }
 
-//    eigen cauchyKernel(eigen distance, double sigma, double thresh);
-//    eigen inverseMultiquadricKernel(eigen distance, double sigma, double thresh);
+    template <class Matrix>
+    Matrix cauchyKernel(const Matrix& distance, double sigma, double thresh = 1e-6) {
+        // Formula: 1 / (1 + (val / sigma)^2)
+        auto cauchy_lambda = [](auto val, auto sigma) {
+            auto ratio = val / sigma;
+            return 1.0 / (1.0 + ratio * ratio);
+        };
+        return detail::arrayfunKernel(distance, thresh, cauchy_lambda, sigma);
+    }
 
+    template <class Matrix>
+    Matrix inverseMultiquadricKernel(const Matrix& distance, double sigma, double thresh = 1e-6) {
+        // Formula: 1 / sqrt(val^2 + sigma^2)
+        auto inverse_multiquadric_lambda = [](auto val, auto sigma) {
+            return 1.0 / std::sqrt((val * val) + (sigma * sigma));
+        };
+
+        return detail::arrayfunKernel(distance, thresh, inverse_multiquadric_lambda, sigma);
+    }
 }
 
 #endif //LIBGSP_KERNELS_H
