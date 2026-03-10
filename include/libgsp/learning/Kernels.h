@@ -154,6 +154,62 @@ namespace gsp {
 
         return detail::arrayfunKernel(distance, thresh, inverse_multiquadric_lambda, sigma);
     }
+
+    // --- Rational Quadratic Kernel ---
+
+    template <class Matrix>
+    Matrix rationalQuadraticKernel(const Matrix& distance, double sigma, double thresh = 1e-6) {
+        // Formula: 1 - (d^2 / (d^2 + sigma^2))
+        auto rational_quadratic_lambda = [](auto val, auto sigma) {
+            auto val_sq = val * val;
+            auto sigma_sq = sigma * sigma;
+            return 1.0 - (val_sq / (val_sq + sigma_sq));
+        };
+
+        return detail::arrayfunKernel(distance, thresh, rational_quadratic_lambda, sigma);
+    }
+
+    // --- Epsilon Neighborhood ---
+
+    template <class Matrix>
+    Matrix epsilonNeighborhood(const Matrix& distance, double epsilon, double thresh = 1e-6) {
+        // Formula: 1 if d < epsilon else 0
+        // Note: thresh is usually not needed here as output is already 0 or 1,
+        // but kept for interface consistency.
+        auto epsilon_lambda = [](auto val, auto epsilon) {
+            return (val < epsilon) ? 1.0 : 0.0;
+        };
+
+        return detail::arrayfunKernel(distance, thresh, epsilon_lambda, epsilon);
+    }
+
+    // --- from Sup ---
+
+    template <class Matrix>
+    Matrix fromSup(const Matrix& distance, double sup, double thresh = 1e-6) {
+        // Determine the sup value
+        if (sup == 0.0) sup = distance.maxCoeff();
+
+        // Formula: sup - d
+        auto sup_minus_lambda = [](auto val, auto sup) {
+            return sup - val;
+        };
+
+        return detail::arrayfunKernel(distance, thresh, sup_minus_lambda, sup);
+    }
+
+    // --- Inverse Dist ---
+
+    template <class Matrix>
+    Matrix inverseDist(const Matrix& distance, double eps, double thresh = 1e-6) {
+        // Formula: 1 / (d + eps)
+        auto inverse_lambda = [](auto val, auto eps) {
+            return 1.0 / (val + eps);
+        };
+
+        return detail::arrayfunKernel(distance, thresh, inverse_lambda, eps);
+    }
+
 }
 
 #endif //LIBGSP_KERNELS_H
