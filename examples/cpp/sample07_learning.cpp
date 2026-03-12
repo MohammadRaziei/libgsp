@@ -6,8 +6,7 @@
 #include "common.h"
 #include "libgsp/utils/Logging.h"
 #include "libgsp/Graph.h"
-#include "libgsp/learning/Distance.h"
-#include "libgsp/learning/Kernels.h"
+#include "libgsp/learning/LearningCore.h"
 
 
 int main(int argc, char** argv) {
@@ -58,6 +57,20 @@ int main(int argc, char** argv) {
             .compute(graph.coords());
     toc;
     logger->info("ANN L2Distance: \n{}", fmt::streamed(sparse_distance.toDense()));
+
+
+
+    // Instantiate the learner for Dense matrices
+    gsp::GraphLearningLogDegrees<gsp::sparsematrix_t<double>> learner_sparse;
+
+    // Set parameters
+    learner_sparse.setAlpha(1.0);
+    learner_sparse.setBeta(1.0);
+    learner_sparse.setMaxIterations(100);
+    learner_sparse.setVerbosity(1); // 1 = basic output
+
+    // Compute the graph weights
+    auto W_sparse = learner_sparse.compute(sparse_distance);
 
     tic;
     sparse_learned_weights = gsp::gaussianKernel(sparse_distance, 1);

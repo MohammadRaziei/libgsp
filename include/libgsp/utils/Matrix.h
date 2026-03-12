@@ -7,6 +7,7 @@
 #pragma once
 
 #include <cstdint>
+#include <stdexcept>
 #include <Eigen/Dense>
 #include <Eigen/Sparse>
 #include <unsupported/Eigen/KroneckerProduct>
@@ -14,6 +15,15 @@
 #include "libgsp/utils/Types.h"
 
 namespace gsp::matrix {
+
+
+template<typename Scalar, int Options, typename Index>
+Eigen::SparseMatrix<Scalar, Options, Index> zeros(uint32_t size_x, uint32_t size_y) {
+    Eigen::SparseMatrix<Scalar, Options, Index> matrix(size_x, size_y);
+    matrix.setZero();
+    return matrix;
+}
+
 // ---------- allocate ----------
 template<typename Scalar, int Options, typename Index>
 void allocate(Eigen::SparseMatrix<Scalar, Options, Index>& m,
@@ -38,6 +48,14 @@ void fillZero(Eigen::Matrix<Scalar, Rows, Cols, Options, MR, MC>& matrix) {
 template<typename Scalar, int Options, typename Index>
 void fillZero(Eigen::SparseMatrix<Scalar, Options, Index>& matrix) {
     matrix.setZero();
+}
+
+// ---------- Zeros ----------
+template<typename Matrix>
+Matrix zeros(uint32_t size_x, uint32_t size_y) {
+    Matrix matrix(size_x, size_y);
+    fillZero(matrix);
+    return matrix;
 }
 
 // ---------- free ----------
