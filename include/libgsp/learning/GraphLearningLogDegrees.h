@@ -319,9 +319,11 @@ namespace gsp {
         }
 
         // Prior handling
-        MatrixType W0_mat = gsp::matrix::zeros<MatrixType>(n, n);
+        MatrixType W0_mat(n, n);
         if (has_prior_) {
-            W0_mat = W0_;
+            W0_mat = detail::applyMaskFromZ(Z_input, W0_);
+        } else {
+            W0_mat.setZero();
         }
 
         // 2. Optimization Parameters
@@ -349,19 +351,24 @@ namespace gsp {
             logger_->info("Starting optimization... Nodes: {}", n);
         }
 
+        MatrixType grad_h;
+
+        MatrixType Y, P, Q;
+        Eigen::Matrix<Scalar, Eigen::Dynamic, 1> y, p, q;
+
         // 3. Main Loop (FBF Algorithm adapted for Matrices)
         for (int iter = 0; iter < maxit_; ++iter) {
             // Gradient of h(W) = beta*||W||^2 + c/2*||W-W0||^2
             // grad_h = 2*(beta+c)*W - c*W0
-            MatrixType grad_h = 2.0 * ((beta_ + (has_prior_ ? prior_c_ : 0.0)) * W -
-                                       (has_prior_ ? prior_c_ * W0_mat : gsp::matrix::zeros<MatrixType>(n, n)));
+            if (has_prior_) {
+                grad_h = 2.0 * ((beta_ + prior_c_) * W - prior_c_ * W0_mat);
+            } else {
+                grad_h = 2.0 * (beta_ * W);
+            }
 
             // ---------------------------------------------------------
             // Compute Y, P, Q based on MatrixType (Dense vs Sparse)
             // ---------------------------------------------------------
-
-            MatrixType Y, P, Q;
-            Eigen::Matrix<Scalar, Eigen::Dynamic, 1> y, p, q;
 
             if constexpr (gsp::types::is_eigen_sparse<MatrixType>::value) {
                 // --- CASE: SPARSE (Memory Efficient) ---
@@ -401,8 +408,14 @@ namespace gsp {
                 p = y - gamma * alpha_ * g_prox_val;
 
                 // 5. Compute Q = P - gamma * (grad_h_P + St_p)
-                MatrixType grad_h_P = 2.0 * ((beta_ + (has_prior_ ? prior_c_ : 0.0)) * P -
-                                             (has_prior_ ? prior_c_ * W0_mat : gsp::matrix::zeros<MatrixType>(n, n)));
+                MatrixType grad_h_P;
+
+                if (has_prior_) {
+                    grad_h_P = 2.0 * ((beta_ + prior_c_) * P - prior_c_ * W0_mat);
+                } else {
+                    grad_h_P = 2.0 * (beta_ * P);
+                }
+
 
                 Q = P;
                 for (int k = 0; k < Q.outerSize(); ++k) {
@@ -443,8 +456,15 @@ namespace gsp {
                 p = y - gamma * alpha_ * g_prox_val;
 
                 // Second gradient step
-                MatrixType grad_h_P = 2.0 * ((beta_ + (has_prior_ ? prior_c_ : 0.0)) * P -
-                                             (has_prior_ ? prior_c_ * W0_mat : gsp::matrix::zeros<MatrixType>(n, n)));
+                MatrixType grad_h_P;
+
+                if (has_prior_) {
+                    grad_h_P = 2.0 * ((beta_ + prior_c_) * P - prior_c_ * W0_mat);
+                } else {
+                    grad_h_P = 2.0 * (beta_ * P);
+                }
+
+
 
                 St_p = ones_vec * p.transpose() + p * ones_vec.transpose();
                 Q = P - gamma * (grad_h_P + St_p);
@@ -458,10 +478,6 @@ namespace gsp {
             // Update variables
             W = W - Y + Q;
             v = v - y + q;
-
-            // Enforce Constraints (Mask and Symmetry)
-            detail::applyMaskFromZ(Z_input, W);
-//            detail::enforceSymmetry(W);
 
             // Logging
             if (verbosity_ > 1) {

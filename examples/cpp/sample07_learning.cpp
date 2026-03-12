@@ -52,7 +52,7 @@ int main(int argc, char** argv) {
     tic;
     sparse_distance = ann.setMetric(gsp::DistanceMetric::L2Distance)
             .setKFixed(10)
-            .setExcludeSelf(false)
+            .setExcludeSelf(true)
             .setTriangularOnly(false)
             .compute(graph.coords());
     toc;
@@ -71,6 +71,8 @@ int main(int argc, char** argv) {
 
     // Compute the graph weights
     auto W_sparse = learner_sparse.compute(sparse_distance);
+    logger->info("W sparse: \n{}", fmt::streamed(W_sparse.toDense()));
+
 
     tic;
     sparse_learned_weights = gsp::gaussianKernel(sparse_distance, 1);
