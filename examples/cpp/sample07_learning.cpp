@@ -59,16 +59,21 @@ int main(int argc, char** argv) {
     logger->info("ANN L2Distance: \n{}", fmt::streamed(sparse_distance.toDense()));
 
 
-    auto my_dist = sparse_distance.toDense();
+    auto my_dist = sparse_distance.cwisePow(2).toDense();
+    decltype(my_dist) myW;
     // Instantiate the learner for Dense matrices
+
+    gsp::GraphLearningLogDegrees<decltype(my_dist)> learner;
+
+    logger->info("theta: {}", learner.calc_theta(my_dist, 2));
     // Set parameters
-    auto W_sparse = gsp::GraphLearningLogDegrees<decltype(my_dist)>()
-            .setAlpha(1.0)
-            .setBeta(1.0)
-            .setMaxIterations(100)
-            .setVerbosity(1)
-            .compute(my_dist);
-    logger->info("W sparse: \n{}", fmt::streamed(W_sparse));
+//    auto myW = learner.setAlpha(1.0).setBeta(1.0)
+//            .setMaxIterations(100).setVerbosity(1)
+//            .compute(my_dist);
+
+    myW = learner.setMaxIterations(100).setVerbosity(1)
+            .autoCompute(my_dist, 1);
+    logger->info("my W: \n{}", fmt::streamed(myW));
 
 
     tic;

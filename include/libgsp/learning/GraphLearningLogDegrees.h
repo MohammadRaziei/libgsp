@@ -20,9 +20,102 @@
 
 
 namespace gsp {
+
 // -----------------------------------------------------------------------------
-// Namespace for Generic Helper Functions (Masking & Symmetry)
+// Main Class Definition
 // -----------------------------------------------------------------------------
+
+    template<typename MatrixType>
+    class GraphLearningLogDegrees {
+    public:
+        using Scalar = typename std::decay_t<MatrixType>::Scalar;
+        using Index = typename std::decay_t<MatrixType>::Index;
+
+        // Structure to hold optimization statistics
+        struct Stats {
+            std::vector<double> f_eval;
+            std::vector<double> g_eval;
+            std::vector<double> h_eval;
+            std::vector<double> total_eval;
+            std::vector<double> pos_violation;
+            double time = 0.0;
+            int iterations = 0;
+        };
+
+        // Constructor
+        GraphLearningLogDegrees();
+
+        // Setters for parameters
+        GraphLearningLogDegrees<MatrixType>& setAlpha(Scalar a);
+
+        GraphLearningLogDegrees<MatrixType>& setBeta(Scalar b);
+
+        GraphLearningLogDegrees<MatrixType>& setMaxIterations(int max_it);
+
+        GraphLearningLogDegrees<MatrixType>& setTolerance(Scalar tol);
+
+        GraphLearningLogDegrees<MatrixType>& setStepSize(Scalar step);
+
+        GraphLearningLogDegrees<MatrixType>& setVerbosity(int verb);
+
+        GraphLearningLogDegrees<MatrixType>& setMaxWeight(Scalar max_w);
+
+        // Set Initial W (Must be same type as Z)
+        GraphLearningLogDegrees<MatrixType>& setInitialW(const MatrixType &W_init);
+
+        // Set Prior (W0 and c)
+        GraphLearningLogDegrees<MatrixType>& setPrior(const MatrixType &W0, Scalar c);
+
+        // Main computation function
+        // Input type and Output type are strictly the same (MatrixType)
+        MatrixType compute(const MatrixType &Z);
+        MatrixType autoCompute(const MatrixType &Z_input, int k);
+
+            // Get statistics
+        Stats getStats() const;
+
+    public:
+        // Proximal operator for the log-sum barrier (Element-wise on Matrix)
+        static MatrixType prox_sum_log(const MatrixType &X, Scalar gamma);
+        double calc_theta(const MatrixType& Z_input, int k, bool geom_mean = false, bool is_sorted = false);
+
+    private:
+        gsp::logging::Logger logger_ = gsp::logging::getLogger("GraphLearningLogDegrees");
+        // Parameters
+        Scalar alpha_;
+        Scalar beta_;
+        uint32_t maxit_;
+        Scalar tol_;
+        Scalar step_size_;
+        int verbosity_;
+        Scalar max_w_;
+
+        // Prior parameters
+        bool has_prior_;
+        Scalar prior_c_;
+        MatrixType W0_;
+
+        // Internal state
+        bool has_init_;
+        MatrixType W_init_;
+        Stats stats_;
+
+        // Helper functions
+        Scalar lin_map(Scalar x, Scalar out_min, Scalar out_max, Scalar in_min, Scalar in_max);
+    };
+
+
+
+
+
+
+
+
+
+
+
+
+
     namespace detail {
 
 
@@ -99,85 +192,9 @@ namespace gsp {
         }
     } // namespace detail
 
-// -----------------------------------------------------------------------------
-// Main Class Definition
-// -----------------------------------------------------------------------------
 
-    template<typename MatrixType>
-    class GraphLearningLogDegrees {
-    public:
-        using Scalar = typename std::decay_t<MatrixType>::Scalar;
-        using Index = typename std::decay_t<MatrixType>::Index;
 
-        // Structure to hold optimization statistics
-        struct Stats {
-            std::vector<double> f_eval;
-            std::vector<double> g_eval;
-            std::vector<double> h_eval;
-            std::vector<double> total_eval;
-            std::vector<double> pos_violation;
-            double time = 0.0;
-            int iterations = 0;
-        };
 
-        // Constructor
-        GraphLearningLogDegrees();
-
-        // Setters for parameters
-        GraphLearningLogDegrees<MatrixType>& setAlpha(Scalar a);
-
-        GraphLearningLogDegrees<MatrixType>& setBeta(Scalar b);
-
-        GraphLearningLogDegrees<MatrixType>& setMaxIterations(int max_it);
-
-        GraphLearningLogDegrees<MatrixType>& setTolerance(Scalar tol);
-
-        GraphLearningLogDegrees<MatrixType>& setStepSize(Scalar step);
-
-        GraphLearningLogDegrees<MatrixType>& setVerbosity(int verb);
-
-        GraphLearningLogDegrees<MatrixType>& setMaxWeight(Scalar max_w);
-
-        // Set Initial W (Must be same type as Z)
-        GraphLearningLogDegrees<MatrixType>& setInitialW(const MatrixType &W_init);
-
-        // Set Prior (W0 and c)
-        GraphLearningLogDegrees<MatrixType>& setPrior(const MatrixType &W0, Scalar c);
-
-        // Main computation function
-        // Input type and Output type are strictly the same (MatrixType)
-        MatrixType compute(const MatrixType &Z);
-
-        // Get statistics
-        Stats getStats() const;
-
-    private:
-        gsp::logging::Logger logger_ = gsp::logging::getLogger("GraphLearningLogDegrees");
-        // Parameters
-        Scalar alpha_;
-        Scalar beta_;
-        uint32_t maxit_;
-        Scalar tol_;
-        Scalar step_size_;
-        int verbosity_;
-        Scalar max_w_;
-
-        // Prior parameters
-        bool has_prior_;
-        Scalar prior_c_;
-        MatrixType W0_;
-
-        // Internal state
-        bool has_init_;
-        MatrixType W_init_;
-        Stats stats_;
-
-        // Helper functions
-        Scalar lin_map(Scalar x, Scalar out_min, Scalar out_max, Scalar in_min, Scalar in_max);
-
-        // Proximal operator for the log-sum barrier (Element-wise on Matrix)
-        MatrixType prox_sum_log(const MatrixType &X, Scalar gamma);
-    };
 
 // -----------------------------------------------------------------------------
 // Implementation Section
@@ -191,10 +208,18 @@ namespace gsp {
 
 // Setters
     template<typename MatrixType>
-    GraphLearningLogDegrees<MatrixType>& GraphLearningLogDegrees<MatrixType>::setAlpha(Scalar a) { alpha_ = a; return *this; }
+    GraphLearningLogDegrees<MatrixType>& GraphLearningLogDegrees<MatrixType>::setAlpha(Scalar a) {
+        assert(a > 0 && "Alpha must be positive");
+        alpha_ = a;
+        return *this;
+    }
 
     template<typename MatrixType>
-    GraphLearningLogDegrees<MatrixType>& GraphLearningLogDegrees<MatrixType>::setBeta(Scalar b) { beta_ = b; return *this; }
+    GraphLearningLogDegrees<MatrixType>& GraphLearningLogDegrees<MatrixType>::setBeta(Scalar b) {
+        assert(b > 0 && "Beta must be positive");
+        beta_ = b;
+        return *this;
+    }
 
     template<typename MatrixType>
     GraphLearningLogDegrees<MatrixType>& GraphLearningLogDegrees<MatrixType>::setMaxIterations(int max_it) { maxit_ = max_it; return *this; }
@@ -238,13 +263,110 @@ namespace gsp {
         return (x - in_min) * ((out_max - out_min) / (in_max - in_min)) + out_min;
     }
 
-// Proximal operator for log-sum barrier applied element-wise to the matrix
+    // Proximal operator for log-sum barrier applied element-wise to the matrix
     template<typename MatrixType>
     MatrixType GraphLearningLogDegrees<MatrixType>::prox_sum_log(const MatrixType &X, Scalar gamma) {
         // sol = (x + sqrt(x.^2 + 4*gamma)) / 2;
         // We use Eigen array operations for genericity (works for both Dense and Sparse)
         return (X.array().square() + 4.0 * gamma).sqrt().cwiseQuotient(2.0).cwiseQuotient(2.0) + X.array() / 2.0;
         // Note: X/2 + sqrt(X^2 + 4g)/2
+    }
+
+
+    template <typename MatrixType>
+    double GraphLearningLogDegrees<MatrixType>::calc_theta(const MatrixType& Z_input, int k, bool geom_mean, bool is_sorted) {
+        using Scalar = typename MatrixType::Scalar;
+        using Index = typename MatrixType::Index;
+
+        Index n = Z_input.rows();
+
+        // Accumulator for the mean calculation
+        double sum_theta_inv = 0.0;
+        int valid_rows = 0;
+
+        for (Index i = 0; i < n; ++i) {
+            std::vector<Scalar> neighbors;
+
+            // --- Extract neighbors (excluding diagonal) ---
+            if constexpr (gsp::types::is_eigen_sparse<MatrixType>::value) {
+                // Sparse case
+                neighbors.reserve(Z_input.nonZeros());
+                for (typename MatrixType::InnerIterator it(Z_input, i); it; ++it) {
+                    if (it.col() != i) {
+                        neighbors.push_back(it.value());
+                    }
+                }
+            } else {
+                // Dense case
+                neighbors.reserve(n - 1);
+                for (Index j = 0; j < n; ++j) {
+                    if (i != j) {
+                        neighbors.push_back(Z_input(i, j));
+                    }
+                }
+            }
+
+            // --- Find k smallest neighbors ---
+            // We need exactly k elements for the calculation (or fewer if not enough neighbors)
+            size_t count = std::min(neighbors.size(), static_cast<size_t>(k));
+
+            if (count > 0) {
+                // Partial sort to bring the k smallest elements to the front
+                std::nth_element(neighbors.begin(), neighbors.begin() + count, neighbors.end());
+                // Sort the first 'count' elements to ensure correct order for cumulative sum
+                std::sort(neighbors.begin(), neighbors.begin() + count);
+
+                // --- Calculate Theta contribution for this row ---
+                double B_k = 0.0; // Cumulative sum of distances
+                for (size_t idx = 0; idx < count; ++idx) {
+                    Scalar z = neighbors[idx];
+                    int K_val = static_cast<int>(idx + 1); // 1-based index for the formula
+
+                    // Formula term: 1 / sqrt(K * z^2 - B * z)
+                    double term = K_val * z * z - B_k * z;
+
+                    if (term > 1e-12) { // Numerical stability
+                        double val = 1.0 / std::sqrt(term);
+                        if (geom_mean) {
+                            sum_theta_inv += std::log(val);
+                        } else {
+                            sum_theta_inv += val;
+                        }
+                    }
+                    B_k += z;
+                }
+                valid_rows++;
+            }
+        }
+
+        if (valid_rows == 0) return 0.0;
+
+        // Calculate theta_u (upper bound for the requested k)
+        double theta_u;
+        if (geom_mean) {
+            theta_u = std::exp(sum_theta_inv / valid_rows);
+        } else {
+            theta_u = sum_theta_inv / valid_rows;
+        }
+
+        // Calculate theta_min and theta_max based on the logic in gsp_compute_graph_learning_theta
+        // theta_min = theta_u(k)
+        // theta_max = theta_u(k) (Note: In the simplified logic provided earlier, bounds were tight)
+        // However, strictly following the MATLAB code structure:
+        // theta_min = theta_u(k)
+        // theta_max = theta_u(k) (since we computed specifically for k)
+
+        double theta_min = theta_u;
+        double theta_max = theta_u;
+
+        double theta;
+        if (k > 1) {
+            theta = std::sqrt(theta_min * theta_max);
+        } else {
+            theta = theta_min * 1.1;
+        }
+
+        return theta;
     }
 
     template<typename MatrixType>
@@ -451,6 +573,15 @@ namespace gsp {
         }
 
         return W;
+    }
+
+
+    template<typename MatrixType>
+    MatrixType GraphLearningLogDegrees<MatrixType>::autoCompute(const MatrixType &Z_input, int k) {
+        setAlpha(1);
+        setBeta(1);
+        double theta = calc_theta(Z_input, k);
+        return compute(Z_input * theta);
     }
 
 } // namespace gsp
