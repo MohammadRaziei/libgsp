@@ -52,26 +52,23 @@ int main(int argc, char** argv) {
     tic;
     sparse_distance = ann.setMetric(gsp::DistanceMetric::L2Distance)
             .setKFixed(10)
-            .setExcludeSelf(true)
+            .setExcludeSelf(false)
             .setTriangularOnly(false)
             .compute(graph.coords());
     toc;
     logger->info("ANN L2Distance: \n{}", fmt::streamed(sparse_distance.toDense()));
 
 
-
+    auto my_dist = sparse_distance.toDense();
     // Instantiate the learner for Dense matrices
-    gsp::GraphLearningLogDegrees<gsp::sparsematrix_t<double>> learner_sparse;
-
     // Set parameters
-    learner_sparse.setAlpha(1.0);
-    learner_sparse.setBeta(1.0);
-    learner_sparse.setMaxIterations(100);
-    learner_sparse.setVerbosity(1); // 1 = basic output
-
-    // Compute the graph weights
-    auto W_sparse = learner_sparse.compute(sparse_distance);
-    logger->info("W sparse: \n{}", fmt::streamed(W_sparse.toDense()));
+    auto W_sparse = gsp::GraphLearningLogDegrees<decltype(my_dist)>()
+            .setAlpha(1.0)
+            .setBeta(1.0)
+            .setMaxIterations(100)
+            .setVerbosity(1)
+            .compute(my_dist);
+    logger->info("W sparse: \n{}", fmt::streamed(W_sparse));
 
 
     tic;

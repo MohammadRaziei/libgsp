@@ -37,8 +37,34 @@ namespace gsp {
         template<typename Derived>
         Derived applyMaskFromZ(const Eigen::MatrixBase<Derived> &, const Eigen::MatrixBase<Derived> &M) {
             // For dense matrices, the structure is full.
-            // We simply return M (assuming dimensions match).
-            return M.derived();
+            // We create a copy, zero the diagonal, and return it.
+            Derived res = M.derived();
+            res.diagonal().setZero();
+            return res;
+        }
+
+        template<typename Scalar, int Options, typename StorageIndex, typename Derived>
+        Derived applyMaskFromZ(
+                const Eigen::SparseMatrix<Scalar, Options, StorageIndex> &Z,
+                const Eigen::MatrixBase<Derived> &M)
+        {
+            using SparseMat = Eigen::SparseMatrix<Scalar, Options, StorageIndex>;
+
+            Derived result(Z.rows(), Z.cols());
+            result.setZero();
+
+            // Iterate over Z to find the pattern
+            for (int k = 0; k < Z.outerSize(); ++k) {
+                for (typename SparseMat::InnerIterator it(Z, k); it; ++it) {
+                    if (it.row() == it.col()) continue;
+                    // Get the value from M at the same position
+                    Scalar val = M(it.row(), it.col());
+                    // set into result
+                    result(it.row(), it.col()) = val;
+                }
+            }
+
+            return result;
         }
 
         // 2. Sparse Version
@@ -57,6 +83,7 @@ namespace gsp {
             // Iterate over Z to find the pattern
             for (int k = 0; k < Z.outerSize(); ++k) {
                 for (typename SparseMat::InnerIterator it(Z, k); it; ++it) {
+                    if (it.row() == it.col()) continue;
                     // Get the value from M at the same position
                     // coeffRef is efficient here if we are sure the index exists in M,
                     // but to be safe and generic (in case M is slightly different),
@@ -70,92 +97,6 @@ namespace gsp {
 
             return result;
         }
-
-        // -------------------------------------------------------------------------
-        // 1. Extract Mask
-        //    Creates a binary mask (0 or 1) based on non-zeros of the input matrix.
-        //    Handles both Dense and Sparse matrices generically.
-        // -------------------------------------------------------------------------
-
-        // Dense Version
-        template<typename Derived>
-        auto extractMask(const Eigen::MatrixBase<Derived> &mat, double threshold = 0.0) {
-            using Scalar = typename Derived::Scalar;
-            // Returns a dense matrix of 0s and 1s
-            return (mat.array().abs() > threshold).template cast<Scalar>();
-        }
-
-        // Sparse Version
-        template<typename Scalar, int Options, typename StorageIndex>
-        auto extractMask(const Eigen::SparseMatrix<Scalar, Options, StorageIndex> &mat, double threshold = 0.0) {
-            using SparseMat = Eigen::SparseMatrix<Scalar, Options, StorageIndex>;
-            SparseMat mask(mat.rows(), mat.cols());
-            mask.reserve(mat.nonZeros());
-
-            for (int k = 0; k < mat.outerSize(); ++k) {
-                for (typename SparseMat::InnerIterator it(mat, k); it; ++it) {
-                    if (std::abs(it.value()) > threshold) {
-                        mask.insert(it.row(), it.col()) = static_cast<Scalar>(1);
-                    }
-                }
-            }
-            mask.makeCompressed();
-            return mask;
-        }
-
-        // -------------------------------------------------------------------------
-        // 2. Apply Mask
-        //    Applies the mask to the data matrix (Element-wise multiplication).
-        // -------------------------------------------------------------------------
-
-        // Dense Version
-        template<typename DerivedA, typename DerivedB>
-        void applyMask(const Eigen::MatrixBase<DerivedA> &mask, Eigen::MatrixBase<DerivedB> &data) {
-            // data = data .* mask
-            data.const_cast_derived() = data.cwiseProduct(mask);
-        }
-
-        // Sparse Version
-        template<typename Scalar, int Options, typename StorageIndex>
-        void applyMask(const Eigen::SparseMatrix<Scalar, Options, StorageIndex> &mask,
-                       Eigen::SparseMatrix<Scalar, Options, StorageIndex> &data) {
-            // Efficiently zero out elements in 'data' where 'mask' is zero.
-            // Since we assume mask structure matches data structure (or is a subset),
-            // we iterate over data and check mask.
-
-            data.makeCompressed();
-            for (int k = 0; k < data.outerSize(); ++k) {
-                for (typename Eigen::SparseMatrix<Scalar, Options, StorageIndex>::InnerIterator it(data, k); it; ++it) {
-                    // If mask is zero at this position, remove edge from W
-                    if (mask.coeff(it.row(), it.col()) == 0) {
-                        it.valueRef() = 0;
-                    }
-                }
-            }
-            data.prune(0, 0); // Remove explicit zeros
-        }
-
-        // -------------------------------------------------------------------------
-        // 3. Enforce Symmetry
-        //    W = (W + W') / 2
-        // -------------------------------------------------------------------------
-
-        // Dense Version
-        template<typename Derived>
-        void enforceSymmetry(Eigen::MatrixBase<Derived> &mat) {
-            mat.const_cast_derived() = (mat + mat.transpose()).eval() * 0.5;
-        }
-
-        // Sparse Version
-        template<typename Scalar, int Options, typename StorageIndex>
-        void enforceSymmetry(Eigen::SparseMatrix<Scalar, Options, StorageIndex> &mat) {
-            // For sparse, we add the transpose and then prune.
-            // Note: This might slightly change the sparsity pattern (fill-in).
-            mat = mat + mat.transpose();
-            mat *= 0.5;
-            mat.prune(0, 0); // Clean up near-zeros created by addition
-        }
-
     } // namespace detail
 
 // -----------------------------------------------------------------------------
@@ -183,25 +124,25 @@ namespace gsp {
         GraphLearningLogDegrees();
 
         // Setters for parameters
-        void setAlpha(Scalar a);
+        GraphLearningLogDegrees<MatrixType>& setAlpha(Scalar a);
 
-        void setBeta(Scalar b);
+        GraphLearningLogDegrees<MatrixType>& setBeta(Scalar b);
 
-        void setMaxIterations(int max_it);
+        GraphLearningLogDegrees<MatrixType>& setMaxIterations(int max_it);
 
-        void setTolerance(Scalar tol);
+        GraphLearningLogDegrees<MatrixType>& setTolerance(Scalar tol);
 
-        void setStepSize(Scalar step);
+        GraphLearningLogDegrees<MatrixType>& setStepSize(Scalar step);
 
-        void setVerbosity(int verb);
+        GraphLearningLogDegrees<MatrixType>& setVerbosity(int verb);
 
-        void setMaxWeight(Scalar max_w);
+        GraphLearningLogDegrees<MatrixType>& setMaxWeight(Scalar max_w);
 
         // Set Initial W (Must be same type as Z)
-        void setInitialW(const MatrixType &W_init);
+        GraphLearningLogDegrees<MatrixType>& setInitialW(const MatrixType &W_init);
 
         // Set Prior (W0 and c)
-        void setPrior(const MatrixType &W0, Scalar c);
+        GraphLearningLogDegrees<MatrixType>& setPrior(const MatrixType &W0, Scalar c);
 
         // Main computation function
         // Input type and Output type are strictly the same (MatrixType)
@@ -250,37 +191,39 @@ namespace gsp {
 
 // Setters
     template<typename MatrixType>
-    void GraphLearningLogDegrees<MatrixType>::setAlpha(Scalar a) { alpha_ = a; }
+    GraphLearningLogDegrees<MatrixType>& GraphLearningLogDegrees<MatrixType>::setAlpha(Scalar a) { alpha_ = a; return *this; }
 
     template<typename MatrixType>
-    void GraphLearningLogDegrees<MatrixType>::setBeta(Scalar b) { beta_ = b; }
+    GraphLearningLogDegrees<MatrixType>& GraphLearningLogDegrees<MatrixType>::setBeta(Scalar b) { beta_ = b; return *this; }
 
     template<typename MatrixType>
-    void GraphLearningLogDegrees<MatrixType>::setMaxIterations(int max_it) { maxit_ = max_it; }
+    GraphLearningLogDegrees<MatrixType>& GraphLearningLogDegrees<MatrixType>::setMaxIterations(int max_it) { maxit_ = max_it; return *this; }
 
     template<typename MatrixType>
-    void GraphLearningLogDegrees<MatrixType>::setTolerance(Scalar tol) { tol_ = tol; }
+    GraphLearningLogDegrees<MatrixType>& GraphLearningLogDegrees<MatrixType>::setTolerance(Scalar tol) { tol_ = tol; return *this; }
 
     template<typename MatrixType>
-    void GraphLearningLogDegrees<MatrixType>::setStepSize(Scalar step) { step_size_ = step; }
+    GraphLearningLogDegrees<MatrixType>& GraphLearningLogDegrees<MatrixType>::setStepSize(Scalar step) { step_size_ = step; return *this; }
 
     template<typename MatrixType>
-    void GraphLearningLogDegrees<MatrixType>::setVerbosity(int verb) { verbosity_ = verb; }
+    GraphLearningLogDegrees<MatrixType>& GraphLearningLogDegrees<MatrixType>::setVerbosity(int verb) { verbosity_ = verb; return *this; }
 
     template<typename MatrixType>
-    void GraphLearningLogDegrees<MatrixType>::setMaxWeight(Scalar max_w) { max_w_ = max_w; }
+    GraphLearningLogDegrees<MatrixType>& GraphLearningLogDegrees<MatrixType>::setMaxWeight(Scalar max_w) { max_w_ = max_w; return *this; }
 
     template<typename MatrixType>
-    void GraphLearningLogDegrees<MatrixType>::setInitialW(const MatrixType &W_init) {
+    GraphLearningLogDegrees<MatrixType>& GraphLearningLogDegrees<MatrixType>::setInitialW(const MatrixType &W_init) {
         W_init_ = W_init;
         has_init_ = true;
+        return *this;
     }
 
     template<typename MatrixType>
-    void GraphLearningLogDegrees<MatrixType>::setPrior(const MatrixType &W0, Scalar c) {
+    GraphLearningLogDegrees<MatrixType>& GraphLearningLogDegrees<MatrixType>::setPrior(const MatrixType &W0, Scalar c) {
         W0_ = W0;
         prior_c_ = c;
         has_prior_ = true;
+        return *this;
     }
 
     template<typename MatrixType>
@@ -377,6 +320,7 @@ namespace gsp {
                 Y = W;
                 for (int k = 0; k < Y.outerSize(); ++k) {
                     for (typename MatrixType::InnerIterator it(Y, k); it; ++it) {
+                        if (it.row() == it.col()) continue;
                         Scalar val = it.value();
                         Scalar grad_val = grad_h.coeff(it.row(), it.col());
                         Scalar st_v_val = v(it.row()) + v(it.col());
@@ -388,6 +332,7 @@ namespace gsp {
                 P = Y - 2.0 * gamma * Z_input;
                 for (int k = 0; k < P.outerSize(); ++k) {
                     for (typename MatrixType::InnerIterator it(P, k); it; ++it) {
+                        if (it.row() == it.col()) continue;
                         Scalar val = it.value();
                         if (val < 0) val = 0;
                         else if (val > max_w_) val = max_w_;
@@ -420,6 +365,7 @@ namespace gsp {
                 Q = P;
                 for (int k = 0; k < Q.outerSize(); ++k) {
                     for (typename MatrixType::InnerIterator it(Q, k); it; ++it) {
+                        if (it.row() == it.col()) continue;
                         Scalar val = it.value();
                         Scalar grad_val = grad_h_P.coeff(it.row(), it.col());
                         Scalar st_p_val = p(it.row()) + p(it.col());
@@ -434,9 +380,9 @@ namespace gsp {
                 // --- CASE: DENSE (Fast & Vectorized) ---
 
                 MatrixType St_v = ones_vec * v.transpose() + v * ones_vec.transpose();
-                MatrixType St_p = ones_vec * p.transpose() + p * ones_vec.transpose();
 
                 Y = W - gamma * (grad_h + St_v);
+                Y.diagonal().setZero(); // Zero diagonal for Y
                 y = v + gamma * (W * ones_vec);
 
                 // Proximal operator f (Positivity + Data term)
@@ -445,6 +391,7 @@ namespace gsp {
                 if (max_w_ < std::numeric_limits<Scalar>::infinity()) {
                     P = (P.array() > max_w_).select(max_w_, P);
                 }
+                P.diagonal().setZero(); // Zero diagonal for P
 
                 // Proximal operator g_star (Log barrier on degrees)
                 Scalar inner_gamma = 1.0 / (gamma * alpha_);
@@ -466,8 +413,9 @@ namespace gsp {
 
 
 
-                St_p = ones_vec * p.transpose() + p * ones_vec.transpose();
+                MatrixType St_p = ones_vec * p.transpose() + p * ones_vec.transpose();
                 Q = P - gamma * (grad_h_P + St_p);
+                Q.diagonal().setZero(); // Zero diagonal for Q
                 q = p + gamma * (P * ones_vec);
             }
 
