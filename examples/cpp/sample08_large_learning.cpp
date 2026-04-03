@@ -126,8 +126,8 @@ int main(int argc, char** argv) {
     logger->info("Sample 08 - Large Scale Graph Learning");
 
     // Define dataset size
-    int n_samples = 25;
-    int n_features = 2;
+    int n_samples = 10'000'000;
+    int n_features = 3;
     double snr = 20;     // User defined SNR
     int k = n_features * 2;
     int r = 5;
@@ -164,12 +164,12 @@ int main(int argc, char** argv) {
     gsp::GraphLearningLogDegrees<decltype(Z)> learner;
 
     // Run optimization
-    auto max_iter = 5000;
+    auto max_iter = 30;
     logger->info("Starting graph learning optimization (Max Iter: {})...", max_iter);
     tic;
     auto W = learner.setMaxIterations(max_iter)
             .setVerbosity(2)
-            .autoCompute(Z, k);
+            .setAlpha(2).setBeta(1).compute(Z);
     toc;
 //    tic;
 //    W.prune([](const Scalar& value, const int& /*row*/, const int& /*col*/) {
